@@ -347,7 +347,11 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
 .login-card .bmark{margin:0 auto 16px;width:52px;height:52px;border-radius:14px;background:var(--accent-strong);font-size:2rem}
 .login-card h1{margin:0 0 6px;font-size:1.4rem;font-weight:800;color:var(--title)}
 .login-card p{margin:0 0 20px;color:var(--muted)}
-.login-card .btn{width:100%;padding:12px}
+.login-card input{width:100%;box-sizing:border-box;padding:11px 12px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;background:var(--field);font-size:.95rem}
+.login-card input:focus{outline:none;border-color:var(--accent)}
+.login-card .login-btns{display:flex;align-items:center;gap:6px;margin-top:4px}
+.login-card .btn{padding:12px;flex:1}
+.login-card .login-btns .link{white-space:nowrap;font-size:.82rem;font-weight:600;padding:8px}
 .login-card .err{margin:14px 0 0;color:var(--danger);min-height:0}
 /* Document form */
 .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 12px;padding:20px 18px 8px}
@@ -471,8 +475,14 @@ table.db thead th:last-child{border-top-right-radius:14px}
 </div>
 <div class="login" id="login" hidden><div class="login-card">
   <div class="bmark" aria-hidden="true">B<i></i></div>
-  <h1>Bodeka</h1><p>Inventario de bodegas. Ingresa con tu cuenta autorizada para continuar.</p>
-  <button class="btn brand" id="gBtn">Ingresar con Google</button><p class="err" id="lErr"></p>
+  <h1>Bodeka</h1><p>Ingresa con el correo y la clave que te asignaron para ver y actualizar el inventario.</p>
+  <input id="lEmail" type="email" placeholder="Correo" autocomplete="username">
+  <input id="lPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+  <div class="login-btns">
+    <button type="button" class="btn brand" id="btnLogin">Entrar</button>
+    <button type="button" class="link" id="btnReset">Olvidé mi clave</button>
+  </div>
+  <p class="err" id="lErr"></p>
 </div></div>
 <div class="pop" id="pop" role="menu"></div>
 <dialog id="dProd"><form class="dlg" id="fProd">
@@ -623,13 +633,34 @@ const Store = {
     const db=firebase.firestore();
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch{}   // works offline inside the warehouse
     const auth=firebase.auth();
-    $("#gBtn").onclick=async()=>{ $("#lErr").textContent=""; const prov=new firebase.auth.GoogleAuthProvider();
-      try{ await auth.signInWithPopup(prov); }catch(e){ if(e&&/popup/.test(e.code||"")) auth.signInWithRedirect(prov); else $("#lErr").textContent="No se pudo iniciar sesión. Inténtalo de nuevo."; } };
+    const loginErrMsg = e => ({
+      "auth/invalid-credential":"Correo o contraseña incorrectos.",
+      "auth/wrong-password":"Contraseña incorrecta.",
+      "auth/user-not-found":"Ese correo no está registrado.",
+      "auth/invalid-email":"El correo no es válido.",
+      "auth/too-many-requests":"Demasiados intentos, espera unos minutos."
+    }[e.code] || ("No se pudo iniciar sesión: "+e.message));
+    async function doLogin(){
+      $("#lErr").style.color="var(--danger)"; $("#lErr").textContent="";
+      const email=$("#lEmail").value.trim(), pass=$("#lPass").value;
+      if(!email||!pass){ $("#lErr").textContent="Escribe tu correo y contraseña."; return; }
+      try{ await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); await auth.signInWithEmailAndPassword(email,pass); }
+      catch(e){ $("#lErr").textContent=loginErrMsg(e); }
+    }
+    $("#btnLogin").onclick=doLogin;
+    $("#lPass").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+    $("#btnReset").onclick=async()=>{
+      const email=$("#lEmail").value.trim();
+      $("#lErr").style.color="var(--danger)";
+      if(!email){ $("#lErr").textContent='Escribe tu correo y vuelve a tocar "Olvidé mi clave".'; return; }
+      try{ await auth.sendPasswordResetEmail(email); $("#lErr").style.color="var(--ok)"; $("#lErr").textContent="Te enviamos un correo para cambiar la clave."; }
+      catch(e){ $("#lErr").textContent="No se pudo enviar: "+e.message; }
+    };
     $("#outBtn").onclick=()=>auth.signOut();
     let unsub=[];
     auth.onAuthStateChanged(user=>{
       unsub.forEach(u=>u()); unsub=[];
-      if(!user){ this.db=null; $("#login").hidden=false; $("#acct").hidden=true; return; }
+      if(!user){ this.db=null; $("#login").hidden=false; $("#acct").hidden=true; $("#lPass").value=""; return; }
       $("#login").hidden=true; $("#acct").hidden=false; $("#outBtn").title=`Cerrar sesión (${user.email})`;
       $("#acctName").textContent=user.displayName||user.email;
       $("#acctEmail").textContent=user.displayName?user.email:"";
