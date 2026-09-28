@@ -1432,6 +1432,17 @@ C.addEventListener("change",e=>{
   else return;
   S.page=1; render();
 });
+// Si escriben un año de 1-3 dígitos en un <input type=date> (ej. "27" en vez de "2027"),
+// el navegador lo guarda literal como año 0027. Lo corregimos antes de que cualquier otro
+// listener lea el valor (capture:true corre primero) y avisamos con un "input" sintético
+// para que los listeners que escuchan "input" (líneas de recepción, etc.) tomen el valor ya corregido.
+document.addEventListener("change", e=>{
+  const el=e.target;
+  if(el.tagName==="INPUT" && el.type==="date" && el.value){
+    const m=el.value.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
+    if(m && +m[1]<100){ el.value=`${2000+ +m[1]}-${m[2]}-${m[3]}`; el.dispatchEvent(new Event("input",{bubbles:true})); }
+  }
+}, true);
 Store.init();
 </script>
 </body>
