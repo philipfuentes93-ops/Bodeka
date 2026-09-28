@@ -70,8 +70,8 @@ body{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 1
 .nav button,.tools button,.side-foot .inst{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:12px;cursor:pointer;color:var(--side-ink);font-weight:600;font-size:.95rem;border:1.5px solid transparent;position:relative}
 .nav button svg,.tools button svg,.side-foot .inst svg{width:20px;height:20px;flex:none;color:var(--side-ic)}
 .nav button:hover,.tools button:hover,.side-foot .inst:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav button[aria-current="page"]{background:rgba(242,140,56,.10);border-color:var(--orange);color:#fff}
-.nav button[aria-current="page"] svg{color:var(--orange)}
+.nav button[aria-current="page"],.tools button[aria-current="page"]{background:rgba(242,140,56,.10);border-color:var(--orange);color:#fff}
+.nav button[aria-current="page"] svg,.tools button[aria-current="page"] svg{color:var(--orange)}
 .nav button:focus-visible,.tools button:focus-visible,.side-foot .inst:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
 .nav .badge{margin-left:auto;min-width:20px;height:20px;border-radius:10px;background:var(--orange);color:#fff;font-size:.72rem;font-weight:800;display:grid;place-items:center;padding:0 6px}
 .side-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:6px}
@@ -143,6 +143,12 @@ body{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 1
 .ov-m .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ov-m .q{font-weight:700;font-variant-numeric:tabular-nums}
 .ov-m .pill{min-width:0;padding:1px 6px;font-size:.7rem}
+.ov-m.bl li{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}
+.ov-m.bl li:last-child{border-bottom:0}
+.bodgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+.bodgrid .bt{margin:0 0 4px;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.bodgrid .ov-m li{font-size:.9rem;padding:9px 0}
+@media (max-width:860px){ .bodgrid{grid-template-columns:1fr;gap:14px} }
 
 /* Table */
 .tbl-wrap{overflow:auto}
@@ -486,6 +492,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
     <div class="tools">
       <button id="impBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>Importar Excel</button>
       <button id="expBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg>Exportar Excel</button>
+      <button id="bodBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>Bodegas</button>
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
     <div class="side-foot">
@@ -525,6 +532,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
     <button class="movil-sheet-item" type="button" data-tab="movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Movimientos</span></button>
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
+    <button class="movil-sheet-item" type="button" id="movilBod" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Bodegas</span></button>
     <button class="movil-sheet-item" type="button" id="movilInstalarBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg><span>Instalar Bodeka</span></button>
     <p class="sync" id="movilSync" style="padding:4px 8px;margin:2px 0 0"></p>
     <button class="movil-sheet-item salir" type="button" id="movilSalir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></svg><span>Cerrar sesión</span></button>
@@ -567,7 +575,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
     <div class="f"><label for="pMin">Stock mínimo</label><input id="pMin" type="number" min="0" step="any" value="0"></div>
     <div class="f"><label for="pPack">Unidades por pack</label><input id="pPack" type="number" min="1" step="1" value="1" placeholder="Ej: 6, 4, 12"></div>
   </div>
-  <div class="f" id="stockField"><label for="pStock">Stock inicial (unidades, en Reposición)</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
+  <div class="f" id="stockField"><label for="pStock" id="pStockLbl">Stock inicial</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
   <div class="f"><label for="pVenc">Vencimiento (opcional)</label><input id="pVenc" type="date"></div>
   <datalist id="unds"><option value="UN"><option value="CJ"><option value="PQ"><option value="BL"><option value="BID"><option value="LT"><option value="KG"><option value="RL"></datalist>
   <datalist id="cats"></datalist><datalist id="bods"></datalist>
@@ -588,11 +596,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
     <button type="button" data-t="salida">Salida</button>
     <button type="button" data-t="ajuste">Conteo</button>
   </div>
-  <div class="locseg" role="group" aria-label="Ubicación a contar">
-    <button type="button" data-u="repo">Reposición</button>
-    <button type="button" data-u="p14">Piso 14</button>
-    <button type="button" data-u="p11">Piso 11</button>
-  </div>
+  <div class="f"><label for="mUbicSel">Bodega a contar</label><select id="mUbicSel"></select></div>
   <div class="f"><label for="mCant" id="mCantLbl">Cantidad</label><input id="mCant" type="number" min="0" step="any" required></div>
   <div class="f" id="vencField"><label for="mVenc">Vencimiento de lo recibido (opcional)</label><input id="mVenc" type="date"></div>
   <div class="f"><label for="mNota">Nota (opcional)</label><input id="mNota" maxlength="120" placeholder="Ej: OC 4500123, guía 5521, retiro piso 11"></div>
@@ -617,15 +621,34 @@ table.db thead th:last-child{border-top-right-radius:14px}
 </div></dialog>
 
 <dialog id="dDoc"><div class="dlg" id="docBody"></div></dialog>
+<dialog id="dBod"><form class="dlg" id="fBod">
+  <h2 id="dBodTitle">Agregar bodega</h2>
+  <div class="f"><label for="bNombre">Nombre</label><input id="bNombre" required maxlength="60" placeholder="Ej: Piso 9, Reposición Aseo"></div>
+  <div class="f"><label for="bTipo">Tipo</label><select id="bTipo"><option value="reposicion">Reposición</option><option value="picking">Picking</option></select></div>
+  <p class="err" id="bErr"></p>
+  <div class="dlg-actions">
+    <button type="button" class="btn danger" id="bArch" hidden>Archivar</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn ghost" data-close>Cancelar</button>
+    <button type="submit" class="btn">Guardar bodega</button>
+  </div>
+</form></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const DEFAULT_CATS = ["Bebidas","Aseo","Cafetería"];
 const PALETTE = ["var(--c1)","var(--c2)","var(--c3)","var(--c4)","var(--c5)","var(--c6)"];
 const LEGACY = {bebidas:"Bebidas", aseo:"Aseo", snack:"Cafetería"};
-const UBIC = [{k:"repo",t:"Reposición"},{k:"p14",t:"Piso 14"},{k:"p11",t:"Piso 11"}];
-const ubicNom = k => (UBIC.find(u=>u.k===k)||{}).t || k;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:""};
+const BODEGAS_DEFAULT = [
+  {id:"repo", nombre:"Reposición", tipo:"reposicion", activa:true},
+  {id:"p14", nombre:"Piso 14", tipo:"picking", activa:true},
+  {id:"p11", nombre:"Piso 11", tipo:"picking", activa:true}
+];
+const ADMINS = ["philip.fuentes93@gmail.com"];
+let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
+const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
+const bodNom = id => (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -645,10 +668,11 @@ function fixProd(p){
   if(!q.categoria && LEGACY[q.bodega]){ q.categoria = LEGACY[q.bodega]; q.bodega=""; }
   q.unidad = q.unidad||"UN"; q.vencimiento = q.vencimiento||""; q.minimo = +q.minimo||0; q.foto = q.foto||"";
   q.packUn = Math.max(1, +q.packUn || 1);
-  // Migración: productos antiguos solo tenían un stock global, no por ubicación.
-  // Se asume que ese stock vivía todo en Reposición, sin perder unidades.
-  q.ubic = q.ubic ? {repo:+q.ubic.repo||0, p14:+q.ubic.p14||0, p11:+q.ubic.p11||0} : {repo:+q.stock||0, p14:0, p11:0};
-  q.stock = q.ubic.repo + q.ubic.p14 + q.ubic.p11;
+  // Migración: productos antiguos solo tenían un stock global, no por bodega.
+  // Se asume que ese stock vivía todo en la bodega de reposición por defecto, sin perder unidades.
+  q.ubic = q.ubic ? {...q.ubic} : {repo:+q.stock||0};
+  Object.keys(q.ubic).forEach(k=>{ q.ubic[k]=+q.ubic[k]||0; });
+  q.stock = Object.values(q.ubic).reduce((a,n)=>a+n,0);
   return q;
 }
 /* ---------- Fotos de producto ---------- */
@@ -688,10 +712,11 @@ const bodegas = () => [...new Set(S.productos.map(p=>p.bodega).filter(Boolean))]
 const syncErr = e => toast(e && e.code==="permission-denied" ? "Tu cuenta no tiene permiso para guardar cambios." : "Un cambio no se pudo sincronizar. Revisa tu conexión.");
 const Store = {
   db:null,
-  local(){ try{ return {productos:[],movs:[],docs:[], ...JSON.parse(localStorage.getItem("inv-bodegas")||"{}")} }catch{ return {productos:[],movs:[],docs:[]} } },
-  saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500)})) }catch{} },
+  local(){ try{ return {productos:[],movs:[],docs:[],bodegas:[], ...JSON.parse(localStorage.getItem("inv-bodegas")||"{}")} }catch{ return {productos:[],movs:[],docs:[],bodegas:[]} } },
+  saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas})) }catch{} },
   async init(){
     const l=this.local(); S.productos=l.productos.map(fixProd); S.movs=l.movs; S.docs=l.docs;
+    S.bodegas = l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT];
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
@@ -734,6 +759,7 @@ const Store = {
       $("#login").hidden=true; $("#acct").hidden=false; $("#outBtn").title=`Cerrar sesión (${user.email})`;
       $("#acctName").textContent=user.displayName||user.email;
       $("#acctEmail").textContent=user.displayName?user.email:"";
+      esAdmin = ADMINS.includes(user.email);
       const inicial=(user.displayName||user.email||"?").trim()[0].toUpperCase();
       [$("#acctAv"),$("#movilAvatar")].forEach(av=>{
         if(user.photoURL){ av.style.backgroundImage=`url(${user.photoURL})`; av.textContent=""; }
@@ -744,6 +770,11 @@ const Store = {
       unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); $("#sync").textContent=snap.metadata.fromCache?"Sin conexión · cambios en cola":"Sincronizado"; this.saveLocal(); render(false); }, denied));
       unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
+      unsub.push(db.collection("bodegas").onSnapshot(snap=>{
+        S.bodegas = snap.docs.map(d=>({id:d.id,...d.data()}));
+        if(!S.bodegas.length && esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b));
+        this.saveLocal(); render(false);
+      }, ()=>{}));
     });
     render(false);
   },
@@ -769,6 +800,12 @@ const Store = {
     if(this.db) this.db.doc("documentos/"+id).set(body).catch(syncErr);
     if(!S.docs.find(x=>x.id===id)) S.docs.unshift(d);
     this.saveLocal();
+  },
+  async putBodega(b){
+    const {id,...body}=b;
+    if(this.db) await this.db.doc("bodegas/"+id).set(body).catch(syncErr);
+    const i=S.bodegas.findIndex(x=>x.id===id); if(i>=0) S.bodegas[i]=b; else S.bodegas.push(b);
+    this.saveLocal(); render(false);
   }
 };
 
@@ -806,6 +843,7 @@ function openProd(id){
   $("#pNombre").value=p?.nombre||""; $("#pUnd").value=p?.unidad||"UN";
   $("#pCat").value=p?.categoria||(S.cat!=="todas"&&S.screen==="tabla"?catName(S.cat):""); $("#pBod").value=p?.bodega||(S.bod!=="todas"?S.bod:"");
   $("#pUbic").value=p?.ubicacion||""; $("#pMin").value=p?.minimo??0; $("#pPack").value=p?.packUn??1; $("#pStock").value=0; $("#pVenc").value=p?.vencimiento||"";
+  $("#pStockLbl").textContent=`Stock inicial (unidades, en ${bodNom((bods("reposicion")[0]||{}).id||"repo")})`;
   $("#stockField").hidden=!!p; $("#pDel").hidden=!p; $("#pErr").textContent="";
   $("#dProd").showModal(); (p?$("#pNombre"):$("#pCod")).focus();
 }
@@ -828,8 +866,8 @@ $("#fProd").addEventListener("submit", async e=>{
     packUn:Math.max(1,+$("#pPack").value||1),
     vencimiento:$("#pVenc").value||"",
     foto: fotoPend!==undefined ? (fotoPend||"") : (prev?.foto||""),
-    ubic: prev ? prev.ubic : {repo:Math.max(0,+$("#pStock").value||0), p14:0, p11:0} };
-  p.stock = p.ubic.repo+p.ubic.p14+p.ubic.p11;
+    ubic: prev ? prev.ubic : {[(bods("reposicion")[0]||{}).id||"repo"]:Math.max(0,+$("#pStock").value||0)} };
+  p.stock = Object.values(p.ubic).reduce((a,n)=>a+n,0);
   p.actualizado = new Date().toISOString();
   try{
     $("#pSave").disabled=true;
@@ -854,25 +892,27 @@ function calc(){
 }
 function updPrev(){
   document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===movT));
-  document.querySelectorAll(".locseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===movU));
   $("#mCantLbl").textContent = movT==="ajuste"?"Cantidad contada":"Cantidad";
   $("#vencField").hidden = movT!=="entrada";
   const r=calc(), u=esc(movP.unidad);
-  let h=`${ubicNom(movU)}: <strong>${fmt(movP.ubic[movU])}</strong> ${u} → queda <strong>${fmt(r.n)}</strong> ${u}`;
-  h+=`<br>Total del producto tras el conteo: <strong>${fmt(movP.stock-movP.ubic[movU]+r.n)}</strong> ${u}`;
+  let h=`${esc(bodNom(movU))}: <strong>${fmt(movP.ubic[movU]||0)}</strong> ${u} → queda <strong>${fmt(r.n)}</strong> ${u}`;
+  h+=`<br>Total del producto tras el conteo: <strong>${fmt(movP.stock-(movP.ubic[movU]||0)+r.n)}</strong> ${u}`;
   if(movT==="entrada" && $("#mVenc").value) h+=`<br>Vencimiento → <strong>${fFecha($("#mVenc").value)}</strong>`;
   $("#mPrev").innerHTML=h;
   $("#mErr").textContent = r.n<0 ? "El resultado no puede ser negativo." : "";
   $("#mSave").textContent = movT==="entrada"?"Registrar entrada":movT==="salida"?"Registrar salida":"Guardar conteo";
 }
 function openMov(id,t){
-  movP=S.productos.find(x=>x.id===id); if(!movP) return; movT=t; movU="repo";
+  movP=S.productos.find(x=>x.id===id); if(!movP) return; movT=t;
+  const opts=bods(); movU=(opts[0]||{}).id||"repo";
+  $("#mUbicSel").innerHTML=opts.map(b=>`<option value="${esc(b.id)}">${esc(b.nombre)}</option>`).join("");
+  $("#mUbicSel").value=movU;
   $("#mTitle").textContent=movP.nombre; $("#mSub").textContent=[movP.codigo,movP.categoria,movP.bodega].filter(Boolean).join(" · ");
   $("#mCant").value=""; $("#mNota").value=""; $("#mVenc").value="";
   updPrev(); $("#dMov").showModal(); $("#mCant").focus();
 }
 document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{movT=b.dataset.t;updPrev();$("#mCant").focus();}));
-document.querySelectorAll(".locseg button").forEach(b=>b.addEventListener("click",()=>{movU=b.dataset.u;updPrev();$("#mCant").focus();}));
+$("#mUbicSel").addEventListener("change",()=>{movU=$("#mUbicSel").value;updPrev();});
 $("#mCant").addEventListener("input",updPrev); $("#mVenc").addEventListener("input",updPrev);
 $("#fMov").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -880,12 +920,12 @@ $("#fMov").addEventListener("submit", async e=>{
   if(raw==="" || c<0 || (c===0 && movT!=="ajuste")){ $("#mErr").textContent="Ingresa una cantidad mayor a cero."; return; }
   const r=calc(); if(r.n<0) return;
   const ubic={...movP.ubic, [movU]:r.n};
-  const p={...movP, ubic, stock:ubic.repo+ubic.p14+ubic.p11, actualizado:new Date().toISOString()};
+  const p={...movP, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString()};
   if(movT==="entrada" && $("#mVenc").value) p.vencimiento=$("#mVenc").value;
   try{
     $("#mSave").disabled=true;
     await Store.putProducto(p);
-    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,stockFinal:p.stock,nota:[ubicNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
+    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,stockFinal:p.stock,nota:[bodNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
     $("#dMov").close(); toast(movT==="entrada"?"Entrada registrada":movT==="salida"?"Salida registrada":"Conteo guardado");
   }catch{ $("#mErr").textContent="No se pudo registrar. Revisa tu conexión e inténtalo de nuevo."; }
   finally{ $("#mSave").disabled=false; }
@@ -971,10 +1011,11 @@ $("#iGo").addEventListener("click", async ()=>{
   try{
     for(const [i,row] of pendientes.entries()){
       const prev=row.codigo ? S.productos.find(x=>x.codigo===row.codigo) : null;
-      // El Excel representa el conteo de Reposición; lo que ya está repartido en los pisos de picking se conserva.
-      const ubic={repo:+row.stock||0, p14:prev?.ubic?.p14||0, p11:prev?.ubic?.p11||0};
+      // El Excel representa el conteo de la primera bodega de Reposición; lo demás se conserva.
+      const bodImp=(bods("reposicion")[0]||{}).id||"repo";
+      const ubic={...(prev?.ubic||{}), [bodImp]:+row.stock||0};
       const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...row, ubic, packUn:prev?.packUn||1,
-        stock:ubic.repo+ubic.p14+ubic.p11, actualizado:new Date().toISOString() };
+        stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString() };
       await Store.putProducto(p);
       if(!prev || prev.stock!==p.stock)
         await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:p.stock,stockFinal:p.stock,nota:"Importado desde Excel",fecha:new Date().toISOString()}, true);
@@ -992,12 +1033,16 @@ $("#iGo").addEventListener("click", async ()=>{
 /* ---------- Export ---------- */
 async function exportar(list){
   if(!Store.dl || !window.XLSX) return;
-  const data=list.map(p=>({ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria, "BODEGA":p.bodega,
-    "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":p.stock,
-    "REPOSICIÓN":p.ubic.repo, "PISO 14":p.ubic.p14, "PISO 11":p.ubic.p11,
-    "VENCIMIENTO":fFecha(p.vencimiento), "DÍAS DISPONIBLES":diasVenc(p)??"", "ESTADO PRODUCTO":{none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)] }));
+  const bs=bods();
+  const data=list.map(p=>{
+    const row={ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria, "BODEGA":p.bodega,
+      "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":p.stock };
+    bs.forEach(b=>{ row[b.nombre.toUpperCase()]=p.ubic[b.id]||0; });
+    row["VENCIMIENTO"]=fFecha(p.vencimiento); row["DÍAS DISPONIBLES"]=diasVenc(p)??""; row["ESTADO PRODUCTO"]={none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)];
+    return row;
+  });
   const ws=XLSX.utils.json_to_sheet(data), wb=XLSX.utils.book_new();
-  ws["!cols"]=[{wch:15},{wch:48},{wch:6},{wch:8},{wch:14},{wch:10},{wch:10},{wch:12},{wch:13},{wch:14},{wch:12},{wch:9},{wch:9},{wch:13},{wch:16},{wch:15}];
+  ws["!cols"]=[{wch:15},{wch:48},{wch:6},{wch:8},{wch:14},{wch:10},{wch:10},{wch:12},{wch:13},{wch:14},...bs.map(()=>({wch:12})),{wch:16},{wch:15}];
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   const hoy=new Date().toISOString().slice(0,10);
@@ -1050,6 +1095,9 @@ function renderNav(){
     ${it("desp","Despacho",ICON.out,S.screen==="desp"||fr==="despacho")}`;
   const activo={home:S.screen==="home", tabla:S.screen==="tabla", picking:S.screen==="picking", recep:S.screen==="recep"||fr==="recepcion", desp:S.screen==="desp"||fr==="despacho"};
   document.querySelectorAll(".movil-tab[data-tab]").forEach(b=>b.classList.toggle("activa", !!activo[b.dataset.tab]));
+  $("#bodBtn").hidden=!esAdmin;
+  $("#movilBod").hidden=!esAdmin;
+  if(S.screen==="bodegas") $("#bodBtn").setAttribute("aria-current","page"); else $("#bodBtn").removeAttribute("aria-current");
 }
 
 const DI = {
@@ -1087,7 +1135,7 @@ function viewHome(){
   const hero=`<section class="hero span-8">
       <div><p class="hi">${saludo} · ${fecha}</p>
       <h2>${heroMsg(ps.length,nCrit,nVen,nMin)}</h2></div>
-      ${ps.length?`<div class="hero-stats"><div><b>${pct}%</b><span>con stock suficiente</span></div><div><b>${cats().length}</b><span>categorías</span></div><div><b>${bodegas().length||1}</b><span>bodega${bodegas().length===1?"":"s"}</span></div></div>`:""}
+      ${ps.length?`<div class="hero-stats"><div><b>${pct}%</b><span>con stock suficiente</span></div><div><b>${cats().length}</b><span>categorías</span></div><div><b>${bods().length}</b><span>bodega${bods().length===1?"":"s"}</span></div></div>`:""}
       <div class="hero-acts">${ps.length?`<button data-new="recepcion">Nueva recepción</button><button class="alt" data-new="despacho">Nuevo despacho</button>`:`<button data-imp>Importar Excel</button><button class="alt" data-add>Agregar producto</button>`}</div>
       ${HERO_ART}</section>`;
   // health ring
@@ -1127,8 +1175,12 @@ function viewHome(){
         return `<li><span class="fi" style="--c:${t[1]}">${t[0]}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${t[0]}${fmt(m.cantidad)}<small>queda ${fmt(m.stockFinal)}</small></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="movs">Ver todos</button>`:'<p class="mini-empty">Aún no hay movimientos.</p>'}</section>`;
   const donut = ps.length ? `<div class="span-4">${donutCard()}</div>` : "";
+  const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
+    return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
+  const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-go="bodegas" style="font-size:.8rem">Gestionar bodegas</button></span>`:""}</h3>
+      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking")}</div></section>`:"";
   return `<div class="ph"><h1>Resumen</h1><span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>
-    <div class="dash">${hero}${health}${ps.length?kpis:""}${donut?catsCard.replace("span-12","span-8"):catsCard}${donut}${ps.length?repCard+vencCard+actCard:""}</div>`;
+    <div class="dash">${hero}${health}${ps.length?kpis:""}${bodCard}${donut?catsCard.replace("span-12","span-8"):catsCard}${donut}${ps.length?repCard+vencCard+actCard:""}</div>`;
 }
 
 function pager(total){
@@ -1160,7 +1212,7 @@ function expDetalle(p){
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
         <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b> ${esc(p.unidad)}<span>disponibles · mínimo ${fmt(p.minimo)}</span></div>
-        <ul class="ov-m" style="width:100%;margin:2px 0 0">${UBIC.map(u=>`<li><span class="nm">${esc(u.t)}</span><span class="q">${fmt(p.ubic[u.k])}</span></li>`).join("")}</ul>
+        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(p.ubic[b.id]||0)}</span></li>`).join("")}</ul>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
         ${f("nombre","Producto",p.nombre,'maxlength="120"',"wide")}
@@ -1322,7 +1374,7 @@ const DOC_TIPOS = {recepcion:["Guía de despacho","Factura","Orden de compra","S
 const hoyISO = ()=>{const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
 
 function nuevoForm(tipo, prodId){
-  S.form={tipo, fecha:hoyISO(), docTipo:DOC_TIPOS[tipo][0], docNum:"", tercero:"", solicitante:"", nota:"", lineas:[], err:"", pq:""};
+  S.form={tipo, bod:(bods("reposicion")[0]||{}).id||"repo", fecha:hoyISO(), docTipo:DOC_TIPOS[tipo][0], docNum:"", tercero:"", solicitante:"", nota:"", lineas:[], err:"", pq:""};
   [].concat(prodId||[]).forEach(id=>S.form.lineas.push({id, cantidad:"", venc:""}));
   S.screen="form"; closeSide(); render(true); window.scrollTo?.(0,0);
   setTimeout(()=>{ (prodId?document.querySelector('[data-lq="0"]'):$("#pick"))?.focus(); },0);
@@ -1339,14 +1391,17 @@ function buscarProd(q){
   if(exact.length) return exact;
   return S.productos.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,8);
 }
-function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); return S.form.tipo==="recepcion"?p.ubic.repo+qUn:p.ubic.repo-qUn; }
+function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); const base=p.ubic[S.form.bod]||0; return S.form.tipo==="recepcion"?base+qUn:base-qUn; }
 function viewForm(){
   const f=S.form, D=DOC[f.tipo], R=f.tipo==="recepcion";
+  const origenes=bods("reposicion");
+  if(!origenes.some(b=>b.id===f.bod)) f.bod=(origenes[0]||{}).id||"repo";
+  const nomBod=bodNom(f.bod);
   const opt=(v,cur)=>`<option ${v===cur?"selected":""}>${esc(v)}</option>`;
   const lines=f.lineas.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
     const res=lineaRes(l), bad=!R && res<0;
     return `<tr><td>${esc(p.codigo)||'<span class="muted">-</span>'}</td><td class="prod">${esc(p.nombre)}<span class="sub">${fmt(p.packUn)} un/pack</span></td><td>${esc(p.unidad)}</td>
-      <td class="n">${fmt(p.ubic.repo)}</td>
+      <td class="n">${fmt(p.ubic[f.bod]||0)}</td>
       <td class="n"><input type="number" min="0" step="1" data-lq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Packs de ${esc(p.nombre)}"></td>
       ${R?`<td><input type="date" data-lv="${i}" value="${esc(l.venc)}" aria-label="Vencimiento de ${esc(p.nombre)}"></td>`:""}
       <td class="n stk ${bad?"neg":""}" data-lr="${i}">${fmt(res)}</td>
@@ -1355,6 +1410,7 @@ function viewForm(){
   return `<div class="page-head"><h1>${D.nueva}</h1><span class="spacer"></span><button class="btn ghost" data-go="${R?"recep":"desp"}">Cancelar</button></div>
   <div class="card" style="margin-bottom:14px"><div class="card-h">Datos del documento</div>
     <div class="form-grid">
+      ${origenes.length>1?`<div class="fbox"><label for="ff-bod">Bodega</label><select id="ff-bod" data-ff="bod">${origenes.map(b=>`<option value="${esc(b.id)}" ${b.id===f.bod?"selected":""}>${esc(b.nombre)}</option>`).join("")}</select></div>`:""}
       <div class="fbox"><label for="ff-fecha">Fecha</label><input id="ff-fecha" type="date" data-ff="fecha" value="${esc(f.fecha)}"></div>
       <div class="fbox"><label for="ff-dt">Tipo de documento</label><select id="ff-dt" data-ff="docTipo">${DOC_TIPOS[f.tipo].map(v=>opt(v,f.docTipo)).join("")}</select></div>
       <div class="fbox"><label for="ff-dn">N° documento</label><input id="ff-dn" data-ff="docNum" value="${esc(f.docNum)}" placeholder="${R?"Ej: 5521":"Opcional"}"></div>
@@ -1372,8 +1428,8 @@ function viewForm(){
     </div>
     ${f.lineas.length?`<div class="tbl-wrap" style="max-height:none"><table class="db lines" style="min-width:${R?820:700}px"><thead><tr>
       <th><span>Código</span></th><th><span>Producto</span></th><th><span>UND</span></th>
-      <th class="n"><span>En Reposición (un)</span></th><th class="n"><span>Cantidad (packs)</span></th>
-      ${R?'<th><span>Vencimiento</span></th>':""}<th class="n"><span>Queda en Reposición (un)</span></th><th></th></tr></thead>
+      <th class="n"><span>En ${esc(nomBod)} (un)</span></th><th class="n"><span>Cantidad (packs)</span></th>
+      ${R?'<th><span>Vencimiento</span></th>':""}<th class="n"><span>Queda en ${esc(nomBod)} (un)</span></th><th></th></tr></thead>
       <tbody>${lines}</tbody></table></div>`:`<div class="empty">Agrega productos escaneando su código de barras o buscándolos por nombre.</div>`}
     <div class="form-foot"><span class="muted" id="ftot">${f.lineas.length} producto${f.lineas.length===1?"":"s"} · ${fmt(tot)} unidades</span><span class="spacer"></span>
       <button class="btn brand" id="confirmBtn" data-confirm>${D.verbo}</button></div>
@@ -1383,7 +1439,7 @@ function viewForm(){
 function showSugs(){
   const box=$("#sugs"); if(!box) return; const r=buscarProd(S.form.pq);
   if(!r.length){ box.classList.remove("open"); box.innerHTML = S.form.pq.trim()?'<div class="empty" style="padding:12px">Sin coincidencias.</div>':""; if(S.form.pq.trim()) box.classList.add("open"); return; }
-  box.innerHTML=r.map((p,i)=>`<button role="option" data-pick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · Reposición ${fmt(p.ubic.repo)} un · ${fmt(p.packUn)} un/pack</span></button>`).join("");
+  box.innerHTML=r.map((p,i)=>`<button role="option" data-pick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · ${esc(bodNom(S.form.bod))} ${fmt(p.ubic[S.form.bod]||0)} un · ${fmt(p.packUn)} un/pack</span></button>`).join("");
   box.classList.add("open");
 }
 function updLinea(i){
@@ -1399,7 +1455,7 @@ async function confirmarDoc(){
   let err="";
   if(!lines.length) err="Agrega al menos un producto.";
   else if(lines.some(l=>!(l.q>0))) err="Todas las líneas necesitan una cantidad mayor a cero.";
-  else if(f.tipo==="despacho"){ const x=lines.find(l=>l.q*(l.p.packUn||1)>l.p.ubic.repo); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en Reposición: disponible ${fmt(x.p.ubic.repo)} un (${fmt(x.p.ubic.repo/(x.p.packUn||1))} packs).`; }
+  else if(f.tipo==="despacho"){ const x=lines.find(l=>l.q*(l.p.packUn||1)>(l.p.ubic[f.bod]||0)); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(f.bod)}: disponible ${fmt(x.p.ubic[f.bod]||0)} un (${fmt((x.p.ubic[f.bod]||0)/(x.p.packUn||1))} packs).`; }
   if(!err && !f.tercero.trim()) err=`Indica el ${D.tercero.toLowerCase()}.`;
   if(err){ f.err=err; render(true); return; }
   const numero=Math.max(0,...S.docs.filter(d=>d.tipo===f.tipo).map(d=>+d.numero||0))+1;
@@ -1410,9 +1466,9 @@ async function confirmarDoc(){
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.id)||l.p;
       const qUn=l.q*(cur.packUn||1);
-      const nuevoRepo=f.tipo==="recepcion"?cur.ubic.repo+qUn:cur.ubic.repo-qUn;
-      const ubic={...cur.ubic, repo:nuevoRepo};
-      const p={...cur, ubic, stock:ubic.repo+ubic.p14+ubic.p11, actualizado:now};
+      const nuevoVal=f.tipo==="recepcion"?(cur.ubic[f.bod]||0)+qUn:(cur.ubic[f.bod]||0)-qUn;
+      const ubic={...cur.ubic, [f.bod]:nuevoVal};
+      const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
       if(f.tipo==="recepcion" && l.venc) p.vencimiento=l.venc;
       await Store.putProducto(p);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:D.mov,cantidad:qUn,cantidadPack:l.q,stockFinal:p.stock,
@@ -1453,27 +1509,32 @@ function openDoc(id){
 $("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc]")) $("#dDoc").close(); });
 
 /* ---------- Picking (traslado de Reposición a un piso, en unidades) ---------- */
-const PISOS = [{k:"p14",t:"Piso 14"},{k:"p11",t:"Piso 11"}];
 function viewPicking(){
-  const piso=PISOS.find(x=>x.k===S.pkUbic)||PISOS[0];
+  const origenes=bods("reposicion"), destinos=bods("picking");
+  if(!origenes.length || !destinos.length) return `<div class="ph"><h1>Picking</h1></div><div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking. ${esAdmin?'Créalas en <b>Más → Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
+  if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=origenes[0].id;
+  if(!destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=destinos[0].id;
+  const o=(v,cur)=>`<option value="${esc(v)}" ${v===cur?"selected":""}>`;
   const head=`<div class="ph"><h1>Picking</h1>
-    <div class="ftabs" role="tablist">${PISOS.map(x=>`<button role="tab" data-pkubic="${x.k}" aria-selected="${x.k===S.pkUbic}">${esc(x.t)}</button>`).join("")}</div>
+    <label class="pillsel"><span>Desde:</span><select id="pkOrigSel">${origenes.map(b=>o(b.id,S.pkOrig)+esc(b.nombre)+"</option>").join("")}</select></label>
+    <label class="pillsel"><span>Hacia:</span><select id="pkUbicSel">${destinos.map(b=>o(b.id,S.pkUbic)+esc(b.nombre)+"</option>").join("")}</select></label>
     <span class="spacer"></span></div>`;
   if(!S.productos.length) return head+`<div class="card empty">Aún no hay productos cargados.</div>`;
+  const nomOrig=bodNom(S.pkOrig), nomDest=bodNom(S.pkUbic);
   const lines=S.pkLineas.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
-    const q=+l.cantidad||0, bad=q>p.ubic.repo;
+    const q=+l.cantidad||0, bad=q>(p.ubic[S.pkOrig]||0);
     return `<tr><td>${esc(p.codigo)||'<span class="muted">-</span>'}</td><td class="prod">${esc(p.nombre)}</td>
-      <td class="n">${fmt(p.ubic.repo)}</td><td class="n">${fmt(p.ubic[piso.k])}</td>
+      <td class="n">${fmt(p.ubic[S.pkOrig]||0)}</td><td class="n">${fmt(p.ubic[S.pkUbic]||0)}</td>
       <td class="n"><input type="number" min="0" step="1" data-pkq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Unidades de ${esc(p.nombre)}"></td>
       <td class="c"><button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></td></tr>`; }).join("");
   const tot=S.pkLineas.reduce((a,l)=>a+(+l.cantidad||0),0);
   return head+`<div class="card">
-    <div class="card-h">Unidades para rellenar ${esc(piso.t)}
+    <div class="card-h">Unidades para rellenar ${esc(nomDest)}
       <div class="pick-wrap"><input id="pkPick" type="search" autocomplete="off" value="${esc(S.pkq)}" placeholder="Escanea o escribe código o nombre y presiona Enter" aria-label="Agregar producto"><div class="sugs" id="pkSugs" role="listbox"></div></div>
     </div>
     ${S.pkLineas.length?`<div class="tbl-wrap" style="max-height:none"><table class="db lines" style="min-width:640px"><thead><tr>
       <th><span>Código</span></th><th><span>Producto</span></th>
-      <th class="n"><span>En Reposición</span></th><th class="n"><span>Ya en ${esc(piso.t)}</span></th>
+      <th class="n"><span>En ${esc(nomOrig)}</span></th><th class="n"><span>Ya en ${esc(nomDest)}</span></th>
       <th class="n"><span>Unidades a llevar</span></th><th></th></tr></thead>
       <tbody>${lines}</tbody></table></div>`:`<div class="empty">Agrega productos escaneando su código o buscándolos por nombre.</div>`}
     <div class="form-foot"><span class="muted" id="pkTot">${S.pkLineas.length} producto${S.pkLineas.length===1?"":"s"} · ${fmt(tot)} unidades</span><span class="spacer"></span>
@@ -1490,24 +1551,24 @@ function addLineaPk(id){
 function showPkSugs(){
   const box=$("#pkSugs"); if(!box) return; const r=buscarProd(S.pkq);
   if(!r.length){ box.classList.remove("open"); box.innerHTML = S.pkq.trim()?'<div class="empty" style="padding:12px">Sin coincidencias.</div>':""; if(S.pkq.trim()) box.classList.add("open"); return; }
-  box.innerHTML=r.map((p,i)=>`<button role="option" data-pkpick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · Reposición ${fmt(p.ubic.repo)} un</span></button>`).join("");
+  box.innerHTML=r.map((p,i)=>`<button role="option" data-pkpick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · ${esc(bodNom(S.pkOrig))} ${fmt(p.ubic[S.pkOrig]||0)} un</span></button>`).join("");
   box.classList.add("open");
 }
 function updPkLinea(i){
   const l=S.pkLineas[i], p=S.productos.find(x=>x.id===l.id); if(!p) return;
-  const q=+l.cantidad||0, bad=q>p.ubic.repo;
+  const q=+l.cantidad||0, bad=q>(p.ubic[S.pkOrig]||0);
   document.querySelector(`[data-pkq="${i}"]`)?.classList.toggle("bad",bad);
   const tot=S.pkLineas.reduce((a,x)=>a+(+x.cantidad||0),0);
   $("#pkTot").textContent=`${S.pkLineas.length} producto${S.pkLineas.length===1?"":"s"} · ${fmt(tot)} unidades`;
   $("#pkConfirm").disabled=!S.pkLineas.length;
 }
 async function confirmarPicking(){
-  const piso=S.pkUbic;
+  const orig=S.pkOrig, dest=S.pkUbic;
   const lines=S.pkLineas.map(l=>({...l, p:S.productos.find(x=>x.id===l.id), q:+l.cantidad})).filter(l=>l.p);
   if(!lines.length){ S.pkErr="Agrega al menos un producto."; render(true); return; }
   if(lines.some(l=>!(l.q>0))){ S.pkErr="Todas las líneas necesitan una cantidad mayor a cero."; render(true); return; }
-  const x=lines.find(l=>l.q>l.p.ubic.repo);
-  if(x){ S.pkErr=`No hay stock suficiente de "${x.p.nombre}" en Reposición: disponible ${fmt(x.p.ubic.repo)} un.`; render(true); return; }
+  const x=lines.find(l=>l.q>(l.p.ubic[orig]||0));
+  if(x){ S.pkErr=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(orig)}: disponible ${fmt(x.p.ubic[orig]||0)} un.`; render(true); return; }
   S.pkErr="";
   const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking").map(d=>+d.numero||0))+1;
   const folio=`PK-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
@@ -1516,21 +1577,66 @@ async function confirmarPicking(){
   try{
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.id)||l.p;
-      const ubic={...cur.ubic, repo:cur.ubic.repo-l.q, [piso]:cur.ubic[piso]+l.q};
-      const p={...cur, ubic, stock:ubic.repo+ubic.p14+ubic.p11, actualizado:now};
+      const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q, [dest]:(cur.ubic[dest]||0)+l.q};
+      const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
       await Store.putProducto(p);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"picking",cantidad:l.q,stockFinal:p.stock,
-        nota:`${folio} · Picking a ${ubicNom(piso)}`,fecha:now,folio}, true);
+        nota:`${folio} · Picking de ${bodNom(orig)} a ${bodNom(dest)}`,fecha:now,folio}, true);
       hechas++;
     }
-    await Store.addDocu({id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubic:piso, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
+    await Store.addDocu({id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
       lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q}))});
-    S.pkLineas=[]; render(); toast(`${folio} registrado · ${fmt(lines.reduce((a,l)=>a+l.q,0))} unidades a ${ubicNom(piso)}`);
+    S.pkLineas=[]; render(); toast(`${folio} registrado · ${fmt(lines.reduce((a,l)=>a+l.q,0))} unidades a ${bodNom(dest)}`);
   }catch(e){
     S.pkErr = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
     render(true);
   }
 }
+
+/* ---------- Bodegas (admin) ---------- */
+function viewBodegas(){
+  if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
+  const stockDe=b=>S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
+  const fila=b=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
+      <div style="flex:1;min-width:0"><b>${esc(b.nombre)}</b></div>
+      <div class="muted">${fmt(stockDe(b))} un</div>
+      <button class="link" data-editbod="${b.id}">Editar</button>
+    </div>`;
+  const grupo=(tipo,t)=>{
+    const bs=S.bodegas.filter(b=>b.tipo===tipo && b.activa!==false);
+    return `<div class="card-h">${t}</div>${bs.length?bs.map(fila).join(""):'<div class="empty">Sin bodegas de este tipo.</div>'}`;
+  };
+  const archivadas=S.bodegas.filter(b=>b.activa===false);
+  return `<div class="ph"><h1>Bodegas</h1><span class="spacer"></span><button class="addlink" data-addbod>+ Agregar bodega</button></div>
+    <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
+    <div class="card" style="margin-bottom:14px">${grupo("picking","Picking")}</div>
+    ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
+}
+let editBodId=null;
+function openBod(id){
+  editBodId=id||null; const b=S.bodegas.find(x=>x.id===id);
+  $("#dBodTitle").textContent=b?"Editar bodega":"Agregar bodega";
+  $("#bNombre").value=b?.nombre||""; $("#bTipo").value=b?.tipo||"picking";
+  $("#bArch").hidden=!b; $("#bArch").textContent=b?.activa===false?"Reactivar":"Archivar";
+  $("#bErr").textContent="";
+  $("#dBod").showModal(); $("#bNombre").focus();
+}
+$("#fBod").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const nombre=$("#bNombre").value.trim();
+  if(!nombre){ $("#bErr").textContent="Escribe un nombre."; return; }
+  const prev=S.bodegas.find(x=>x.id===editBodId);
+  const b={ id: prev?prev.id:("b-"+uid()), nombre, tipo:$("#bTipo").value, activa:prev?prev.activa!==false:true };
+  try{ await Store.putBodega(b); $("#dBod").close(); toast("Bodega guardada"); }
+  catch{ $("#bErr").textContent="No se pudo guardar. Revisa tu conexión."; }
+});
+$("#bArch").addEventListener("click", async ()=>{
+  const b=S.bodegas.find(x=>x.id===editBodId); if(!b) return;
+  const activar=b.activa===false;
+  if(!activar && !confirm(`¿Archivar "${b.nombre}"? Dejará de aparecer para elegir; el stock que tenga se mantiene.`)) return;
+  try{ await Store.putBodega({...b, activa:activar}); $("#dBod").close(); toast(activar?"Bodega reactivada":"Bodega archivada"); }
+  catch{ $("#bErr").textContent="No se pudo guardar. Revisa tu conexión."; }
+});
 
 function render(force=true){   // live data updates call render(false)
   renderNav();
@@ -1539,7 +1645,7 @@ function render(force=true){   // live data updates call render(false)
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
   if((S.screen==="form"||S.screen==="picking") && !force) return;   // don't wipe a document being typed when live data arrives
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
-  $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="form"&&S.form?viewForm():viewTabla();
+  $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="form"&&S.form?viewForm():viewTabla();
   if(aid && (["fq","mq","dq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
@@ -1575,6 +1681,7 @@ $("#movilMas").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("cli
 document.querySelectorAll(".movil-tab[data-tab]:not(#movilMasBtn)").forEach(b=>b.addEventListener("click",()=>go({go:b.dataset.tab,cat:"todas"})));
 $("#movilImp").addEventListener("click",()=>{ closeSide(); $("#impBtn").click(); });
 $("#movilExp").addEventListener("click",()=>{ closeSide(); $("#expBtn").click(); });
+$("#movilBod").addEventListener("click",()=>{ closeSide(); go({go:"bodegas"}); });
 $("#movilInstalarBtn").addEventListener("click",()=>{ closeSide(); $("#instBtn").click(); });
 $("#movilSalir").addEventListener("click",()=>{ closeSide(); $("#outBtn").click(); });
 let deferredInstall=null;
@@ -1612,6 +1719,7 @@ window.addEventListener("scroll",closeMenu,true); window.addEventListener("resiz
 /* ---------- Events ---------- */
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>b.closest("dialog").close()));
 $("#impBtn").addEventListener("click",()=>{ closeSide(); $("#file").click(); });
+$("#bodBtn").addEventListener("click",()=>{ closeSide(); go({go:"bodegas"}); });
 $("#nav").addEventListener("click",e=>{const b=e.target.closest("[data-go]"); if(b){ closeSide(); go(b.dataset); }});
 $("#gq").addEventListener("keydown",e=>{ if(e.key==="Enter"){ go({go:"tabla",cat:"todas",q:e.target.value}); e.target.value=""; } });
 const C=$("#content");
@@ -1625,7 +1733,6 @@ C.addEventListener("click",e=>{
   const pk=t.closest("[data-pick]"); if(pk) return addLinea(pk.dataset.pick);
   const rm=t.closest("[data-rm]"); if(rm){ S.form.lineas.splice(+rm.dataset.rm,1); render(true); $("#pick")?.focus(); return; }
   if(t.closest("[data-confirm]")) return confirmarDoc();
-  const pku=t.closest("[data-pkubic]"); if(pku){ S.pkUbic=pku.dataset.pkubic; S.pkq=""; S.pkErr=""; render(true); return; }
   const pkp=t.closest("[data-pkpick]"); if(pkp) return addLineaPk(pkp.dataset.pkpick);
   const pkrm=t.closest("[data-pkrm]"); if(pkrm){ S.pkLineas.splice(+pkrm.dataset.pkrm,1); render(true); $("#pkPick")?.focus(); return; }
   if(t.closest("[data-pkconfirm]")) return confirmarPicking();
@@ -1642,6 +1749,8 @@ C.addEventListener("click",e=>{
   const op=t.closest("[data-open]"); if(op){ S.open = S.open===op.dataset.open ? null : op.dataset.open; S.saved=null; render(); return; }
   if(t.closest("[data-add]")) return openProd();
   if(t.closest("[data-imp]")) return $("#file").click();
+  if(t.closest("[data-addbod]")) return openBod();
+  const ebod=t.closest("[data-editbod]"); if(ebod) return openBod(ebod.dataset.editbod);
   const row=t.closest("tr[data-row]"); if(row && !t.closest("button,input,label,a,select")){ S.open = S.open===row.dataset.row ? null : row.dataset.row; S.saved=null; render(); }
 });
 let tIn;
@@ -1680,11 +1789,13 @@ C.addEventListener("keydown",e=>{
 });
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
-  if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; return; }
+  if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
   if(t.dataset.sel!==undefined){ t.checked?S.sel.add(t.dataset.sel):S.sel.delete(t.dataset.sel); render(); return; }
   if(t.hasAttribute("data-selall")){ const ids=[...C.querySelectorAll("[data-sel]")].map(x=>x.dataset.sel); ids.forEach(i=>t.checked?S.sel.add(i):S.sel.delete(i)); render(); return; }
+  if(id==="pkOrigSel"){ S.pkOrig=v; S.pkErr=""; render(true); return; }
+  if(id==="pkUbicSel"){ S.pkUbic=v; S.pkErr=""; render(true); return; }
   if(id==="fcat"){ S.cat=v; S.bod="todas"; S.open=null; }
   else if(id==="fbod"){ S.bod=v; S.open=null; }
   else if(id==="psize"){ S.size=+v; }
