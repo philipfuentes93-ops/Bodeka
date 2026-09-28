@@ -163,7 +163,8 @@ table.db td.stk{font-weight:800}
 table.db td.neg{color:var(--danger)}
 table.db td.cb,table.db th.cb{width:40px;padding-right:0}
 table.db input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
-.thumb{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:.78rem;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 22%,transparent)}
+.thumb{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:.78rem;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 22%,transparent);overflow:hidden}
+.thumb img,.bigthumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 .rowlink{all:unset;cursor:pointer;display:block;font-weight:600}
 .rowlink:hover{color:var(--accent)}
 .rowlink:focus-visible{outline:2px solid var(--accent)}
@@ -200,7 +201,8 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
 .expbox{border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,.08);background:var(--panel)}
 .exp-in{display:grid;grid-template-columns:190px minmax(0,1fr) 260px;gap:26px;padding:20px 22px 12px}
 .exp-media{display:flex;flex-direction:column;align-items:center;gap:12px}
-.bigthumb{width:150px;height:120px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:color-mix(in srgb,var(--c) 10%,var(--panel));color:var(--c);font-size:2rem;font-weight:800}
+.bigthumb{width:150px;height:120px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;background:color-mix(in srgb,var(--c) 10%,var(--panel));color:var(--c);font-size:2rem;font-weight:800;overflow:hidden;position:relative}
+.bigthumb .fotoedit{all:unset;box-sizing:border-box;position:absolute;inset:auto 0 0 0;background:rgba(0,0,0,.55);color:#fff;text-align:center;font-size:.68rem;font-weight:600;padding:4px 0;cursor:pointer}
 .bigstock{text-align:center}
 .bigstock b{font-size:1.6rem;font-weight:800}
 .bigstock span{display:block;color:var(--muted);font-size:.8rem}
@@ -398,6 +400,11 @@ dialog::backdrop{background:rgba(10,20,25,.55)}
 .dlg{padding:20px;max-height:calc(100vh - 40px);overflow:auto}
 .dlg h2{margin:0 0 4px;font-size:1.5rem;line-height:1.15}
 .dlg .sub{color:var(--muted);margin:0 0 14px;font-size:.9rem}
+.fotobox{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.fotoprev{width:76px;height:76px;border-radius:12px;background:var(--field);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);flex:none;overflow:hidden}
+.fotoprev svg{width:28px;height:28px}
+.fotoprev img{width:100%;height:100%;object-fit:cover;display:block}
+.fotoacts{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;min-width:0}
 .f label{font-size:.85rem;color:var(--muted)}
 .f input,.f select{padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--field);width:100%}
@@ -471,6 +478,14 @@ table.db thead th:last-child{border-top-right-radius:14px}
 <dialog id="dProd"><form class="dlg" id="fProd">
   <h2 id="dProdTitle">Agregar producto</h2>
   <p class="sub" id="dProdSub"></p>
+  <div class="fotobox">
+    <div class="fotoprev" id="pFotoPrev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg></div>
+    <div class="fotoacts">
+      <label class="btn ghost sm" for="pFoto">Elegir foto</label>
+      <input type="file" id="pFoto" accept="image/*" hidden>
+      <button type="button" class="link danger" id="pFotoDel" hidden>Quitar foto</button>
+    </div>
+  </div>
   <div class="grid2">
     <div class="f"><label for="pCod">Código</label><input id="pCod" maxlength="30" inputmode="numeric" placeholder="Código de barras"></div>
     <div class="f"><label for="pUnd">Unidad</label><input id="pUnd" maxlength="10" list="unds" value="UN"></div>
@@ -553,8 +568,30 @@ function parseNum(v){
 function fixProd(p){
   const q = {...p};
   if(!q.categoria && LEGACY[q.bodega]){ q.categoria = LEGACY[q.bodega]; q.bodega=""; }
-  q.unidad = q.unidad||"UN"; q.vencimiento = q.vencimiento||""; q.stock = +q.stock||0; q.minimo = +q.minimo||0;
+  q.unidad = q.unidad||"UN"; q.vencimiento = q.vencimiento||""; q.stock = +q.stock||0; q.minimo = +q.minimo||0; q.foto = q.foto||"";
   return q;
+}
+/* ---------- Fotos de producto ---------- */
+function leerFotoComprimida(file, maxDim, quality){
+  maxDim = maxDim||640; quality = quality||.72;
+  return new Promise((resolve,reject)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      const r = Math.min(1, maxDim/Math.max(img.width,img.height));
+      const w = Math.max(1,Math.round(img.width*r)), h = Math.max(1,Math.round(img.height*r));
+      const cv = document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      let q = quality, out = cv.toDataURL("image/jpeg", q);
+      while(out.length > 700000 && q > 0.35){ q -= 0.12; out = cv.toDataURL("image/jpeg", q); }
+      resolve(out);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error("No se pudo leer la imagen.")); };
+    img.src = url;
+  });
+}
+function thumbHtml(p){
+  return p.foto ? `<img src="${p.foto}" alt="" loading="lazy">` : esc(ini(p.categoria));
 }
 
 /* ---------- Categories (dynamic, accent-insensitive) ---------- */
@@ -651,9 +688,14 @@ function chipVenc(p){
 
 
 /* ---------- Product dialog ---------- */
-let editId=null;
+let editId=null, fotoPend;   // undefined = sin cambios, null = foto quitada, string = foto nueva
+function pintarFotoDlg(foto){
+  $("#pFotoPrev").innerHTML = foto ? `<img src="${foto}" alt="">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>`;
+  $("#pFotoDel").hidden = !foto;
+}
 function openProd(id){
   editId=id||null; const p=S.productos.find(x=>x.id===id);
+  fotoPend=undefined; $("#pFoto").value=""; pintarFotoDlg(p?.foto||"");
   $("#dProdTitle").textContent=p?"Editar producto":"Agregar producto";
   $("#dProdSub").textContent=p?"El stock se cambia con Entrada, Salida o Conteo.":"El stock inicial queda registrado como primer movimiento.";
   $("#pCod").value=p?.codigo||""; $("#pCod").disabled=!!(p&&p.codigo);
@@ -663,6 +705,12 @@ function openProd(id){
   $("#stockField").hidden=!!p; $("#pDel").hidden=!p; $("#pErr").textContent="";
   $("#dProd").showModal(); (p?$("#pNombre"):$("#pCod")).focus();
 }
+$("#pFoto").addEventListener("change", async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ fotoPend=await leerFotoComprimida(f); pintarFotoDlg(fotoPend); }
+  catch{ toast("No se pudo leer la imagen."); }
+});
+$("#pFotoDel").addEventListener("click",()=>{ fotoPend=null; $("#pFoto").value=""; pintarFotoDlg(""); });
 $("#fProd").addEventListener("submit", async e=>{
   e.preventDefault();
   const nombre=$("#pNombre").value.trim(), codigo=$("#pCod").value.trim();
@@ -674,6 +722,7 @@ $("#fProd").addEventListener("submit", async e=>{
     bodega:$("#pBod").value.trim(), ubicacion:$("#pUbic").value.trim(),
     minimo:Math.max(0,+$("#pMin").value||0),
     vencimiento:$("#pVenc").value||"",
+    foto: fotoPend!==undefined ? (fotoPend||"") : (prev?.foto||""),
     stock: prev?prev.stock:Math.max(0,+$("#pStock").value||0), actualizado:new Date().toISOString() };
   try{
     $("#pSave").disabled=true;
@@ -941,12 +990,12 @@ function viewHome(){
   const rep=ps.filter(critico).sort((a,b)=>(a.stock/Math.max(a.minimo,1))-(b.stock/Math.max(b.minimo,1))).slice(0,6);
   const repCard=`<section class="card dcard span-4"><h3>Por reponer<span class="muted">${nMin+nCrit} productos</span></h3>
       ${rep.length?`<ul class="plist">${rep.map(p=>{const st=estado(p), c=st==="critico"?"var(--danger)":"var(--warn)";
-        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${esc(ini(p.categoria))}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb" style="--c:${c}"><span class="mb"><i style="width:${Math.min(100,p.stock/Math.max(1,p.minimo)*100)}%"></i></span>${fmt(p.stock)} / ${fmt(p.minimo)}</div></div><div class="rt">Pedir<b>${fmt(pedir(p))}</b></div></li>`;}).join("")}</ul>
+        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb" style="--c:${c}"><span class="mb"><i style="width:${Math.min(100,p.stock/Math.max(1,p.minimo)*100)}%"></i></span>${fmt(p.stock)} / ${fmt(p.minimo)}</div></div><div class="rt">Pedir<b>${fmt(pedir(p))}</b></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="tabla" data-cat="todas" data-tab="reponer">Ver todos</button>`:'<p class="mini-empty">Nada por reponer. ¡Bien!</p>'}</section>`;
   const venc=ps.filter(p=>["vencido","pv"].includes(estVenc(p))&&(+p.stock||0)>0).sort((a,b)=>diasVenc(a)-diasVenc(b)).slice(0,6);
   const vencCard=`<section class="card dcard span-4"><h3>Vencimientos<span class="muted">con stock en bodega</span></h3>
       ${venc.length?`<ul class="plist">${venc.map(p=>{const d=diasVenc(p);
-        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${esc(ini(p.categoria))}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb">${fFecha(p.vencimiento)} · ${fmt(p.stock)} ${esc(p.unidad)}</div></div><div class="rt"><span class="pill ${d<0?"venc":"pv"}" style="min-width:0">${d<0?`Hace ${-d} d`:d===0?"Hoy":`${d} d`}</span></div></li>`;}).join("")}</ul>
+        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb">${fFecha(p.vencimiento)} · ${fmt(p.stock)} ${esc(p.unidad)}</div></div><div class="rt"><span class="pill ${d<0?"venc":"pv"}" style="min-width:0">${d<0?`Hace ${-d} d`:d===0?"Hoy":`${d} d`}</span></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="tabla" data-cat="todas" data-tab="vencido">Ver vencidos</button>`:'<p class="mini-empty">Sin productos vencidos ni próximos a vencer.</p>'}</section>`;
   const hoy=hoyISO(), dh=S.docs.filter(d=>d.fecha===hoy);
   const sumU=t=>dh.filter(d=>d.tipo===t).reduce((a,d)=>a+(+d.unidades||0),0), cntD=t=>dh.filter(d=>d.tipo===t).length;
@@ -992,7 +1041,7 @@ function expRow(p, span){
   const f=(k,t,v,extra="",cls="")=>`<div class="uf ${cls}"><label for="ef-${k}">${t}</label><input id="ef-${k}" data-ef="${k}" value="${esc(v)}" ${extra}></div>`;
   return `<tr class="exp"><td colspan="${span}"><div class="expbox">
     <div class="exp-in">
-      <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${esc(ini(p.categoria))}</div>
+      <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
         <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b> ${esc(p.unidad)}<span>disponibles · mínimo ${fmt(p.minimo)}</span></div>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
@@ -1063,7 +1112,7 @@ function viewTabla(){
     <tbody>${rows.map(p=>{ const op=S.open===p.id, se=S.sel.has(p.id);
       return `<tr class="${op?"is-open":""} ${se?"is-sel":""}" data-row="${p.id}">
         <td class="cb"><input type="checkbox" data-sel="${p.id}" ${se?"checked":""} aria-label="Seleccionar ${esc(p.nombre)}"></td>
-        <td><span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${esc(ini(p.categoria))}</span></td>
+        <td><span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${thumbHtml(p)}</span></td>
         ${cols.map(c=>cell(p,c)).join("")}
         <td><div class="acts"><button class="ib in" data-newp="recepcion" data-id="${p.id}" title="Recibir" aria-label="Recibir ${esc(p.nombre)}">+</button><button class="ib out" data-newp="despacho" data-id="${p.id}" title="Despachar" aria-label="Despachar ${esc(p.nombre)}">−</button><button class="ib exp" data-open="${p.id}" aria-expanded="${op}" title="Ver y editar" aria-label="Ver y editar ${esc(p.nombre)}">${ICON.chev}</button></div></td></tr>
         ${op?expRow(p,span):""}`; }).join("")}</tbody></table></div>`;
@@ -1087,6 +1136,11 @@ function viewMovs(){
       <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmt(m.cantidad)}</td><td class="n">${fmt(m.stockFinal)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
+async function cambiarFotoInline(id, file){
+  const p=S.productos.find(x=>x.id===id); if(!p || !file) return;
+  try{ const foto=await leerFotoComprimida(file); await Store.putProducto({...p,foto,actualizado:new Date().toISOString()}); S.saved=p.id; render(true); }
+  catch{ toast("No se pudo leer la imagen."); }
+}
 async function saveInline(el){
   const p=S.productos.find(x=>x.id===S.open); if(!p) return;
   const k=el.dataset.ef; let v=el.value.trim();
@@ -1369,6 +1423,7 @@ C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
+  if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
   if(t.dataset.sel!==undefined){ t.checked?S.sel.add(t.dataset.sel):S.sel.delete(t.dataset.sel); render(); return; }
   if(t.hasAttribute("data-selall")){ const ids=[...C.querySelectorAll("[data-sel]")].map(x=>x.dataset.sel); ids.forEach(i=>t.checked?S.sel.add(i):S.sel.delete(i)); render(); return; }
   if(id==="fcat"){ S.cat=v; S.bod="todas"; S.open=null; }
