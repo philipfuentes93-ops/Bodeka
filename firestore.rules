@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Solo estas cuentas de Google pueden ver y modificar el inventario.
+    // Agrega o quita correos y vuelve a publicar las reglas.
+    function autorizado() {
+      return request.auth != null && request.auth.token.email in [
+        'philip.fuentes93@gmail.com'
+        // , 'otro-correo@gmail.com'
+      ];
+    }
+
+    match /{document=**} {
+      allow read, write: if autorizado();
+    }
+  }
+}
