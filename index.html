@@ -644,7 +644,7 @@ const BODEGAS_DEFAULT = [
   {id:"p14", nombre:"Piso 14", tipo:"picking", activa:true},
   {id:"p11", nombre:"Piso 11", tipo:"picking", activa:true}
 ];
-const ADMINS = ["philip.fuentes93@gmail.com"];
+const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
 const bodNom = id => (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
@@ -772,7 +772,7 @@ const Store = {
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
         S.bodegas = snap.docs.map(d=>({id:d.id,...d.data()}));
-        if(!S.bodegas.length && esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b));
+        if(!S.bodegas.length){ S.bodegas=BODEGAS_DEFAULT.map(b=>({...b})); if(esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b)); }
         this.saveLocal(); render(false);
       }, ()=>{}));
     });
