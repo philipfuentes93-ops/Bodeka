@@ -6,7 +6,8 @@ service cloud.firestore {
     // Agrega o quita correos y vuelve a publicar las reglas.
     function autorizado() {
       return request.auth != null && request.auth.token.email in [
-        'philip.fuentes93@gmail.com'
+        'philip.fuentes93@gmail.com',
+        'pfuentesarroyo@coca-cola.com'
         // , 'otro-correo@gmail.com'
       ];
     }
