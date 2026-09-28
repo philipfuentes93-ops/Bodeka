@@ -146,6 +146,19 @@ body{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 1
 
 /* Table */
 .tbl-wrap{overflow:auto}
+.pcards{display:none}
+.pcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.pcard-top{display:flex;align-items:center;gap:10px}
+.pcard-top .thumb{flex:none}
+.pcard-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pcard-info .rowlink{font-weight:700;text-align:left;white-space:normal}
+.pcard-info .sub{font-size:.78rem;color:var(--muted)}
+.pcard-mid{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.pcard-mid .stkv{flex:none}
+.pcard-mid .mbar{flex:1;min-width:60px}
+.pcard-acts{display:flex;gap:6px;margin-top:10px}
+.pcard-acts .ib{flex:1;height:36px}
+.pcard-exp{margin-top:12px}
 table.db{border-collapse:separate;border-spacing:0;width:100%;min-width:860px}
 table.db th{position:sticky;top:0;z-index:1;background:var(--field);color:var(--muted);text-align:left;padding:0;font-weight:600;font-size:.8rem;white-space:nowrap;border-bottom:1px solid var(--line)}
 table.db th button,table.db th > span{all:unset;display:block;box-sizing:border-box;width:100%;padding:12px 12px;cursor:pointer}
@@ -401,6 +414,8 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
   .form-grid,.exp-grid{grid-template-columns:1fr} .form-grid .wide,.exp-grid .wide{grid-column:auto}
   .exp-in{grid-template-columns:1fr} .kv{grid-template-columns:1fr 1fr}
   .qsearch{min-width:0;flex:1}
+  .tbl-wrap{display:none}
+  .pcards{display:block}
 }
 .movil-sheet{position:fixed;inset:0;z-index:45;display:flex;align-items:flex-end}
 .movil-sheet[hidden]{display:none}
@@ -1138,12 +1153,11 @@ function overview(){
   </aside>`;
 }
 
-function expRow(p, span){
+function expDetalle(p){
   const hist=S.movs.filter(m=>m.productoId===p.id).slice(0,5);
   const TP={entrada:["Entrada","in","+"],salida:["Salida","out","−"],ajuste:["Conteo","adj","="],picking:["Picking","adj","↔"]};
   const f=(k,t,v,extra="",cls="")=>`<div class="uf ${cls}"><label for="ef-${k}">${t}</label><input id="ef-${k}" data-ef="${k}" value="${esc(v)}" ${extra}></div>`;
-  return `<tr class="exp"><td colspan="${span}"><div class="expbox">
-    <div class="exp-in">
+  return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
         <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b> ${esc(p.unidad)}<span>disponibles · mínimo ${fmt(p.minimo)}</span></div>
         <ul class="ov-m" style="width:100%;margin:2px 0 0">${UBIC.map(u=>`<li><span class="nm">${esc(u.t)}</span><span class="q">${fmt(p.ubic[u.k])}</span></li>`).join("")}</ul>
@@ -1162,8 +1176,33 @@ function expRow(p, span){
       <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmt(m.cantidad)}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
     </div>
     <div class="exp-foot"><button class="link danger" data-delp="${p.id}">Eliminar producto</button><span class="spacer"></span>
-      <span class="saved ${S.saved===p.id?"ok":""}">${S.saved===p.id?"✓ Guardado automáticamente":"Los cambios se guardan automáticamente"}</span></div>
-  </div></td></tr>`;
+      <span class="saved ${S.saved===p.id?"ok":""}">${S.saved===p.id?"✓ Guardado automáticamente":"Los cambios se guardan automáticamente"}</span></div>`;
+}
+function expRow(p, span){
+  return `<tr class="exp"><td colspan="${span}"><div class="expbox">${expDetalle(p)}</div></td></tr>`;
+}
+function pcard(p){
+  const st=estado(p), op=S.open===p.id;
+  const pct=Math.min(100,(+p.stock||0)/Math.max(1,(+p.minimo||0)*2)*100);
+  return `<div class="pcard ${op?"is-open":""}">
+    <div class="pcard-top">
+      <span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${thumbHtml(p)}</span>
+      <div class="pcard-info"><button class="rowlink" data-open="${p.id}">${esc(p.nombre)}</button>
+        <span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.bodega?` · ${esc(p.bodega)}`:""}</span></div>
+      <span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span>
+    </div>
+    <div class="pcard-mid">
+      <div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b><span>/ ${fmt(p.minimo)}</span></div>
+      <div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div>
+      ${chipVenc(p)}
+    </div>
+    <div class="pcard-acts">
+      <button class="ib in" data-newp="recepcion" data-id="${p.id}" title="Recibir" aria-label="Recibir ${esc(p.nombre)}">+</button>
+      <button class="ib out" data-newp="despacho" data-id="${p.id}" title="Despachar" aria-label="Despachar ${esc(p.nombre)}">−</button>
+      <button class="ib exp" data-open="${p.id}" aria-expanded="${op}" title="Ver y editar" aria-label="Ver y editar ${esc(p.nombre)}">${ICON.chev}</button>
+    </div>
+    ${op?`<div class="expbox pcard-exp">${expDetalle(p)}</div>`:""}
+  </div>`;
 }
 
 function viewTabla(){
@@ -1220,7 +1259,8 @@ function viewTabla(){
         <td><span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${thumbHtml(p)}</span></td>
         ${cols.map(c=>cell(p,c)).join("")}
         <td><div class="acts"><button class="ib in" data-newp="recepcion" data-id="${p.id}" title="Recibir" aria-label="Recibir ${esc(p.nombre)}">+</button><button class="ib out" data-newp="despacho" data-id="${p.id}" title="Despachar" aria-label="Despachar ${esc(p.nombre)}">−</button><button class="ib exp" data-open="${p.id}" aria-expanded="${op}" title="Ver y editar" aria-label="Ver y editar ${esc(p.nombre)}">${ICON.chev}</button></div></td></tr>
-        ${op?expRow(p,span):""}`; }).join("")}</tbody></table></div>`;
+        ${op?expRow(p,span):""}`; }).join("")}</tbody></table></div>
+    <div class="pcards">${rows.map(pcard).join("")}</div>`;
   const bulk = S.sel.size ? `<div class="bulk"><b>${S.sel.size} seleccionado${S.sel.size===1?"":"s"}</b>
       <button class="btn soft sm" data-bulk="recepcion">Recibir</button><button class="btn soft sm" data-bulk="despacho">Despachar</button>${Store.dl?'<button class="btn ghost sm" data-bulk="export">Exportar</button>':""}
       <span class="spacer"></span><button class="link" data-bulk="clear">Quitar selección</button></div>` : "";
