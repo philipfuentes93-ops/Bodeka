@@ -1670,6 +1670,8 @@ const PK_TAG={reposicion:"Reposición",picking:"Tránsito",cooler:"Cooler"};
 const pkCoolers=()=>bods("cooler");
 const pkShort=b=>b.nombre.replace(/^coolers?\s+/i,"");
 const pkGen=()=>S.pkUbic===PK_GEN;
+const pkOrigTipo=()=>(S.bodegas.find(b=>b.id===S.pkOrig)||{}).tipo;
+const pkGenOk=()=>pkOrigTipo()==="picking" && pkCoolers().length>=2;
 const pkSum=l=>Object.values(l.por||{}).reduce((a,n)=>a+(+n||0),0);
 const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h40m0 0-8-8m8 8-8 8"/></svg>';
 
@@ -1718,15 +1720,17 @@ function pkTiles(){
       ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
 }
 function viewPicking(){
-  const origenes=[...bods("reposicion"),...bods("picking")], todosDest=[...bods("reposicion"),...bods("cooler")];
+  const origenes=[...bods("reposicion"),...bods("picking")];
   if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=(bods("reposicion")[0]||origenes[0]||{}).id;
+  // Desde Reposición se sube a las bodegas de tránsito; desde tránsito se rellenan los coolers (o se devuelve a Reposición).
+  const todosDest = pkOrigTipo()==="picking" ? [...bods("cooler"),...bods("reposicion")] : [...bods("picking"),...bods("reposicion")];
   const destinos=todosDest.filter(b=>b.id!==S.pkOrig);
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
-  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Desde Reposición o tránsito → hacia Reposición o coolers</span></div>`;
+  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → tránsito → coolers</span></div>`;
   if(!bods("reposicion").length || !bods("picking").length || !bods("cooler").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
-  const okDest = S.pkUbic===PK_GEN ? pkCoolers().length>=2 : destinos.some(b=>b.id===S.pkUbic);
-  if(destinos.length && !okDest) S.pkUbic=(destinos.find(b=>b.tipo==="cooler")||destinos[0]).id;
-  return ph+tabs+(S.pkTab==="hist"?viewPkHist(todosDest):viewPkNuevo(origenes,destinos));
+  const okDest = S.pkUbic===PK_GEN ? pkGenOk() : destinos.some(b=>b.id===S.pkUbic);
+  if(destinos.length && !okDest){ if(S.pkUbic===PK_GEN) S.pkLineas.forEach(l=>{ delete l.por; }); S.pkUbic=destinos[0].id; }
+  return ph+tabs+(S.pkTab==="hist"?viewPkHist([...bods("reposicion"),...bods("picking"),...bods("cooler")]):viewPkNuevo(origenes,destinos));
 }
 function viewPkNuevo(origenes,destinos){
   const t=pkTotales();
@@ -1734,7 +1738,7 @@ function viewPkNuevo(origenes,destinos){
   const flow=`<div class="pk-flow">
     <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · reposición o cooler</div><div class="pk-cards">${destinos.length?(pkCoolers().length>=2?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos a la vez</small></button>`:""):""}${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">${pkOrigTipo()==="picking"?"Hacia · cooler o devolver a reposición":"Hacia · bodega de tránsito"}</div><div class="pk-cards">${destinos.length?(pkGenOk()?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos a la vez</small></button>`:""):""}${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
   if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
