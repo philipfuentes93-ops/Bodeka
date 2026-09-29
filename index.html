@@ -571,6 +571,16 @@ table.db thead th:last-child{border-top-right-radius:14px}
   .pk-foot{gap:8px;padding:10px 12px}.pk-tot{width:100%}.pk-foot .spacer{display:none}
   .pk-foot .btn{flex:1;padding:10px 8px;white-space:nowrap}.pk-foot #pkConfirm{flex:2}
 }
+.pk-gen{background:linear-gradient(135deg,var(--accent-soft),var(--panel))}
+.pk-gqty{align-items:stretch}
+.pk-grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.pk-g{display:flex;flex-direction:column;gap:3px;align-items:center;border-top:3px solid var(--c);padding-top:4px}
+.pk-g>span{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pk-step.sm button{width:30px;height:38px}
+.pk-step.sm input{width:50px;height:38px;font-size:.98rem}
+.pk-gqty .pk-sub{justify-content:flex-end}
+@media (max-width:860px){ .pk-grid{justify-content:space-between;width:100%} .pk-g{flex:1;min-width:0} .pk-step.sm button{width:26px} .pk-step.sm input{width:100%;min-width:0} .pk-step.sm{width:100%} .pk-gqty .pk-sub{justify-content:space-between} .pk-qty.pk-gqty{flex-direction:column;align-items:stretch} }
+@media print{ .ph-t .g{width:56px;text-align:center} }
 /* Impresión */
 #printArea{display:none}
 @media print{
@@ -771,20 +781,25 @@ const BODEGAS_DEFAULT = [
   {id:"p11", nombre:"Piso 11", tipo:"picking", activa:true}
 ];
 const COOLERS_DEFAULT = [
-  {id:"c10", nombre:"Cooler Piso 10", tipo:"cooler", activa:true},
-  {id:"c11", nombre:"Cooler Piso 11", tipo:"cooler", activa:true},
+  {id:"c10", nombre:"Coolers Piso 10", tipo:"cooler", activa:true},
+  {id:"c11", nombre:"Coolers Piso 11", tipo:"cooler", activa:true},
   {id:"c14", nombre:"Cooler Piso 14", tipo:"cooler", activa:true}
 ];
+const COOLERS_ANTES = {c10:"Cooler Piso 10", c11:"Cooler Piso 11", c14:"Cooler Piso 14"};
 // Bodegas creadas antes de existir el tipo "cooler": se agregan los 3 coolers una sola vez.
 function conCoolers(list){
-  if(list.some(b=>b.tipo==="cooler")) return {list, nuevos:[]};
+  const cambios=[];
+  list=list.map(b=>{ const d=COOLERS_DEFAULT.find(c=>c.id===b.id);
+    if(d && b.tipo==="cooler" && b.nombre===COOLERS_ANTES[b.id] && b.nombre!==d.nombre){ const nb={...b,nombre:d.nombre}; cambios.push(nb); return nb; } return b; });
+  if(list.some(b=>b.tipo==="cooler")) return {list, nuevos:cambios};
   const nuevos=COOLERS_DEFAULT.filter(c=>!list.some(b=>b.id===c.id)).map(b=>({...b}));
-  return {list:[...list,...nuevos], nuevos};
+  return {list:[...list,...nuevos], nuevos:[...cambios,...nuevos]};
 }
 const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
-const bodNom = id => (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
+const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
+const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
 const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1649,9 +1664,13 @@ $("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc
 /* ---------- Picking (traslado de Reposición a una bodega de tránsito, en unidades) ---------- */
 const PK_COLORS=["var(--accent)","var(--orange)","var(--c2)","var(--c1)","var(--c5)","var(--c6)"];
 const DIAS_CORTO=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-const pkColor = id => { const b=S.bodegas.find(x=>x.id===id); if(!b||b.tipo==="reposicion") return "var(--c1)";
+const pkColor = id => { if(id===PK_GEN) return "var(--accent)"; const b=S.bodegas.find(x=>x.id===id); if(!b||b.tipo==="reposicion") return "var(--c1)";
   return PK_COLORS[Math.max(0,S.bodegas.filter(x=>x.tipo!=="reposicion").findIndex(x=>x.id===id))%PK_COLORS.length]; };
 const PK_TAG={reposicion:"Reposición",picking:"Tránsito",cooler:"Cooler"};
+const pkCoolers=()=>bods("cooler");
+const pkShort=b=>b.nombre.replace(/^coolers?\s+/i,"");
+const pkGen=()=>S.pkUbic===PK_GEN;
+const pkSum=l=>Object.values(l.por||{}).reduce((a,n)=>a+(+n||0),0);
 const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h40m0 0-8-8m8 8-8 8"/></svg>';
 
 function pkBodCard(b, sel, attr, tag, color){
@@ -1666,17 +1685,24 @@ function pkTotales(){
 }
 function pkLineHtml(l,i){
   const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
-  const q=+l.cantidad||0, dispO=p.ubic[S.pkOrig]||0, bad=q>dispO, pk=p.packUn||1;
-  return `<li class="pk-line ${bad?"bad":""}" data-pkline="${i}" style="--c:${catColor(p.categoria)}">
+  const gen=pkGen(), q=+l.cantidad||0, dispO=p.ubic[S.pkOrig]||0, bad=q>dispO, pk=p.packUn||1;
+  const enCool=pkCoolers().reduce((a,b)=>a+(p.ubic[b.id]||0),0);
+  const dChip=gen?`<span>En coolers: <b>${fmt(enCool)}</b> un</span>`:`<span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>`;
+  const step=(dest,val,lbl)=>`<div class="pk-step ${dest?"sm":""}"><button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="-1" aria-label="Menos una unidad">−</button>
+      <input type="number" min="0" step="1" inputmode="numeric" data-pkq="${i}" ${dest?`data-pkd="${dest}" placeholder="0"`:""} value="${esc(val)}" aria-label="${esc(lbl)}">
+      <button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="1" aria-label="Más una unidad">+</button></div>`;
+  const qty=gen
+    ? `<div class="pk-qty pk-gqty"><div class="pk-grid">${pkCoolers().map(b=>`<div class="pk-g" style="--c:${pkColor(b.id)}"><span>${esc(pkShort(b))}</span>${step(b.id,(l.por||{})[b.id]||"",`Unidades de ${p.nombre} para ${b.nombre}`)}</div>`).join("")}</div>
+        <div class="pk-sub"><span>Total <b data-pktot="${i}">${fmt(q)}</b> un</span><span data-pkpacks="${i}">${pk>1?`= ${fmt(q/pk)} packs`:""}</span></div></div>`
+    : `<div class="pk-qty">${step("",l.cantidad,`Unidades de ${p.nombre}`)}
+        <div class="pk-sub"><span data-pkpacks="${i}">${pk>1?`= ${fmt(q/pk)} packs`:"unidades"}</span>${pk>1?`<button type="button" class="link" data-pkstep="${i}" data-d="${pk}">+${fmt(pk)}</button>`:""}</div></div>`;
+  return `<li class="pk-line ${gen?"gen":""} ${bad?"bad":""}" data-pkline="${i}" style="--c:${catColor(p.categoria)}">
     <span class="pk-n">${i+1}</span>
     <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
     <div class="pk-info"><div class="nm">${esc(p.nombre)}</div>
-      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un</span><span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
+      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un</span>${dChip}${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
       <div class="pk-warn" ${bad?"":"hidden"}>Solo hay ${fmt(dispO)} un disponibles en ${esc(bodNom(S.pkOrig))}</div></div>
-    <div class="pk-qty"><div class="pk-step"><button type="button" data-pkstep="${i}" data-d="-1" aria-label="Menos una unidad">−</button>
-      <input type="number" min="0" step="1" inputmode="numeric" data-pkq="${i}" value="${esc(l.cantidad)}" aria-label="Unidades de ${esc(p.nombre)}">
-      <button type="button" data-pkstep="${i}" data-d="1" aria-label="Más una unidad">+</button></div>
-      <div class="pk-sub"><span data-pkpacks="${i}">${pk>1?`= ${fmt(q/pk)} packs`:"unidades"}</span>${pk>1?`<button type="button" class="link" data-pkstep="${i}" data-d="${pk}">+${fmt(pk)}</button>`:""}</div></div>
+    ${qty}
     <button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></li>`;
 }
 function pkTiles(){
@@ -1698,7 +1724,8 @@ function viewPicking(){
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
   const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Desde Reposición o tránsito → hacia Reposición o coolers</span></div>`;
   if(!bods("reposicion").length || !bods("picking").length || !bods("cooler").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
-  if(destinos.length && !destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=(destinos.find(b=>b.tipo==="cooler")||destinos[0]).id;
+  const okDest = S.pkUbic===PK_GEN ? pkCoolers().length>=2 : destinos.some(b=>b.id===S.pkUbic);
+  if(destinos.length && !okDest) S.pkUbic=(destinos.find(b=>b.tipo==="cooler")||destinos[0]).id;
   return ph+tabs+(S.pkTab==="hist"?viewPkHist(todosDest):viewPkNuevo(origenes,destinos));
 }
 function viewPkNuevo(origenes,destinos){
@@ -1707,7 +1734,7 @@ function viewPkNuevo(origenes,destinos){
   const flow=`<div class="pk-flow">
     <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · reposición o cooler</div><div class="pk-cards">${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">Hacia · reposición o cooler</div><div class="pk-cards">${destinos.length?(pkCoolers().length>=2?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos a la vez</small></button>`:""):""}${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
   if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
@@ -1729,8 +1756,8 @@ function pkRender(){ const ts=$("#pkTiles")?.scrollTop||0; render(true); const e
 function addLineaPk(id){
   const p=S.productos.find(x=>x.id===id); if(!p) return;
   let i=S.pkLineas.findIndex(l=>l.id===id);
-  if(i<0){ S.pkLineas.push({id, cantidad:"1"}); i=S.pkLineas.length-1; }
-  else S.pkLineas[i].cantidad=String((+S.pkLineas[i].cantidad||0)+1);
+  if(i<0){ S.pkLineas.push(pkGen()?{id, cantidad:"0", por:{}}:{id, cantidad:"1"}); i=S.pkLineas.length-1; }
+  else if(!pkGen()) S.pkLineas[i].cantidad=String((+S.pkLineas[i].cantidad||0)+1);
   S.pkErr=""; pkRender();
   document.querySelector(`[data-pkline="${i}"]`)?.classList.add("flash");
 }
@@ -1738,25 +1765,28 @@ function updPkLinea(i){
   const l=S.pkLineas[i], p=S.productos.find(x=>x.id===l.id); if(!p) return;
   const q=+l.cantidad||0, disp=p.ubic[S.pkOrig]||0, bad=q>disp, pk=p.packUn||1;
   const li=document.querySelector(`[data-pkline="${i}"]`);
-  if(li){ li.classList.toggle("bad",bad); const w=li.querySelector(".pk-warn"); if(w) w.hidden=!bad; const pp=li.querySelector("[data-pkpacks]"); if(pp&&pk>1) pp.textContent=`= ${fmt(q/pk)} packs`; }
+  if(li){ li.classList.toggle("bad",bad); const w=li.querySelector(".pk-warn"); if(w) w.hidden=!bad; const pp=li.querySelector("[data-pkpacks]"); if(pp&&pk>1) pp.textContent=`= ${fmt(q/pk)} packs`; const tt=li.querySelector("[data-pktot]"); if(tt) tt.textContent=fmt(q); }
   $("#pkFoot").innerHTML=pkFootHtml(pkTotales());
   const tile=document.querySelector(`[data-pkpick="${l.id}"] .pk-badge`); if(tile) tile.textContent=fmt(q);
 }
-function stepPk(i,d){
+function pkSetGen(l){ l.cantidad=String(pkSum(l)); }
+function stepPk(i,d,dest){
   const l=S.pkLineas[i]; if(!l) return;
-  l.cantidad=String(Math.max(0,(+l.cantidad||0)+d));
-  const inp=document.querySelector(`[data-pkq="${i}"]`); if(inp) inp.value=l.cantidad;
+  if(dest){ l.por=l.por||{}; l.por[dest]=String(Math.max(0,(+l.por[dest]||0)+d)); pkSetGen(l);
+    const inp=document.querySelector(`[data-pkq="${i}"][data-pkd="${dest}"]`); if(inp) inp.value=l.por[dest]; }
+  else { l.cantidad=String(Math.max(0,(+l.cantidad||0)+d)); const inp=document.querySelector(`[data-pkq="${i}"]`); if(inp) inp.value=l.cantidad; }
   updPkLinea(i);
 }
 async function confirmarPicking(){
-  const orig=S.pkOrig, dest=S.pkUbic;
+  const orig=S.pkOrig, dest=S.pkUbic, gen=dest===PK_GEN, cs=pkCoolers();
   if(orig===dest){ S.pkErr="El origen y el destino deben ser distintos."; render(true); return; }
   const lines=S.pkLineas.map(l=>({...l, p:S.productos.find(x=>x.id===l.id), q:+l.cantidad})).filter(l=>l.p);
   if(!lines.length){ S.pkErr="Agrega al menos un producto."; render(true); return; }
-  if(lines.some(l=>!(l.q>0))){ S.pkErr="Todas las líneas necesitan una cantidad mayor a cero."; render(true); return; }
+  if(lines.some(l=>!(l.q>0))){ S.pkErr=gen?"Cada producto necesita unidades para al menos un cooler.":"Todas las líneas necesitan una cantidad mayor a cero."; render(true); return; }
   const x=lines.find(l=>l.q>(l.p.ubic[orig]||0));
   if(x){ S.pkErr=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(orig)}: disponible ${fmt(x.p.ubic[orig]||0)} un.`; render(true); return; }
   S.pkErr="";
+  const reparto=l=>{ const r={}; cs.forEach(c=>{ const n=+(l.por||{})[c.id]||0; if(n>0) r[c.id]=n; }); return r; };
   const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking").map(d=>+d.numero||0))+1;
   const folio=`PK-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
   const btn=$("#pkConfirm"); btn.disabled=true; btn.textContent="Guardando…";
@@ -1764,15 +1794,19 @@ async function confirmarPicking(){
   try{
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.id)||l.p;
-      const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q, [dest]:(cur.ubic[dest]||0)+l.q};
+      const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q};
+      const rp=gen?reparto(l):{[dest]:l.q};
+      Object.entries(rp).forEach(([k,n])=>{ ubic[k]=(ubic[k]||0)+n; });
       const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
       await Store.putProducto(p);
+      const det=gen?Object.entries(rp).map(([k,n])=>`${bodNom(k)}: ${fmt(n)}`).join(", "):bodNom(dest);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"picking",cantidad:l.q,stockFinal:p.stock,
-        nota:`${folio} · Picking de ${bodNom(orig)} a ${bodNom(dest)}`,fecha:now,folio}, true);
+        nota:`${folio} · Picking de ${bodNom(orig)} a ${gen?"General ("+det+")":det}`,fecha:now,folio}, true);
       hechas++;
     }
     const doc={id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
-      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||""}))};
+      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||"", ...(gen?{reparto:reparto(l)}:{})}))};
+    if(gen) doc.destinos=cs.map(c=>c.id);
     await Store.addDocu(doc);
     S.pkLineas=[]; S.pkq=""; render();
     toast(`${folio} registrado · ${fmt(doc.unidades)} unidades a ${bodNom(dest)}`);
@@ -1792,14 +1826,25 @@ function pkRangoFechas(){
   const dias=[...Array(7)].map((_,i)=>{ const d=new Date(lun); d.setDate(lun.getDate()+i); return pkFechaLocal(d); });
   return {ini:dias[0], fin:dias[6], dias};
 }
+// Un picking "General" se reparte en una parte por cooler para poder sumar por bodega.
+function pkParts(docs, F){
+  const out=[], all=!F||F==="todas";
+  docs.forEach(d=>{ const de=d.ubicDestino||d.ubic;
+    if(de!==PK_GEN){ if(all||F===de) out.push({...d,_doc:d.id,ubicDestino:de}); return; }
+    (d.destinos||[]).forEach(c=>{ if(!all&&F!==c) return;
+      const ls=(d.lineas||[]).map(l=>({...l,cantidad:+(l.reparto||{})[c]||0})).filter(l=>l.cantidad>0);
+      if(ls.length) out.push({...d,_doc:d.id,ubicDestino:c,lineas:ls,unidades:ls.reduce((a,l)=>a+l.cantidad,0)}); });
+  });
+  return out;
+}
 function pkDocs(){
   const r=pkRangoFechas();
-  return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || (d.ubicDestino||d.ubic)===S.pkDestF))
+  return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || pkParts([d],S.pkDestF).length))
     .sort((a,b)=>String(b.creado).localeCompare(String(a.creado)));
 }
 function viewPkHist(destinos){
   const r=pkRangoFechas(), docs=pkDocs(), hoyF=pkFechaLocal(new Date());
-  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking").map(d=>d.ubicDestino||d.ubic)])].filter(Boolean);
+  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking").map(d=>d.ubicDestino||d.ubic)])].filter(x=>x&&x!==PK_GEN);
   const dNom=id=>bodNom(id);
   const filtros=`<div class="pk-filters"><div class="seg" role="group" aria-label="Periodo">
       <button type="button" data-pkrango="hoy" aria-pressed="${S.pkRango==="hoy"}">Hoy</button><button type="button" data-pkrango="semana" aria-pressed="${S.pkRango==="semana"}">Esta semana</button></div>
@@ -1809,27 +1854,29 @@ function viewPkHist(destinos){
     <button class="btn brand" type="button" data-pkprinthist ${docs.length?"":"disabled"}>🖨 Imprimir consolidado</button></div>`;
   if(!docs.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}<div class="empty">No hay pickings registrados ${S.pkRango==="hoy"?"hoy":"esta semana"}${S.pkDestF!=="todas"?" para "+esc(dNom(S.pkDestF)):""}.<div class="btns"><button class="btn brand" type="button" data-pktab="nuevo">Hacer un picking</button></div></div></div>`;
   const uds=d=>d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0);
-  const totUn=docs.reduce((a,d)=>a+uds(d),0);
-  const prodSet=new Set(docs.flatMap(d=>(d.lineas||[]).map(l=>l.productoId||l.nombre)));
+  const parts=pkParts(docs,S.pkDestF);
+  const totUn=parts.reduce((a,d)=>a+uds(d),0);
+  const prodSet=new Set(parts.flatMap(d=>(d.lineas||[]).map(l=>l.productoId||l.nombre)));
   const kpi=(c,v,t)=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span></div>`;
-  const kpis=`<div class="pk-kpis">${kpi("var(--accent)",docs.length,"Pickings")}${kpi("var(--orange)",fmt(totUn),"Unidades movidas")}${kpi("var(--c2)",prodSet.size,"Productos distintos")}${kpi("var(--c1)",[...new Set(docs.map(d=>d.ubicDestino||d.ubic))].length,"Bodegas abastecidas")}</div>`;
+  const kpis=`<div class="pk-kpis">${kpi("var(--accent)",docs.length,"Pickings")}${kpi("var(--orange)",fmt(totUn),"Unidades movidas")}${kpi("var(--c2)",prodSet.size,"Productos distintos")}${kpi("var(--c1)",[...new Set(parts.map(d=>d.ubicDestino))].length,"Bodegas abastecidas")}</div>`;
   // gráfico: unidades por día apiladas por bodega de tránsito
-  const destUsados=[...new Set(docs.map(d=>d.ubicDestino||d.ubic))];
-  const porDia=r.dias.map(f=>{ const ds=docs.filter(d=>d.fecha===f); const seg={}; ds.forEach(d=>{ const k=d.ubicDestino||d.ubic; seg[k]=(seg[k]||0)+uds(d); }); return {f, tot:Object.values(seg).reduce((a,n)=>a+n,0), seg, n:ds.length}; });
+  const destUsados=[...new Set(parts.map(d=>d.ubicDestino))];
+  const porDia=r.dias.map(f=>{ const ds=parts.filter(d=>d.fecha===f); const seg={}; ds.forEach(d=>{ const k=d.ubicDestino; seg[k]=(seg[k]||0)+uds(d); }); return {f, tot:Object.values(seg).reduce((a,n)=>a+n,0), seg, n:docs.filter(d=>d.fecha===f).length}; });
   const max=Math.max(1,...porDia.map(x=>x.tot));
   const chart=`<div class="pk-chart" role="img" aria-label="Unidades por día">${porDia.map((x,i)=>`<div class="pk-col ${x.f===hoyF?"hoy":""}"><span class="pk-cv">${x.tot?fmt(x.tot):""}</span>
       <div class="pk-bar" title="${fFecha(x.f)}: ${fmt(x.tot)} un en ${x.n} picking${x.n===1?"":"s"}">${destUsados.map(id=>x.seg[id]?`<i style="height:${x.seg[id]/max*100}%;background:${pkColor(id)}" title="${esc(dNom(id))}: ${fmt(x.seg[id])} un"></i>`:"").join("")}</div>
       <span class="pk-cl">${r.dias.length>1?DIAS_CORTO[i]:"Hoy"}</span></div>`).join("")}</div>
-    <div class="pk-legend">${destUsados.map(id=>`<span><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))} · ${fmt(docs.filter(d=>(d.ubicDestino||d.ubic)===id).reduce((a,d)=>a+uds(d),0))} un</span>`).join("")}</div>`;
+    <div class="pk-legend">${destUsados.map(id=>`<span><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))} · ${fmt(parts.filter(d=>d.ubicDestino===id).reduce((a,d)=>a+uds(d),0))} un</span>`).join("")}</div>`;
   // consolidado por producto
-  const cons=pkConsolidado(docs), tot=cons.reduce((a,x)=>a+x.total,0), maxP=Math.max(1,...cons.map(x=>x.total));
+  const cons=pkConsolidado(parts), tot=cons.reduce((a,x)=>a+x.total,0), maxP=Math.max(1,...cons.map(x=>x.total));
   const consT=`<div class="tbl-wrap" style="max-height:none"><table class="db" style="min-width:${360+destUsados.length*90}px"><thead><tr><th><span>Producto</span></th>${destUsados.map(id=>`<th class="n"><span>${esc(dNom(id))}</span></th>`).join("")}<th class="n"><span>Total un</span></th><th class="n"><span>Packs</span></th></tr></thead>
     <tbody>${cons.map(x=>`<tr><td class="prod"><span class="pk-mini" style="width:${x.total/maxP*100}%"></span><b>${esc(x.nombre)}</b><span class="sub">${esc(x.codigo||"")}${x.ubicacion?" · Ubic. "+esc(x.ubicacion):""}</span></td>
       ${destUsados.map(id=>`<td class="n">${x.por[id]?fmt(x.por[id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmt(x.total)}</td><td class="n">${x.packUn>1?fmt(Math.round(x.total/x.packUn*100)/100):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table></div>`;
-  const lista=docs.map(d=>{ const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic, hora=new Date(d.creado).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
-    return `<details class="pk-doc" style="--c:${pkColor(de)}"><summary><span class="pk-folio">${esc(d.folio)}</span><span class="pk-ruta">${esc(dNom(o))} <i>→</i> <b>${esc(dNom(de))}</b></span>
+  const lista=docs.map(d=>{ const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic, gen=de===PK_GEN, cs=gen?(d.destinos||[]):[], hora=new Date(d.creado).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+    const thG=gen?cs.map(c=>`<th class="n"><span>${esc(pkShort({nombre:dNom(c)}))}</span></th>`).join(""):"";
+    return `<details class="pk-doc" style="--c:${pkColor(de)}"><summary><span class="pk-folio">${esc(d.folio)}</span><span class="pk-ruta">${esc(dNom(o))} <i>→</i> <b>${gen?"General · "+cs.length+" coolers":esc(dNom(de))}</b></span>
       <span class="muted">${S.pkRango==="semana"?DIAS_CORTO[(new Date(d.fecha+"T12:00").getDay()+6)%7]+" ":""}${hora}</span><span class="spacer"></span><span class="pk-chip">${(d.lineas||[]).length} prod.</span><span class="pk-chip strong">${fmt(uds(d))} un</span></summary>
-      <div class="pk-doc-b"><table class="db" style="min-width:420px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th><th class="n"><span>Unidades</span></th><th class="n"><span>Packs</span></th></tr></thead><tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td><td class="n stk">${fmt(l.cantidad)}</td><td class="n">${(l.packUn||1)>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table>
+      <div class="pk-doc-b"><table class="db" style="min-width:${gen?520+cs.length*70:420}px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th>${thG}<th class="n"><span>Unidades</span></th><th class="n"><span>Packs</span></th></tr></thead><tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td>${gen?cs.map(c=>`<td class="n">${(l.reparto||{})[c]?fmt(l.reparto[c]):'<span class="muted">-</span>'}</td>`).join(""):""}<td class="n stk">${fmt(l.cantidad)}</td><td class="n">${(l.packUn||1)>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table>
       <div style="padding:10px 0 2px"><button class="btn ghost sm" type="button" data-pkprintdoc="${d.id}">🖨 Imprimir esta hoja</button></div></div></details>`; }).join("");
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}${kpis}
       <h3 class="pk-h">Unidades ${S.pkRango==="hoy"?"de hoy":"por día"}</h3>${chart}</div>
@@ -1860,31 +1907,35 @@ function hojaCab(titulo, sub, extra=""){
 }
 function hojaFirmas(){ return `<div class="ph-firmas"><div>Preparó (recolectó)</div><div>Recibió en tránsito</div><div>Observaciones</div></div>`; }
 function imprimirHojaPicking(d){
-  const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic;
+  const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic, gen=de===PK_GEN, cs=gen?(d.destinos||[]):[];
   const ls=[...(d.lineas||[])].map(l=>{ const p=S.productos.find(x=>x.id===l.productoId); return {...l, ubicacion:(p&&p.ubicacion)||l.ubicacion||"", packUn:(p&&p.packUn)||l.packUn||1}; })
     .sort((a,b)=>(a.ubicacion||"~").localeCompare(b.ubicacion||"~","es",{numeric:true})||a.nombre.localeCompare(b.nombre,"es"));
   const un=ls.reduce((a,l)=>a+(+l.cantidad||0),0);
+  const destTxt=gen?`General · ${cs.map(c=>bodNom(c)).join(" / ")}`:bodNom(de);
   imprimir(`<section class="ph-doc">${hojaCab("Hoja de recolección · picking", `<b>${esc(d.folio||"BORRADOR")}</b>`, d.folio?"":'<div class="ph-borrador">BORRADOR · aún no confirmado</div>')}
-    <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia</small><b>${esc(bodNom(de))}</b></div></div>
-    <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Unidades</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
-    <tbody>${ls.map(l=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(l.codigo)}</td><td><b>${esc(l.nombre)}</b></td><td>${esc(l.ubicacion)}</td><td class="n"><b>${fmt(l.cantidad)}</b></td><td class="n">${l.packUn>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody>
-    <tfoot><tr><td colspan="4">${ls.length} producto${ls.length===1?"":"s"}</td><td class="n"><b>${fmt(un)}</b></td><td colspan="2"></td></tr></tfoot></table>${hojaFirmas()}</section>`);
+    <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia</small><b>${esc(destTxt)}</b></div></div>
+    <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th>${gen?cs.map(c=>`<th class="n g">${esc(pkShort({nombre:bodNom(c)}))}</th>`).join(""):""}<th class="n">${gen?"Total un":"Unidades"}</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
+    <tbody>${ls.map(l=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(l.codigo)}</td><td><b>${esc(l.nombre)}</b></td><td>${esc(l.ubicacion)}</td>${gen?cs.map(c=>`<td class="n g">${(l.reparto||{})[c]?fmt(l.reparto[c]):""}</td>`).join(""):""}<td class="n"><b>${fmt(l.cantidad)}</b></td><td class="n">${l.packUn>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="${4+cs.length}">${ls.length} producto${ls.length===1?"":"s"}</td><td class="n"><b>${fmt(un)}</b></td><td colspan="2"></td></tr></tfoot></table>${hojaFirmas()}</section>`);
 }
 function imprimirPickingBorrador(){
   if(!S.pkLineas.length) return;
-  const lineas=S.pkLineas.map(l=>{ const p=S.productos.find(x=>x.id===l.id); return p?{productoId:p.id, codigo:p.codigo||"", nombre:p.nombre, cantidad:+l.cantidad||0, packUn:p.packUn||1, ubicacion:p.ubicacion||""}:null; }).filter(Boolean);
-  imprimirHojaPicking({folio:"", ubicOrigen:S.pkOrig, ubicDestino:S.pkUbic, lineas});
+  const gen=pkGen(), cs=pkCoolers();
+  const lineas=S.pkLineas.map(l=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return null;
+    const r={}; if(gen) cs.forEach(c=>{ const n=+(l.por||{})[c.id]||0; if(n>0) r[c.id]=n; });
+    return {productoId:p.id, codigo:p.codigo||"", nombre:p.nombre, cantidad:+l.cantidad||0, packUn:p.packUn||1, ubicacion:p.ubicacion||"", ...(gen?{reparto:r}:{})}; }).filter(Boolean);
+  imprimirHojaPicking({folio:"", ubicOrigen:S.pkOrig, ubicDestino:S.pkUbic, ...(gen?{destinos:cs.map(c=>c.id)}:{}), lineas});
 }
 function imprimirConsolidado(){
   const r=pkRangoFechas(), docs=pkDocs(); if(!docs.length) return;
   const semana=r.dias.length>1;
   const uds=d=>d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0);
-  const destinos=[...new Set(docs.map(d=>d.ubicDestino||d.ubic))];
-  const secc=destinos.map(id=>{ const ds=docs.filter(d=>(d.ubicDestino||d.ubic)===id), cons=pkConsolidado(ds), tot=cons.reduce((a,x)=>a+x.total,0);
-    return `<section class="ph-bloque"><h2>Hacia ${esc(bodNom(id))} <small>${ds.length} picking${ds.length===1?"":"s"} · ${fmt(tot)} unidades</small></h2>
+  const parts=pkParts(docs,S.pkDestF), destinos=[...new Set(parts.map(d=>d.ubicDestino))];
+  const secc=destinos.map(id=>{ const ds=parts.filter(d=>d.ubicDestino===id), cons=pkConsolidado(ds), tot=cons.reduce((a,x)=>a+x.total,0), nd=new Set(ds.map(d=>d._doc)).size;
+    return `<section class="ph-bloque"><h2>Hacia ${esc(bodNom(id))} <small>${nd} picking${nd===1?"":"s"} · ${fmt(tot)} unidades</small></h2>
       <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th>${semana?r.dias.map((f,i)=>`<th class="n d">${DIAS_CORTO[i]}<small>${f.slice(8)}</small></th>`).join(""):""}<th class="n">Total un</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
       <tbody>${cons.map(x=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(x.codigo||"")}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.ubicacion)}</td>${semana?r.dias.map(f=>`<td class="n d">${x.dia[f]?fmt(x.dia[f]):""}</td>`).join(""):""}<td class="n"><b>${fmt(x.total)}</b></td><td class="n">${x.packUn>1?fmt(Math.round(x.total/x.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody></table></section>`; }).join("");
-  imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de picking · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(docs.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
+  imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de picking · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(parts.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
 }
 
 /* ---------- Bodegas (admin) ---------- */
@@ -2030,10 +2081,13 @@ C.addEventListener("click",e=>{
   if(t.closest("[data-confirm]")) return confirmarDoc();
   const pkp=t.closest("[data-pkpick]"); if(pkp) return addLineaPk(pkp.dataset.pkpick);
   const pkrm=t.closest("[data-pkrm]"); if(pkrm){ S.pkLineas.splice(+pkrm.dataset.pkrm,1); pkRender(); return; }
-  const pks=t.closest("[data-pkstep]"); if(pks) return stepPk(+pks.dataset.pkstep, +pks.dataset.d);
+  const pks=t.closest("[data-pkstep]"); if(pks) return stepPk(+pks.dataset.pkstep, +pks.dataset.d, pks.dataset.pkd);
   const pkt=t.closest("[data-pktab]"); if(pkt){ S.pkTab=pkt.dataset.pktab; S.pkErr=""; render(true); return; }
   const pko=t.closest("[data-pkorig]"); if(pko){ S.pkOrig=pko.dataset.pkorig; S.pkErr=""; pkRender(); return; }
-  const pkd=t.closest("[data-pkdest]"); if(pkd){ S.pkUbic=pkd.dataset.pkdest; S.pkErr=""; pkRender(); return; }
+  const pkd=t.closest("[data-pkdest]"); if(pkd){ const nuevo=pkd.dataset.pkdest, antes=S.pkUbic;
+    if(nuevo===PK_GEN && antes!==PK_GEN){ const c0=pkCoolers()[0]; S.pkLineas.forEach(l=>{ l.por=c0&&+l.cantidad>0?{[c0.id]:String(l.cantidad)}:{}; }); }
+    if(nuevo!==PK_GEN && antes===PK_GEN) S.pkLineas.forEach(l=>{ delete l.por; });
+    S.pkUbic=nuevo; S.pkErr=""; pkRender(); return; }
   const pkr=t.closest("[data-pkrango]"); if(pkr){ S.pkRango=pkr.dataset.pkrango; render(true); return; }
   const pkf=t.closest("[data-pkdf]"); if(pkf){ S.pkDestF=pkf.dataset.pkdf; render(true); return; }
   if(t.closest("[data-pkclear]")){ if(S.pkLineas.length && confirm("¿Vaciar la lista de picking?")){ S.pkLineas=[]; S.pkErr=""; pkRender(); } return; }
@@ -2067,7 +2121,9 @@ C.addEventListener("input",e=>{
     if(t.dataset.lv!==undefined){ S.form.lineas[+t.dataset.lv].venc=v; return; }
     if(id==="pick"){ S.form.pq=v; showSugs(); return; }
   }
-  if(t.dataset.pkq!==undefined){ S.pkLineas[+t.dataset.pkq].cantidad=v; updPkLinea(+t.dataset.pkq); return; }
+  if(t.dataset.pkq!==undefined){ const l=S.pkLineas[+t.dataset.pkq];
+    if(t.dataset.pkd){ l.por=l.por||{}; l.por[t.dataset.pkd]=v; pkSetGen(l); } else l.cantidad=v;
+    updPkLinea(+t.dataset.pkq); return; }
   if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
   if(!["fq","mq","dq"].includes(id)) return;
   clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; S.page=1; render(); },200);
