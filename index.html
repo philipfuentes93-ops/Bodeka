@@ -824,6 +824,11 @@ const BODEGAS_RENOMBRES = [
 ];
 // Bodegas creadas antes de existir el tipo "cooler": se agregan los 3 coolers una sola vez.
 // También renombra a los nombres actuales las que conservan su nombre original.
+// Orden fijo en toda la app: Reposición, tránsito y coolers; dentro de cada tipo por piso (10, 11, 14).
+function ordenBodegas(list){
+  const rank={reposicion:0,picking:1,cooler:2}, corto=b=>b.nombre.replace(/^(reposici[oó]n|tr[aá]nsito|coolers?)\s+/i,"");
+  return [...list].sort((a,b)=>(rank[a.tipo]??9)-(rank[b.tipo]??9) || corto(a).localeCompare(corto(b),"es",{numeric:true}));
+}
 function conCoolers(list){
   const cambios=[];
   list=list.map(b=>{ const r=BODEGAS_RENOMBRES.find(([t,a])=>b.tipo===t && norm(b.nombre)===norm(a));
@@ -906,7 +911,7 @@ const Store = {
   saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas})) }catch{} },
   async init(){
     const l=this.local(); S.productos=l.productos.map(fixProd); S.movs=l.movs; S.docs=l.docs;
-    S.bodegas = conCoolers(l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT]).list;
+    S.bodegas = ordenBodegas(conCoolers(l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT]).list);
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
@@ -963,7 +968,7 @@ const Store = {
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
         S.bodegas = snap.docs.map(d=>({id:d.id,...d.data()}));
         if(!S.bodegas.length){ S.bodegas=BODEGAS_DEFAULT.map(b=>({...b})); if(esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b)); }
-        const cc=conCoolers(S.bodegas); S.bodegas=cc.list; if(esAdmin) cc.nuevos.forEach(b=>Store.putBodega(b));
+        const cc=conCoolers(S.bodegas); S.bodegas=ordenBodegas(cc.list); if(esAdmin) cc.nuevos.forEach(b=>Store.putBodega(b));
         this.saveLocal(); render(false);
       }, ()=>{}));
     });
@@ -996,6 +1001,7 @@ const Store = {
     const {id,...body}=b;
     if(this.db) await this.db.doc("bodegas/"+id).set(body).catch(syncErr);
     const i=S.bodegas.findIndex(x=>x.id===id); if(i>=0) S.bodegas[i]=b; else S.bodegas.push(b);
+    S.bodegas=ordenBodegas(S.bodegas);
     this.saveLocal(); render(false);
   }
 };
@@ -1096,8 +1102,12 @@ function updPrev(){
 }
 function openMov(id,t,bodId){
   movP=S.productos.find(x=>x.id===id); if(!movP) return; movT=t;
-  const opts=bods(); movU=(bodId&&opts.some(b=>b.id===bodId)?bodId:(opts[0]||{}).id||"repo");
-  $("#mUbicSel").innerHTML=opts.map(b=>`<option value="${esc(b.id)}">${esc(b.nombre)}</option>`).join("");
+  const opts=bods(), fijas=opts.filter(b=>b.tipo!=="cooler");
+  const masStock=[...fijas].sort((a,b)=>(movP.ubic[b.id]||0)-(movP.ubic[a.id]||0))[0];
+  movU=(bodId&&opts.some(b=>b.id===bodId)?bodId:((movP.ubic[(masStock||{}).id]||0)>0?masStock.id:(fijas[0]||opts[0]||{}).id||"repo"));
+  const op=b=>`<option value="${esc(b.id)}">${esc(b.nombre)} · ${fmt(movP.ubic[b.id]||0)} ${esc(movP.unidad)}</option>`;
+  const grp=(t,tipo)=>{ const l=opts.filter(b=>b.tipo===tipo); return l.length?`<optgroup label="${t}">${l.map(op).join("")}</optgroup>`:""; };
+  $("#mUbicSel").innerHTML=grp("Reposición","reposicion")+grp("Tránsito","picking")+grp("Coolers","cooler");
   $("#mUbicSel").value=movU;
   $("#mTitle").textContent=movP.nombre; $("#mSub").textContent=[movP.codigo,movP.categoria].filter(Boolean).join(" · ");
   $("#mCant").value=""; $("#mNota").value=""; $("#mVenc").value="";
