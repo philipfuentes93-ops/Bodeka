@@ -1,4 +1,4 @@
-# Bodeka · Inventario de bodegas
+# Depósito · Picking & Inventarios
 
 App web para controlar el stock de las bodegas de bebidas, aseo y snack/lácteos/colaciones,
 con módulos de Inventario, Recepción y Despacho. Los datos se guardan en Firebase (Firestore),

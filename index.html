@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bodeka · Inventario de bodegas</title>
+<title>Depósito · Picking &amp; Inventarios</title>
 <meta name="theme-color" content="#0E7C70">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -61,7 +61,8 @@ body{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 1
 .brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px}
 .bmark{position:relative;width:34px;height:34px;display:grid;place-items:center;font-weight:800;font-size:1.7rem;color:#fff;line-height:1}
 .bmark i{position:absolute;right:0;bottom:1px;width:11px;height:11px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--side)}
-.bname{font-weight:800;font-size:1.65rem;letter-spacing:-.02em;color:#fff}
+.bname{font-weight:800;font-size:1.65rem;letter-spacing:-.02em;color:#fff;display:flex;flex-direction:column;line-height:1.05}
+.bname small{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(214,236,232,.65);margin-top:3px}
 .gsearch{margin:0 6px 8px;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:.86rem}
 .gsearch::placeholder{color:rgba(255,255,255,.5)}
 .gsearch:focus{outline:none;border-color:var(--orange)}
@@ -408,7 +409,7 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
   .side{display:none}
   .scrim{display:none !important}
   .movil-top{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20;background:var(--side);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
-  .movil-top .bname{display:flex;align-items:center;gap:8px;font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:#fff}
+  .movil-top .bname{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:#fff}
   .movil-top .bmark{width:28px;height:28px;font-size:1.15rem}
   .movil-avatar{all:unset;box-sizing:border-box;cursor:pointer;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;font-weight:800;font-size:.82rem;background-size:cover;background-position:center;flex:none}
   .content{padding:16px 12px calc(82px + env(safe-area-inset-bottom,0px))}
@@ -654,7 +655,7 @@ td.n .ubin{display:block;margin-left:auto}
 <body>
 <div class="app">
   <aside class="side" id="side" aria-label="Menú principal">
-    <div class="brand"><span class="bmark" aria-hidden="true">B<i></i></span><span class="bname">bodeka</span></div>
+    <div class="brand"><span class="bmark" aria-hidden="true">B<i></i></span><span class="bname">depósito<small>picking &amp; inventarios</small></span></div>
     <input class="gsearch" id="gq" type="search" placeholder="Buscar producto o código…" aria-label="Buscar en todo el inventario">
     <nav class="nav" id="nav"></nav>
     <div class="grp">Herramientas</div>
@@ -665,7 +666,7 @@ td.n .ubin{display:block;margin-left:auto}
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
     <div class="side-foot">
-      <button class="inst" id="instBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg>Instalar Bodeka</button>
+      <button class="inst" id="instBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg>Instalar la app</button>
       <div class="acct" id="acct" hidden>
         <span class="av" id="acctAv"></span>
         <div><b id="acctName"></b><span id="acctEmail"></span></div>
@@ -676,7 +677,7 @@ td.n .ubin{display:block;margin-left:auto}
   </aside>
   <div class="main">
     <header class="movil-top">
-      <span class="bname"><span class="bmark" aria-hidden="true">B<i></i></span>bodeka</span>
+      <span class="bname"><span class="bmark" aria-hidden="true">B<i></i></span>depósito</span>
       <button class="movil-avatar" id="movilAvatar" type="button" aria-label="Abrir menú de la cuenta">?</button>
     </header>
     <main class="content" id="content"></main>
@@ -695,7 +696,7 @@ td.n .ubin{display:block;margin-left:auto}
     <div class="movil-sheet-asa" aria-hidden="true"></div>
     <div class="movil-sheet-cuenta">
       <span class="movil-avatar-lg" id="movilAcctAv" aria-hidden="true">?</span>
-      <div><div class="movil-sheet-nombre" id="movilAcctName">Bodeka</div><div class="movil-sheet-email" id="movilAcctEmail"></div></div>
+      <div><div class="movil-sheet-nombre" id="movilAcctName">Depósito</div><div class="movil-sheet-email" id="movilAcctEmail"></div></div>
     </div>
     <button class="movil-sheet-item" type="button" data-tab="desp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg><span>Despacho</span></button>
     <button class="movil-sheet-item" type="button" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Por bodega</span></button>
@@ -703,14 +704,14 @@ td.n .ubin{display:block;margin-left:auto}
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilBod" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Bodegas</span></button>
-    <button class="movil-sheet-item" type="button" id="movilInstalarBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg><span>Instalar Bodeka</span></button>
+    <button class="movil-sheet-item" type="button" id="movilInstalarBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg><span>Instalar la app</span></button>
     <p class="sync" id="movilSync" style="padding:4px 8px;margin:2px 0 0"></p>
     <button class="movil-sheet-item salir" type="button" id="movilSalir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></svg><span>Cerrar sesión</span></button>
   </div>
 </div>
 <div class="login" id="login" hidden><div class="login-card">
   <div class="bmark" aria-hidden="true">B<i></i></div>
-  <h1>Bodeka</h1><p>Ingresa con el correo y la clave que te asignaron para ver y actualizar el inventario.</p>
+  <h1>Depósito</h1><p><b>Picking &amp; Inventarios.</b> Ingresa con el correo y la clave que te asignaron para ver y actualizar el inventario.</p>
   <input id="lEmail" type="email" placeholder="Correo" autocomplete="username">
   <input id="lPass" type="password" placeholder="Contraseña" autocomplete="current-password">
   <div class="login-btns">
@@ -1272,7 +1273,7 @@ async function exportar(list){
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   const hoy=new Date().toISOString().slice(0,10);
-  try{ await Store.dl.save({filename:`bodeka-inventario-${hoy}.xlsx`, data:new Blob([buf])}); }
+  try{ await Store.dl.save({filename:`deposito-inventario-${hoy}.xlsx`, data:new Blob([buf])}); }
   catch(err){ if(err && err.code!=="declined") toast("No se pudo generar la descarga."); }
 }
 $("#expBtn").addEventListener("click", ()=>exportar(S.screen==="tabla" ? visibles() : S.productos));
@@ -1985,7 +1986,7 @@ function imprimir(html){
 }
 function hojaCab(titulo, sub, extra=""){
   const ahora=new Date().toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
-  return `<header class="ph-cab"><div class="ph-brand"><span class="ph-logo">B<i></i></span><div><b>bodeka</b><small>${esc(titulo)}</small></div></div>
+  return `<header class="ph-cab"><div class="ph-brand"><span class="ph-logo">B<i></i></span><div><b>depósito</b><small>Picking &amp; Inventarios · ${esc(titulo)}</small></div></div>
     <div class="ph-meta"><div>${sub}</div><div class="ph-imp">Impreso ${ahora}</div>${extra}</div></header>`;
 }
 function hojaFirmas(){ return `<div class="ph-firmas"><div>Preparó (recolectó)</div><div>Recibió en tránsito</div><div>Observaciones</div></div>`; }
@@ -2147,7 +2148,7 @@ async function exportarInv(){
     : ps.map(p=>{ const r={"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad}; bs.forEach(x=>{ r[x.nombre.toUpperCase()]=p.ubic[x.id]||0; }); r["TOTAL GENERAL"]=p.stock; return r; });
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), (b?b.nombre:"Todas").slice(0,30));
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"}), hoy=new Date().toISOString().slice(0,10);
-  try{ await Store.dl.save({filename:`bodeka-${b?norm(b.nombre).replace(/[^a-z0-9]+/g,"-"):"por-bodega"}-${hoy}.xlsx`, data:new Blob([buf])}); }
+  try{ await Store.dl.save({filename:`deposito-${b?norm(b.nombre).replace(/[^a-z0-9]+/g,"-"):"por-bodega"}-${hoy}.xlsx`, data:new Blob([buf])}); }
   catch(err){ if(err && err.code!=="declined") toast("No se pudo generar la descarga."); }
 }
 
@@ -2229,7 +2230,7 @@ function openMovilSheet(){
   $("#movilInstalarBtn").hidden=$("#instBtn").hidden;
   $("#movilAcctAv").style.backgroundImage=$("#acctAv").style.backgroundImage;
   $("#movilAcctAv").textContent=$("#acctAv").textContent;
-  $("#movilAcctName").textContent=$("#acctName").textContent||"Bodeka";
+  $("#movilAcctName").textContent=$("#acctName").textContent||"Depósito";
   $("#movilAcctEmail").textContent=$("#acctEmail").textContent;
   $("#movilSync").textContent=$("#sync").textContent;
   $("#movilMas").hidden=false;
