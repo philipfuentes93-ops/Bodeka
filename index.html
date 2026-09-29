@@ -839,7 +839,9 @@ function conCoolers(list){
 }
 const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
-const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
+// bods() = bodegas donde se guarda inventario (Reposición y tránsito). Los coolers son solo un destino: no llevan stock.
+const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (tipo ? b.tipo===tipo : b.tipo!=="cooler"));
+const esCooler = id => (S.bodegas.find(b=>b.id===id)||{}).tipo==="cooler";
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
 const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, bfNombre:"", bfTipo:"picking", bfErr:""};
@@ -866,6 +868,7 @@ function fixProd(p){
   // Se asume que ese stock vivía todo en la bodega de reposición por defecto, sin perder unidades.
   q.ubic = q.ubic ? {...q.ubic} : {repo:+q.stock||0};
   Object.keys(q.ubic).forEach(k=>{ q.ubic[k]=+q.ubic[k]||0; });
+  S.bodegas.forEach(b=>{ if(b.tipo==="cooler") delete q.ubic[b.id]; });   // los coolers no llevan inventario
   q.minUbic = Object.fromEntries(Object.entries(q.minUbic||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.stock = Object.values(q.ubic).reduce((a,n)=>a+n,0);
   return q;
@@ -1609,7 +1612,7 @@ function buscarProd(q){
 function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); const base=p.ubic[S.form.bod]||0; return S.form.tipo==="recepcion"?base+qUn:base-qUn; }
 function viewForm(){
   const f=S.form, D=DOC[f.tipo], R=f.tipo==="recepcion";
-  const origenes=R?bods("reposicion"):[...bods("reposicion"),...bods("picking"),...bods("cooler")];
+  const origenes=R?bods("reposicion"):bods();
   if(!origenes.some(b=>b.id===f.bod)) f.bod=(origenes[0]||{}).id||"repo";
   const nomBod=bodNom(f.bod);
   const opt=(v,cur)=>`<option ${v===cur?"selected":""}>${esc(v)}</option>`;
@@ -1740,7 +1743,7 @@ const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke=
 function pkBodCard(b, sel, attr, tag, color){
   const un=S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
   return `<button type="button" class="pk-bod ${sel?"on":""}" ${attr}="${esc(b.id)}" style="--c:${color}" aria-pressed="${sel}">
-    <span class="pk-tag">${tag}</span><b>${esc(b.nombre)}</b><small>${fmt(un)} un en total</small></button>`;
+    <span class="pk-tag">${tag}</span><b>${esc(b.nombre)}</b><small>${b.tipo==="cooler"?"Destino · sale del inventario":fmt(un)+" un en total"}</small></button>`;
 }
 function pkTotales(){
   let un=0, packs=0;
@@ -1750,8 +1753,7 @@ function pkTotales(){
 function pkLineHtml(l,i){
   const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
   const gen=pkGen(), q=+l.cantidad||0, dispO=p.ubic[S.pkOrig]||0, bad=q>dispO, pk=p.packUn||1;
-  const enCool=pkCoolers().reduce((a,b)=>a+(p.ubic[b.id]||0),0);
-  const dChip=gen?`<span>En coolers: <b>${fmt(enCool)}</b> un</span>`:`<span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>`;
+  const dChip=(gen||esCooler(S.pkUbic))?"":`<span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>`;
   const step=(dest,val,lbl)=>`<div class="pk-step ${dest?"sm":""}"><button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="-1" aria-label="Menos una unidad">−</button>
       <input type="number" min="0" step="1" inputmode="numeric" data-pkq="${i}" ${dest?`data-pkd="${dest}" placeholder="0"`:""} value="${esc(val)}" aria-label="${esc(lbl)}">
       <button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="1" aria-label="Más una unidad">+</button></div>`;
@@ -1801,7 +1803,7 @@ function viewPkNuevo(origenes,destinos){
   const flow=`<div class="pk-flow">
     <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · general, cooler o tránsito</div><div class="pk-cards">${destinos.length?destinos.filter(b=>b.tipo==="cooler").map(dc).join("")+(pkGenOk()?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos a la vez</small></button>`:"")+destinos.filter(b=>b.tipo!=="cooler").map(dc).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">Hacia · general, cooler o tránsito</div><div class="pk-cards">${destinos.length?destinos.filter(b=>b.tipo==="cooler").map(dc).join("")+(pkGenOk()?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos · sale del inventario</small></button>`:"")+destinos.filter(b=>b.tipo!=="cooler").map(dc).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
   if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
@@ -1863,12 +1865,12 @@ async function confirmarPicking(){
       const cur=S.productos.find(x=>x.id===l.id)||l.p;
       const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q};
       const rp=gen?reparto(l):{[dest]:l.q};
-      Object.entries(rp).forEach(([k,n])=>{ ubic[k]=(ubic[k]||0)+n; });
+      Object.entries(rp).forEach(([k,n])=>{ if(!esCooler(k)) ubic[k]=(ubic[k]||0)+n; });   // a un cooler solo sale: no se lleva su stock
       const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
       await Store.putProducto(p);
       const det=gen?Object.entries(rp).map(([k,n])=>`${bodNom(k)}: ${fmt(n)}`).join(", "):bodNom(dest);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"picking",cantidad:l.q,stockFinal:p.stock,
-        nota:`${folio} · Picking de ${bodNom(orig)} a ${gen?"General ("+det+")":det}`,fecha:now,folio}, true);
+        nota:`${folio} · Picking de ${bodNom(orig)} a ${gen?"General ("+det+")":det}${esCooler(dest)||gen?" · sale a cooler":""}`,fecha:now,folio}, true);
       hechas++;
     }
     const doc={id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
@@ -2007,7 +2009,7 @@ function imprimirConsolidado(){
 
 /* ---------- Inventario por bodega ---------- */
 const bShort = b => b.nombre.replace(/^(reposici[oó]n|tr[aá]nsito|coolers?)\s+/i,"");
-const invBods = () => S.bodegas.filter(b=>b.activa!==false && (S.invCool || b.tipo!=="cooler"));
+const invBods = () => bods();
 const uniBod = b => S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
 const nProdBod = b => S.productos.filter(p=>(p.ubic[b.id]||0)>0).length;
 const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;
@@ -2021,7 +2023,6 @@ function viewInv(){
   const bs=invBods();
   if(S.invBod!=="comparar" && !bs.some(b=>b.id===S.invBod)) S.invBod="comparar";
   const head=`<div class="ph"><h1>Inventario por bodega</h1><span class="spacer"></span>
-    <label class="chk"><input type="checkbox" data-invcool ${S.invCool?"checked":""}> Mostrar coolers</label>
     ${esAdmin?`<button class="addlink" data-go="bodegas">Administrar bodegas</button>`:""}</div>`;
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-invbod="comparar" aria-selected="${S.invBod==="comparar"}">Comparar todas</button>
     ${bs.map(b=>`<button role="tab" data-invbod="${esc(b.id)}" aria-selected="${S.invBod===b.id}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(b.nombre)}<span class="ct">${fmt(uniBod(b))}</span></button>`).join("")}</div>`;
@@ -2139,8 +2140,8 @@ function viewBodegas(){
   if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
   const stockDe=b=>S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
   const fila=b=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
-      <div style="flex:1;min-width:0"><button class="rowlink" data-invbod="${esc(b.id)}" title="Ver el inventario de esta bodega"><b>${esc(b.nombre)}</b></button></div>
-      <div class="muted">${nProdBod(b)} prod. · ${fmt(stockDe(b))} un</div>
+      <div style="flex:1;min-width:0">${b.tipo==="cooler"?`<b>${esc(b.nombre)}</b>`:`<button class="rowlink" data-invbod="${esc(b.id)}" title="Ver el inventario de esta bodega"><b>${esc(b.nombre)}</b></button>`}</div>
+      <div class="muted">${b.tipo==="cooler"?"Solo destino de picking":nProdBod(b)+" prod. · "+fmt(stockDe(b))+" un"}</div>
       <button class="link" data-editbod="${b.id}">Editar</button>
     </div>`;
   const grupo=(tipo,t)=>{
@@ -2151,7 +2152,7 @@ function viewBodegas(){
   return `<div class="ph"><h1>Bodegas</h1><span class="spacer"></span><button class="addlink" data-addbod>+ Agregar bodega</button></div>
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
     <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
-    <div class="card" style="margin-bottom:14px">${grupo("cooler","Coolers")}</div>
+    <div class="card" style="margin-bottom:14px">${grupo("cooler","Coolers · solo destino (sin inventario)")}</div>
     ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
 }
 let editBodId=null;
@@ -2349,7 +2350,6 @@ C.addEventListener("change",e=>{
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
   if(t.dataset.ubq!==undefined) return ajustarUbic(t.dataset.ubq, t.dataset.ubb, t.value);
   if(t.dataset.ubmin!==undefined) return fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
-  if(t.hasAttribute("data-invcool")){ S.invCool=t.checked; S.page=1; render(true); return; }
   if(t.hasAttribute("data-invall")){ S.invAll=t.checked; S.page=1; render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
