@@ -930,6 +930,7 @@ const Store = {
     }
     firebase.initializeApp(cfg);
     const db=firebase.firestore();
+    try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch{}   // redes que bloquean el streaming de Firestore
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch{}   // works offline inside the warehouse
     const auth=firebase.auth();
     const loginErrMsg = e => ({
@@ -1452,7 +1453,7 @@ function expDetalle(p){
         ${f("ubicacion","Ubicación",p.ubicacion||"",'maxlength="20"')}
         ${f("vencimiento","Vencimiento",p.vencimiento||"",'type="date"')}
       </div>
-      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmt(m.cantidad)}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
+      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmt(m.cantidad)}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
     </div>
     <div class="exp-foot"><button class="link danger" data-delp="${p.id}">Eliminar producto</button><span class="spacer"></span>
       <span class="saved ${S.saved===p.id?"ok":""}">${S.saved===p.id?"✓ Guardado automáticamente":"Los cambios se guardan automáticamente"}</span></div>`;
@@ -2292,10 +2293,11 @@ C.addEventListener("click",e=>{
   const pk=t.closest("[data-pick]"); if(pk) return addLinea(pk.dataset.pick);
   const rm=t.closest("[data-rm]"); if(rm){ S.form.lineas.splice(+rm.dataset.rm,1); render(true); $("#pick")?.focus(); return; }
   if(t.closest("[data-confirm]")) return confirmarDoc();
+  const md1=t.closest("[data-mdel1]"); if(md1){ if(confirm("¿Eliminar este registro del historial?\nSolo se borra el registro: el stock no cambia.")){ Store.delMov(md1.dataset.mdel1); toast("Registro eliminado"); render(true); } return; }
   if(t.closest("[data-mclear]")){ S.msel.clear(); render(true); return; }
   if(t.closest("[data-mdel]")){ const n=S.msel.size; if(!n) return;
     if(!confirm(`¿Eliminar ${n} movimiento${n===1?"":"s"} del historial?\nSolo se borra el registro: el stock de las bodegas no cambia.`)) return;
-    const ids=[...S.msel]; S.msel.clear(); Promise.all(ids.map(id=>Store.delMov(id))).then(()=>{ toast(`${n} movimiento${n===1?"":"s"} eliminado${n===1?"":"s"}`); render(true); }); return; }
+    const ids=[...S.msel]; S.msel.clear(); Promise.all(ids.map(id=>Store.delMov(id))).then(()=>{ toast(/Sin conexión/.test($("#sync").textContent)?"Eliminado solo en este dispositivo: no hay conexión con la base de datos.":`${n} movimiento${n===1?"":"s"} eliminado${n===1?"":"s"}`); render(true); }); return; }
   const ib=t.closest("[data-invbod]"); if(ib) return abrirInv(ib.dataset.invbod);
   if(t.closest("[data-invall-on]")){ S.invAll=true; S.page=1; render(true); return; }
   if(t.closest("[data-invprint]")) return imprimirInv();
