@@ -145,7 +145,7 @@ body{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 1
 .ov-m .pill{min-width:0;padding:1px 6px;font-size:.7rem}
 .ov-m.bl li{grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}
 .ov-m.bl li:last-child{border-bottom:0}
-.bodgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+.bodgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 32px}
 .bodgrid .bt{margin:0 0 4px;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .bodgrid .ov-m li{font-size:.9rem;padding:9px 0}
 @media (max-width:860px){ .bodgrid{grid-template-columns:1fr;gap:14px} }
@@ -749,7 +749,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
 <dialog id="dBod"><form class="dlg" id="fBod">
   <h2 id="dBodTitle">Agregar bodega</h2>
   <div class="f"><label for="bNombre">Nombre</label><input id="bNombre" required maxlength="60" placeholder="Ej: Piso 9, Reposición Aseo"></div>
-  <div class="f"><label for="bTipo">Tipo</label><select id="bTipo"><option value="reposicion">Reposición</option><option value="picking">Picking · tránsito</option></select></div>
+  <div class="f"><label for="bTipo">Tipo</label><select id="bTipo"><option value="reposicion">Reposición</option><option value="picking">Picking · tránsito</option><option value="cooler">Cooler</option></select></div>
   <p class="err" id="bErr"></p>
   <div class="dlg-actions">
     <button type="button" class="btn danger" id="bArch" hidden>Archivar</button>
@@ -770,11 +770,22 @@ const BODEGAS_DEFAULT = [
   {id:"p14", nombre:"Piso 14", tipo:"picking", activa:true},
   {id:"p11", nombre:"Piso 11", tipo:"picking", activa:true}
 ];
+const COOLERS_DEFAULT = [
+  {id:"c10", nombre:"Cooler Piso 10", tipo:"cooler", activa:true},
+  {id:"c11", nombre:"Cooler Piso 11", tipo:"cooler", activa:true},
+  {id:"c14", nombre:"Cooler Piso 14", tipo:"cooler", activa:true}
+];
+// Bodegas creadas antes de existir el tipo "cooler": se agregan los 3 coolers una sola vez.
+function conCoolers(list){
+  if(list.some(b=>b.tipo==="cooler")) return {list, nuevos:[]};
+  const nuevos=COOLERS_DEFAULT.filter(c=>!list.some(b=>b.id===c.id)).map(b=>({...b}));
+  return {list:[...list,...nuevos], nuevos};
+}
 const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
 const bodNom = id => (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", bfNombre:"", bfTipo:"picking", bfErr:""};
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -842,7 +853,7 @@ const Store = {
   saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas})) }catch{} },
   async init(){
     const l=this.local(); S.productos=l.productos.map(fixProd); S.movs=l.movs; S.docs=l.docs;
-    S.bodegas = l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT];
+    S.bodegas = conCoolers(l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT]).list;
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
@@ -899,6 +910,7 @@ const Store = {
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
         S.bodegas = snap.docs.map(d=>({id:d.id,...d.data()}));
         if(!S.bodegas.length){ S.bodegas=BODEGAS_DEFAULT.map(b=>({...b})); if(esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b)); }
+        const cc=conCoolers(S.bodegas); S.bodegas=cc.list; if(esAdmin) cc.nuevos.forEach(b=>Store.putBodega(b));
         this.saveLocal(); render(false);
       }, ()=>{}));
     });
@@ -1304,7 +1316,7 @@ function viewHome(){
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
     return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
   const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-go="bodegas" style="font-size:.8rem">Gestionar bodegas</button></span>`:""}</h3>
-      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}</div></section>`:"";
+      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}${bodGrupo("cooler","Coolers")}</div></section>`:"";
   return `<div class="ph"><h1>Resumen</h1><span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>
     <div class="dash">${hero}${health}${ps.length?kpis:""}${bodCard}${donut?catsCard.replace("span-12","span-8"):catsCard}${donut}${ps.length?repCard+vencCard+actCard:""}</div>`;
 }
@@ -1637,7 +1649,9 @@ $("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc
 /* ---------- Picking (traslado de Reposición a una bodega de tránsito, en unidades) ---------- */
 const PK_COLORS=["var(--accent)","var(--orange)","var(--c2)","var(--c1)","var(--c5)","var(--c6)"];
 const DIAS_CORTO=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-const pkColor = id => PK_COLORS[Math.max(0,S.bodegas.filter(b=>b.tipo==="picking").findIndex(b=>b.id===id))%PK_COLORS.length];
+const pkColor = id => { const b=S.bodegas.find(x=>x.id===id); if(!b||b.tipo==="reposicion") return "var(--c1)";
+  return PK_COLORS[Math.max(0,S.bodegas.filter(x=>x.tipo!=="reposicion").findIndex(x=>x.id===id))%PK_COLORS.length]; };
+const PK_TAG={reposicion:"Reposición",picking:"Tránsito",cooler:"Cooler"};
 const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h40m0 0-8-8m8 8-8 8"/></svg>';
 
 function pkBodCard(b, sel, attr, tag, color){
@@ -1678,22 +1692,22 @@ function pkTiles(){
       ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
 }
 function viewPicking(){
-  const origenes=bods(), picking=bods("picking");
+  const origenes=[...bods("reposicion"),...bods("picking")], todosDest=[...bods("reposicion"),...bods("cooler")];
   if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=(bods("reposicion")[0]||origenes[0]||{}).id;
-  const destinos=picking.filter(b=>b.id!==S.pkOrig);
+  const destinos=todosDest.filter(b=>b.id!==S.pkOrig);
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
-  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Desde Reposición o tránsito → hacia una bodega de tránsito</span></div>`;
-  if(!picking.length || !bods("reposicion").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking (tránsito). ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
-  if(destinos.length && !destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=destinos[0].id;
-  return ph+tabs+(S.pkTab==="hist"?viewPkHist(picking):viewPkNuevo(origenes,destinos));
+  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Desde Reposición o tránsito → hacia Reposición o coolers</span></div>`;
+  if(!bods("reposicion").length || !bods("picking").length || !bods("cooler").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
+  if(destinos.length && !destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=(destinos.find(b=>b.tipo==="cooler")||destinos[0]).id;
+  return ph+tabs+(S.pkTab==="hist"?viewPkHist(todosDest):viewPkNuevo(origenes,destinos));
 }
 function viewPkNuevo(origenes,destinos){
   const t=pkTotales();
-  const oc=b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig",b.tipo==="picking"?"Tránsito":"Reposición",b.tipo==="picking"?pkColor(b.id):"var(--c1)");
+  const oc=b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig",PK_TAG[b.tipo],pkColor(b.id));
   const flow=`<div class="pk-flow">
     <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · bodega de tránsito</div><div class="pk-cards">${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest","Tránsito",pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de tránsito distinta al origen.</div>'}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">Hacia · reposición o cooler</div><div class="pk-cards">${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
   if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
@@ -1789,7 +1803,7 @@ function viewPkHist(destinos){
   const dNom=id=>bodNom(id);
   const filtros=`<div class="pk-filters"><div class="seg" role="group" aria-label="Periodo">
       <button type="button" data-pkrango="hoy" aria-pressed="${S.pkRango==="hoy"}">Hoy</button><button type="button" data-pkrango="semana" aria-pressed="${S.pkRango==="semana"}">Esta semana</button></div>
-    <div class="seg" role="group" aria-label="Bodega de tránsito"><button type="button" data-pkdf="todas" aria-pressed="${S.pkDestF==="todas"}">Todas</button>
+    <div class="seg" role="group" aria-label="Bodega de destino"><button type="button" data-pkdf="todas" aria-pressed="${S.pkDestF==="todas"}">Todas</button>
       ${ids.map(id=>`<button type="button" data-pkdf="${esc(id)}" aria-pressed="${S.pkDestF===id}"><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))}</button>`).join("")}</div>
     <span class="spacer"></span><span class="muted">${fFecha(r.ini)}${r.ini!==r.fin?" al "+fFecha(r.fin):""}</span>
     <button class="btn brand" type="button" data-pkprinthist ${docs.length?"":"disabled"}>🖨 Imprimir consolidado</button></div>`;
@@ -1851,7 +1865,7 @@ function imprimirHojaPicking(d){
     .sort((a,b)=>(a.ubicacion||"~").localeCompare(b.ubicacion||"~","es",{numeric:true})||a.nombre.localeCompare(b.nombre,"es"));
   const un=ls.reduce((a,l)=>a+(+l.cantidad||0),0);
   imprimir(`<section class="ph-doc">${hojaCab("Hoja de recolección · picking", `<b>${esc(d.folio||"BORRADOR")}</b>`, d.folio?"":'<div class="ph-borrador">BORRADOR · aún no confirmado</div>')}
-    <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia (tránsito)</small><b>${esc(bodNom(de))}</b></div></div>
+    <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia</small><b>${esc(bodNom(de))}</b></div></div>
     <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Unidades</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
     <tbody>${ls.map(l=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(l.codigo)}</td><td><b>${esc(l.nombre)}</b></td><td>${esc(l.ubicacion)}</td><td class="n"><b>${fmt(l.cantidad)}</b></td><td class="n">${l.packUn>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody>
     <tfoot><tr><td colspan="4">${ls.length} producto${ls.length===1?"":"s"}</td><td class="n"><b>${fmt(un)}</b></td><td colspan="2"></td></tr></tfoot></table>${hojaFirmas()}</section>`);
@@ -1890,6 +1904,7 @@ function viewBodegas(){
   return `<div class="ph"><h1>Bodegas</h1><span class="spacer"></span><button class="addlink" data-addbod>+ Agregar bodega</button></div>
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
     <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
+    <div class="card" style="margin-bottom:14px">${grupo("cooler","Coolers")}</div>
     ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
 }
 let editBodId=null;
