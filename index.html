@@ -1678,20 +1678,23 @@ function pkTiles(){
       ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
 }
 function viewPicking(){
-  const origenes=bods("reposicion"), destinos=bods("picking");
+  const origenes=bods(), picking=bods("picking");
+  if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=(bods("reposicion")[0]||origenes[0]||{}).id;
+  const destinos=picking.filter(b=>b.id!==S.pkOrig);
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
-  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → bodegas de tránsito</span></div>`;
-  if(!origenes.length || !destinos.length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
-  if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=origenes[0].id;
-  if(!destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=destinos[0].id;
-  return ph+tabs+(S.pkTab==="hist"?viewPkHist(destinos):viewPkNuevo(origenes,destinos));
+  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Desde Reposición o tránsito → hacia una bodega de tránsito</span></div>`;
+  if(!picking.length || !bods("reposicion").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking (tránsito). ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
+  if(destinos.length && !destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=destinos[0].id;
+  return ph+tabs+(S.pkTab==="hist"?viewPkHist(picking):viewPkNuevo(origenes,destinos));
 }
 function viewPkNuevo(origenes,destinos){
   const t=pkTotales();
+  const oc=b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig",b.tipo==="picking"?"Tránsito":"Reposición",b.tipo==="picking"?pkColor(b.id):"var(--c1)");
   const flow=`<div class="pk-flow">
-    <div class="pk-side"><div class="pk-lbl">Desde</div><div class="pk-cards">${origenes.map(b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig","Origen","var(--c1)")).join("")}</div></div>
+    <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · bodega de tránsito</div><div class="pk-cards">${destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest","Tránsito",pkColor(b.id))).join("")}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">Hacia · bodega de tránsito</div><div class="pk-cards">${destinos.length?destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest","Tránsito",pkColor(b.id))).join(""):'<div class="mini-empty">No hay otra bodega de tránsito distinta al origen.</div>'}</div></div></div>`;
+  if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
       <div class="pick-wrap"><input id="pkPick" type="search" autocomplete="off" value="${esc(S.pkq)}" placeholder="Filtra o escanea un código y presiona Enter" aria-label="Buscar producto"></div></div>
@@ -1733,6 +1736,7 @@ function stepPk(i,d){
 }
 async function confirmarPicking(){
   const orig=S.pkOrig, dest=S.pkUbic;
+  if(orig===dest){ S.pkErr="El origen y el destino deben ser distintos."; render(true); return; }
   const lines=S.pkLineas.map(l=>({...l, p:S.productos.find(x=>x.id===l.id), q:+l.cantidad})).filter(l=>l.p);
   if(!lines.length){ S.pkErr="Agrega al menos un producto."; render(true); return; }
   if(lines.some(l=>!(l.q>0))){ S.pkErr="Todas las líneas necesitan una cantidad mayor a cero."; render(true); return; }
