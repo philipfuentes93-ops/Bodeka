@@ -582,6 +582,10 @@ table.db thead th:last-child{border-top-right-radius:14px}
 @media (max-width:860px){ .pk-grid{justify-content:space-between;width:100%} .pk-g{flex:1;min-width:0} .pk-step.sm button{width:26px} .pk-step.sm input{width:100%;min-width:0} .pk-step.sm{width:100%} .pk-gqty .pk-sub{justify-content:space-between} .pk-qty.pk-gqty{flex-direction:column;align-items:stretch} }
 @media print{ .ph-t .g{width:56px;text-align:center} }
 /* Inventario por bodega */
+.cool-det summary{cursor:pointer;padding:14px 18px;font-weight:700;color:var(--muted);list-style:none}
+.cool-det summary::-webkit-details-marker{display:none}
+.cool-det summary::before{content:"▸ ";transition:transform .15s}
+.cool-det[open] summary::before{content:"▾ "}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:.86rem;font-weight:600;color:var(--muted);cursor:pointer}
 .chk input{width:16px;height:16px;accent-color:var(--accent)}
 .inv-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -2152,7 +2156,7 @@ function viewBodegas(){
   return `<div class="ph"><h1>Bodegas</h1><span class="spacer"></span><button class="addlink" data-addbod>+ Agregar bodega</button></div>
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
     <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
-    <div class="card" style="margin-bottom:14px">${grupo("cooler","Coolers · solo destino (sin inventario)")}</div>
+    <details class="card cool-det" style="margin-bottom:14px"><summary>Destinos de picking (coolers, sin inventario)</summary>${grupo("cooler","Coolers")}</details>
     ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
 }
 let editBodId=null;
