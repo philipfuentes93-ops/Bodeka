@@ -850,7 +850,7 @@ const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (tipo ? b.tipo===ti
 const esCooler = id => (S.bodegas.find(b=>b.id===id)||{}).tipo==="cooler";
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, bfNombre:"", bfTipo:"picking", bfErr:""};
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, msel:new Set(), bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -993,6 +993,10 @@ const Store = {
   async delProducto(id){
     if(this.db) this.db.doc("productos/"+id).delete().catch(syncErr);
     S.productos=S.productos.filter(x=>x.id!==id); this.saveLocal(); render(false);
+  },
+  async delMov(id){
+    if(this.db) this.db.doc("movimientos/"+id).delete().catch(syncErr);
+    S.movs=S.movs.filter(x=>x.id!==id); this.saveLocal();
   },
   async addMov(m, silent){
     const {id,...body}=m;
@@ -1547,13 +1551,16 @@ function viewMovs(){
   const q=norm(S.mq);
   const ms=S.movs.filter(m=>!q || norm(m.nombre+" "+(m.nota||"")+" "+(m.categoria||"")).includes(q));
   const head=`<div class="ph"><h1>Movimientos</h1><label class="qsearch">${ICON.search}<input id="mq" type="search" value="${esc(S.mq)}" placeholder="Producto, categoría o nota" aria-label="Buscar movimientos"></label></div>`;
+  S.msel=new Set([...S.msel].filter(id=>S.movs.some(m=>m.id===id)));
   if(!ms.length) return head+`<div class="card empty">Sin movimientos registrados.</div>`;
   const tot=ms.length, pag=pager(tot), rows=ms.slice((S.page-1)*S.size,S.page*S.size);
   const TP={entrada:["Entrada","in"],salida:["Salida","out"],ajuste:["Conteo","adj"],picking:["Picking","adj"]};
   const th=(t,c="")=>`<th class="${c}"><span>${t}</span></th>`;
-  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:900px"><thead><tr>${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad","n")}${th("Stock final","n")}${th("Referencia")}</tr></thead>
+  const allM=rows.length&&rows.every(m=>S.msel.has(m.id));
+  const bulkM=esAdmin&&S.msel.size?`<div class="bulk"><b>${S.msel.size} seleccionado${S.msel.size===1?"":"s"}</b><button class="btn danger sm" data-mdel>Eliminar del historial</button><span class="spacer"></span><button class="link" data-mclear>Quitar selección</button></div>`:"";
+  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:900px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad","n")}${th("Stock final","n")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
-      return `<tr><td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
+      return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
       <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmt(m.cantidad)}</td><td class="n">${fmt(m.stockFinal)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
@@ -2285,6 +2292,10 @@ C.addEventListener("click",e=>{
   const pk=t.closest("[data-pick]"); if(pk) return addLinea(pk.dataset.pick);
   const rm=t.closest("[data-rm]"); if(rm){ S.form.lineas.splice(+rm.dataset.rm,1); render(true); $("#pick")?.focus(); return; }
   if(t.closest("[data-confirm]")) return confirmarDoc();
+  if(t.closest("[data-mclear]")){ S.msel.clear(); render(true); return; }
+  if(t.closest("[data-mdel]")){ const n=S.msel.size; if(!n) return;
+    if(!confirm(`¿Eliminar ${n} movimiento${n===1?"":"s"} del historial?\nSolo se borra el registro: el stock de las bodegas no cambia.`)) return;
+    const ids=[...S.msel]; S.msel.clear(); Promise.all(ids.map(id=>Store.delMov(id))).then(()=>{ toast(`${n} movimiento${n===1?"":"s"} eliminado${n===1?"":"s"}`); render(true); }); return; }
   const ib=t.closest("[data-invbod]"); if(ib) return abrirInv(ib.dataset.invbod);
   if(t.closest("[data-invall-on]")){ S.invAll=true; S.page=1; render(true); return; }
   if(t.closest("[data-invprint]")) return imprimirInv();
@@ -2366,6 +2377,8 @@ C.addEventListener("keydown",e=>{
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
+  if(t.dataset.msel!==undefined){ t.checked?S.msel.add(t.dataset.msel):S.msel.delete(t.dataset.msel); render(true); return; }
+  if(t.hasAttribute("data-mselall")){ [...C.querySelectorAll("[data-msel]")].forEach(x=>{ t.checked?S.msel.add(x.dataset.msel):S.msel.delete(x.dataset.msel); }); render(true); return; }
   if(t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined) return;   // se guardan al salir de la casilla (focusout), no con cada clic de las flechitas
   if(t.hasAttribute("data-invall")){ S.invAll=t.checked; S.page=1; render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
