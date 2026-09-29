@@ -3,8 +3,8 @@
   "short_name": "Depósito",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#F3F5F9",
-  "theme_color": "#3366F0",
+  "background_color": "#F3F8F7",
+  "theme_color": "#0E7C70",
   "icons": [
     {
       "src": "icon-192.png",

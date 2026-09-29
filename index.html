@@ -655,7 +655,7 @@ td.n .ubin{display:block;margin-left:auto}
 <body>
 <div class="app">
   <aside class="side" id="side" aria-label="Menú principal">
-    <div class="brand"><span class="bmark" aria-hidden="true">B<i></i></span><span class="bname">depósito<small>picking &amp; inventarios</small></span></div>
+    <div class="brand"><span class="bmark" aria-hidden="true">D<i></i></span><span class="bname">Depósito<small>picking &amp; inventarios</small></span></div>
     <input class="gsearch" id="gq" type="search" placeholder="Buscar producto o código…" aria-label="Buscar en todo el inventario">
     <nav class="nav" id="nav"></nav>
     <div class="grp">Herramientas</div>
@@ -677,7 +677,7 @@ td.n .ubin{display:block;margin-left:auto}
   </aside>
   <div class="main">
     <header class="movil-top">
-      <span class="bname"><span class="bmark" aria-hidden="true">B<i></i></span>depósito</span>
+      <span class="bname"><span class="bmark" aria-hidden="true">D<i></i></span>Depósito</span>
       <button class="movil-avatar" id="movilAvatar" type="button" aria-label="Abrir menú de la cuenta">?</button>
     </header>
     <main class="content" id="content"></main>
@@ -710,7 +710,7 @@ td.n .ubin{display:block;margin-left:auto}
   </div>
 </div>
 <div class="login" id="login" hidden><div class="login-card">
-  <div class="bmark" aria-hidden="true">B<i></i></div>
+  <div class="bmark" aria-hidden="true">D<i></i></div>
   <h1>Depósito</h1><p><b>Picking &amp; Inventarios.</b> Ingresa con el correo y la clave que te asignaron para ver y actualizar el inventario.</p>
   <input id="lEmail" type="email" placeholder="Correo" autocomplete="username">
   <input id="lPass" type="password" placeholder="Contraseña" autocomplete="current-password">
@@ -1986,7 +1986,7 @@ function imprimir(html){
 }
 function hojaCab(titulo, sub, extra=""){
   const ahora=new Date().toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
-  return `<header class="ph-cab"><div class="ph-brand"><span class="ph-logo">B<i></i></span><div><b>depósito</b><small>Picking &amp; Inventarios · ${esc(titulo)}</small></div></div>
+  return `<header class="ph-cab"><div class="ph-brand"><span class="ph-logo">D<i></i></span><div><b>Depósito</b><small>Picking &amp; Inventarios · ${esc(titulo)}</small></div></div>
     <div class="ph-meta"><div>${sub}</div><div class="ph-imp">Impreso ${ahora}</div>${extra}</div></header>`;
 }
 function hojaFirmas(){ return `<div class="ph-firmas"><div>Preparó (recolectó)</div><div>Recibió en tránsito</div><div>Observaciones</div></div>`; }
