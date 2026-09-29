@@ -594,6 +594,8 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .inv-p .sub{display:block}
 .ubin{width:88px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--field);text-align:right;font-weight:700}
 .ubin:focus{outline:2px solid var(--accent);background:var(--panel)}
+.ubin{-moz-appearance:textfield}
+.ubin::-webkit-outer-spin-button,.ubin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 td.n .ubin{display:block;margin-left:auto}
 .bchip{display:inline-flex;align-items:center;gap:5px;background:var(--field);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:.76rem;margin:0 4px 3px 0;white-space:nowrap}
 .bchip.on{border-color:var(--accent);background:var(--accent-soft)}
@@ -2083,10 +2085,12 @@ function viewInvComparar(bs){
       <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n">${(p.ubic[b.id]||0)?fmt(p.ubic[b.id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmt(p.stock)}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
       <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
 }
+// Redibuja salvo que el usuario esté escribiendo en otra casilla de stock (no perder lo que teclea).
+function refrescarInv(){ setTimeout(()=>{ const ae=document.activeElement; if(!(ae&&ae.dataset&&(ae.dataset.ubq!==undefined||ae.dataset.ubmin!==undefined))) render(true); },220); }
 async function ajustarUbic(prodId, bodId, val){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
   const v=Math.max(0,Math.round(+val||0)), old=p.ubic[bodId]||0;
-  if(v===old){ render(true); return; }
+  if(v===old){ refrescarInv(); return; }
   const ubic={...p.ubic,[bodId]:v}, now=new Date().toISOString();
   const np={...p, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
   try{
@@ -2094,16 +2098,16 @@ async function ajustarUbic(prodId, bodId, val){
     await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${fmt(old)} → ${fmt(v)}`,fecha:now});
     toast(`${p.nombre}: ${fmt(v)} un en ${bodNom(bodId)}`);
   }catch{ toast("No se pudo guardar. Revisa tu conexión."); }
-  render(true);
+  refrescarInv();
 }
 async function fijarMinUbic(prodId, bodId, val){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
   const v=Math.max(0,Math.round(+val||0)), minUbic={...(p.minUbic||{})};
-  if(v===minBod(p,{id:bodId})){ render(true); return; }
+  if(v===minBod(p,{id:bodId})){ refrescarInv(); return; }
   if(v>0) minUbic[bodId]=v; else delete minUbic[bodId];
   try{ await Store.putProducto({...p, minUbic, actualizado:new Date().toISOString()}); }
   catch{ toast("No se pudo guardar. Revisa tu conexión."); }
-  render(true);
+  refrescarInv();
 }
 function armarPickingRellenar(bid){
   const b=S.bodegas.find(x=>x.id===bid), orig=bods("reposicion")[0]; if(!b||!orig) return;
@@ -2191,7 +2195,8 @@ function render(force=true){   // live data updates call render(false)
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
   if((S.screen==="form"||(S.screen==="picking"&&S.pkTab==="nuevo")) && !force) return;   // don't wipe a document being typed when live data arrives
-  if(!force && ae && ae.dataset && (ae.dataset.ef!==undefined || ae.dataset.ubq!==undefined || ae.dataset.ubmin!==undefined)) return;   // same for inline editing
+  if(!force && S.ubBusy) return;   // escribiendo en una casilla de stock: no redibujar
+  if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
   if(aid && (["fq","mq","dq","iq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
@@ -2318,6 +2323,14 @@ C.addEventListener("click",e=>{
   const ebod=t.closest("[data-editbod]"); if(ebod) return openBod(ebod.dataset.editbod);
   const row=t.closest("tr[data-row]"); if(row && !t.closest("button,input,label,a,select")){ S.open = S.open===row.dataset.row ? null : row.dataset.row; S.saved=null; render(); }
 });
+const esUb = t => t && t.dataset && (t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined);
+C.addEventListener("focusin",e=>{ if(esUb(e.target)) S.ubBusy=true; });
+C.addEventListener("focusout",e=>{ const t=e.target; if(!esUb(t)) return;
+  S.ubBusy=true; setTimeout(()=>{ S.ubBusy=esUb(document.activeElement); },150);   // si pasa a otra casilla, no se redibuja
+  if(t.dataset.ubq!==undefined) ajustarUbic(t.dataset.ubq, t.dataset.ubb, t.value);
+  else fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
+});
+C.addEventListener("wheel",e=>{ const t=e.target; if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined)) t.blur(); },{passive:true});
 let tIn;
 C.addEventListener("input",e=>{
   const t=e.target, id=t.id, v=t.value;
@@ -2347,13 +2360,13 @@ C.addEventListener("keydown",e=>{
   if(t.dataset && t.dataset.ef!==undefined && e.key==="Escape"){ S.open=null; render(true); }
   if(t.id==="pkPick" && e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value).filter(p=>(p.ubic[S.pkOrig]||0)>0);
     if(r[0]){ S.pkq=""; addLineaPk(r[0].id); } else if(t.value.trim()){ S.pkErr=`No hay stock de "${t.value.trim()}" en ${bodNom(S.pkOrig)}.`; render(true); } }
+  if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined) && e.key==="Enter"){ e.preventDefault(); t.blur(); }
   if(t.dataset && t.dataset.pkq!==undefined && e.key==="Enter"){ e.preventDefault(); $("#pkPick")?.focus(); }
 });
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
-  if(t.dataset.ubq!==undefined) return ajustarUbic(t.dataset.ubq, t.dataset.ubb, t.value);
-  if(t.dataset.ubmin!==undefined) return fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
+  if(t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined) return;   // se guardan al salir de la casilla (focusout), no con cada clic de las flechitas
   if(t.hasAttribute("data-invall")){ S.invAll=t.checked; S.page=1; render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
