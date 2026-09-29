@@ -785,13 +785,18 @@ const COOLERS_DEFAULT = [
   {id:"c11", nombre:"Coolers Piso 11", tipo:"cooler", activa:true},
   {id:"c14", nombre:"Cooler Piso 14", tipo:"cooler", activa:true}
 ];
-const COOLERS_ANTES = {c10:"Cooler Piso 10", c11:"Cooler Piso 11", c14:"Cooler Piso 14", p14:"Piso 14", p11:"Piso 11", repo:"Reposición"};
+// [tipo, nombre anterior, nombre actual]: se renombra por tipo y nombre (no por id), sin importar cómo se creó la bodega.
+const BODEGAS_RENOMBRES = [
+  ["reposicion","Reposición","Reposición Piso -3"],
+  ["picking","Piso 14","Tránsito Piso 14"], ["picking","Piso 11","Tránsito Piso 11"],
+  ["cooler","Cooler Piso 10","Coolers Piso 10"], ["cooler","Cooler Piso 11","Coolers Piso 11"]
+];
 // Bodegas creadas antes de existir el tipo "cooler": se agregan los 3 coolers una sola vez.
-// También renombra a los nombres actuales las que conservan su nombre original (coolers y tránsito).
+// También renombra a los nombres actuales las que conservan su nombre original.
 function conCoolers(list){
   const cambios=[];
-  list=list.map(b=>{ const d=[...COOLERS_DEFAULT,...BODEGAS_DEFAULT].find(c=>c.id===b.id);
-    if(d && b.tipo===d.tipo && b.nombre===COOLERS_ANTES[b.id] && b.nombre!==d.nombre){ const nb={...b,nombre:d.nombre}; cambios.push(nb); return nb; } return b; });
+  list=list.map(b=>{ const r=BODEGAS_RENOMBRES.find(([t,a])=>b.tipo===t && norm(b.nombre)===norm(a));
+    if(r){ const nb={...b,nombre:r[2]}; cambios.push(nb); return nb; } return b; });
   if(list.some(b=>b.tipo==="cooler")) return {list, nuevos:cambios};
   const nuevos=COOLERS_DEFAULT.filter(c=>!list.some(b=>b.id===c.id)).map(b=>({...b}));
   return {list:[...list,...nuevos], nuevos:[...cambios,...nuevos]};
