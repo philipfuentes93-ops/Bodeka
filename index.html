@@ -420,7 +420,7 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
   .form-grid,.exp-grid{grid-template-columns:1fr} .form-grid .wide,.exp-grid .wide{grid-column:auto}
   .exp-in{grid-template-columns:1fr} .kv{grid-template-columns:1fr 1fr}
   .qsearch{min-width:0;flex:1}
-  .tbl-wrap{display:none}
+  .prod-tbl{display:none}
   .pcards{display:block}
 }
 .movil-sheet{position:fixed;inset:0;z-index:45;display:flex;align-items:flex-end}
@@ -480,6 +480,131 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .kpi b{color:#fff}
 .ov-t,.sec-t{text-transform:uppercase;letter-spacing:.06em;font-size:.74rem !important;font-weight:800;color:var(--accent)}
 .btn.brand{background:var(--accent-strong)}
+
+/* Picking gráfico */
+.seg{display:inline-flex;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:8px;padding:7px 14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.pk-flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.7fr);gap:18px;align-items:center}
+.pk-lbl{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pk-cards{display:flex;gap:10px;flex-wrap:wrap}
+.pk-bod{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 130px;min-width:120px;display:flex;flex-direction:column;gap:2px;padding:12px 16px;border-radius:14px;border:2px solid var(--line);background:var(--panel);position:relative;transition:border-color .15s,box-shadow .15s,background .15s}
+.pk-bod:hover{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
+.pk-bod:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pk-bod.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 11%,var(--panel));box-shadow:0 6px 18px color-mix(in srgb,var(--c) 22%,transparent)}
+.pk-bod.on::after{content:"✓";position:absolute;top:8px;right:12px;color:var(--c);font-weight:800}
+.pk-bod b{font-size:1.2rem;font-weight:800}
+.pk-bod small{color:var(--muted)}
+.pk-tag{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+.pk-arrow{display:grid;place-items:center}
+.pk-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px 18px;max-height:330px;overflow:auto}
+.pk-tile{all:unset;box-sizing:border-box;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--panel);transition:border-color .15s,transform .15s}
+.pk-tile:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pk-tile:focus-visible{outline:2px solid var(--accent)}
+.pk-tile.in{border-color:var(--accent);background:var(--accent-soft)}
+.pk-tn{font-weight:700;font-size:.86rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pk-ts{color:var(--muted);font-size:.75rem}
+.pk-plus,.pk-badge{position:absolute;top:8px;right:8px;min-width:26px;height:26px;padding:0 7px;border-radius:13px;display:grid;place-items:center;font-weight:800;font-size:.85rem;color:#fff}
+.pk-plus{background:var(--accent-strong);font-size:1.1rem}
+.pk-badge{background:var(--ok)}
+.pk-list{list-style:none;margin:0;padding:4px 18px}
+.pk-line{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);border-radius:10px}
+.pk-line:last-child{border-bottom:0}
+.pk-line.bad{background:var(--danger-soft)}
+.pk-line.flash{animation:pkflash 1.2s ease-out}
+@keyframes pkflash{0%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:transparent}}
+.pk-n{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:.78rem;display:grid;place-items:center}
+.pk-info{min-width:0}
+.pk-info .nm{font-weight:700}
+.pk-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.pk-chips span{background:var(--field);border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:.74rem;color:var(--muted)}
+.pk-chips b{color:var(--ink)}
+.pk-warn{color:var(--danger);font-weight:700;font-size:.8rem;margin-top:4px}
+.pk-qty{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.pk-step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.pk-step button{border:0;background:var(--field);width:38px;height:40px;font-size:1.25rem;font-weight:700}
+.pk-step button:hover{background:var(--accent-soft);color:var(--accent)}
+.pk-step input{width:64px;height:40px;border:0;text-align:center;font-weight:800;font-size:1.05rem;background:transparent;-moz-appearance:textfield}
+.pk-step input::-webkit-outer-spin-button,.pk-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pk-sub{display:flex;gap:10px;align-items:center;font-size:.76rem;color:var(--muted)}
+.pk-foot{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;background:var(--panel);border-top:1px solid var(--line);border-radius:0 0 16px 16px;box-shadow:0 -6px 14px rgba(10,20,25,.05)}
+.pk-foot .spacer{flex:1}
+.pk-tot{font-size:.95rem}.pk-tot b{font-size:1.15rem}.pk-tot span{margin:0 8px;color:var(--muted)}
+.pk-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.pk-filters .spacer{flex:1}
+.pk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.pk-kpi{border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(140deg,var(--c),color-mix(in srgb,var(--c) 72%,#000));box-shadow:0 8px 20px color-mix(in srgb,var(--c) 25%,transparent)}
+.pk-kpi b{display:block;font-size:1.7rem;font-weight:800;line-height:1.1}
+.pk-kpi span{font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.92}
+.pk-h{margin:4px 0 10px;font-size:.98rem;font-weight:700}
+.pk-chart{display:flex;align-items:stretch;gap:10px;height:210px;padding-top:4px}
+.pk-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pk-bar{flex:1;width:100%;max-width:70px;display:flex;flex-direction:column-reverse;border-radius:8px 8px 3px 3px;overflow:hidden;background:var(--field)}
+.pk-col:only-child .pk-bar{max-width:140px}
+.pk-bar i{display:block;width:100%}
+.pk-cv{font-size:.78rem;font-weight:800;min-height:1.1em}
+.pk-cl{font-size:.78rem;color:var(--muted);font-weight:600}
+.pk-col.hoy .pk-cl{color:var(--accent);font-weight:800}
+.pk-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.84rem}
+.pk-legend span{display:inline-flex;align-items:center;gap:6px}
+.pk-mini{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);opacity:.55;border-radius:3px}
+.pk-docs{padding:0}
+.pk-doc{border-bottom:1px solid var(--line);border-left:4px solid var(--c)}
+.pk-doc:last-child{border-bottom:0}
+.pk-doc summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;flex-wrap:wrap}
+.pk-doc summary::-webkit-details-marker{display:none}
+.pk-doc summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+.pk-doc[open] summary::before{transform:rotate(90deg)}
+.pk-doc summary .spacer{flex:1}
+.pk-folio{font-weight:800}
+.pk-ruta i{font-style:normal;color:var(--muted)}
+.pk-chip{background:var(--field);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.78rem;color:var(--muted)}
+.pk-chip.strong{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:800}
+.pk-doc-b{padding:0 18px 14px 40px;overflow:auto}
+@media (max-width:860px){
+  .pk-flow{grid-template-columns:1fr;gap:8px}.pk-arrow{transform:rotate(90deg);height:34px}
+  .pk-line{grid-template-columns:auto auto minmax(0,1fr) auto}
+  .pk-qty{grid-column:1/-1;grid-row:2;flex-direction:row;align-items:center;justify-content:space-between}
+  .pk-foot{bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .pk-tiles{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;max-height:270px}
+  .pk-foot{gap:8px;padding:10px 12px}.pk-tot{width:100%}.pk-foot .spacer{display:none}
+  .pk-foot .btn{flex:1;padding:10px 8px;white-space:nowrap}.pk-foot #pkConfirm{flex:2}
+}
+/* Impresión */
+#printArea{display:none}
+@media print{
+  @page{margin:12mm}
+  html,body{height:auto !important;background:#fff !important;padding:0 !important}
+  body>*:not(#printArea){display:none !important}
+  #printArea{display:block !important;color:#000;font:12px/1.35 "Plus Jakarta Sans",Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ph-cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #0E7C70;padding-bottom:8px;margin-bottom:12px}
+  .ph-brand{display:flex;align-items:center;gap:10px}
+  .ph-logo{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:#10292C;color:#fff;font-weight:800;font-size:22px}
+  .ph-logo i{position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-radius:50%;background:#F28C38}
+  .ph-brand b{display:block;font-size:20px;letter-spacing:-.02em}
+  .ph-brand small{color:#444;font-size:11px}
+  .ph-meta{text-align:right;font-size:12px}.ph-meta b{font-size:18px}
+  .ph-imp{color:#555;font-size:10px}
+  .ph-borrador{display:inline-block;margin-top:4px;padding:1px 8px;border:2px solid #b00;color:#b00;font-weight:800;font-size:11px}
+  .ph-ruta{display:flex;align-items:center;gap:16px;margin:10px 0 14px;padding:10px 16px;border:2px solid #10292C;border-radius:10px}
+  .ph-ruta small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#555}
+  .ph-ruta b{font-size:20px}.ph-ruta>span{font-size:26px;color:#0E7C70}
+  .ph-t{width:100%;border-collapse:collapse}
+  .ph-t th{background:#10292C;color:#fff;text-align:left;padding:6px;font-size:11px}
+  .ph-t td{padding:8px 6px;border-bottom:1px solid #999;vertical-align:middle}
+  .ph-t .n{text-align:right}.ph-t th.n{text-align:right}
+  .ph-t .ck{width:26px}.ph-t .rec{width:105px;border-left:1px solid #999}
+  .ph-t .d{width:34px;text-align:center;padding:8px 2px}.ph-t th.d small{display:block;font-weight:400;opacity:.8}
+  .ph-t tr{page-break-inside:avoid}
+  .ph-t tfoot td{font-size:13px;border-top:2px solid #000;border-bottom:0}
+  .box{display:inline-block;width:16px;height:16px;border:2px solid #000;border-radius:3px}
+  .ph-bloque{margin-bottom:18px}
+  .ph-bloque h2{font-size:15px;margin:14px 0 6px;padding:4px 8px;background:#E0F1EE;border-left:5px solid #0E7C70}
+  .ph-bloque h2 small{font-weight:500;color:#444;margin-left:8px}
+  .ph-firmas{display:flex;gap:28px;margin-top:38px;page-break-inside:avoid}
+  .ph-firmas div{flex:1;padding-top:6px;border-top:1px solid #000;text-align:center;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -624,7 +749,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
 <dialog id="dBod"><form class="dlg" id="fBod">
   <h2 id="dBodTitle">Agregar bodega</h2>
   <div class="f"><label for="bNombre">Nombre</label><input id="bNombre" required maxlength="60" placeholder="Ej: Piso 9, Reposición Aseo"></div>
-  <div class="f"><label for="bTipo">Tipo</label><select id="bTipo"><option value="reposicion">Reposición</option><option value="picking">Picking</option></select></div>
+  <div class="f"><label for="bTipo">Tipo</label><select id="bTipo"><option value="reposicion">Reposición</option><option value="picking">Picking · tránsito</option></select></div>
   <p class="err" id="bErr"></p>
   <div class="dlg-actions">
     <button type="button" class="btn danger" id="bArch" hidden>Archivar</button>
@@ -635,6 +760,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
 </form></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<div id="printArea" aria-hidden="true"></div>
 <script>
 const DEFAULT_CATS = ["Bebidas","Aseo","Cafetería"];
 const PALETTE = ["var(--c1)","var(--c2)","var(--c3)","var(--c4)","var(--c5)","var(--c6)"];
@@ -648,7 +774,7 @@ const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
 const bodNom = id => (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", bfNombre:"", bfTipo:"picking", bfErr:""};
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -1178,7 +1304,7 @@ function viewHome(){
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
     return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
   const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-go="bodegas" style="font-size:.8rem">Gestionar bodegas</button></span>`:""}</h3>
-      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking")}</div></section>`:"";
+      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}</div></section>`:"";
   return `<div class="ph"><h1>Resumen</h1><span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>
     <div class="dash">${hero}${health}${ps.length?kpis:""}${bodCard}${donut?catsCard.replace("span-12","span-8"):catsCard}${donut}${ps.length?repCard+vencCard+actCard:""}</div>`;
 }
@@ -1301,7 +1427,7 @@ function viewTabla(){
       case "pedir": return `<td class="n stk">${fmt(pedir(p))}</td>`;
     }};
   const table = !tot ? `<div class="empty">No hay productos en esta pestaña con los filtros actuales.</div>`
-   : `<div class="tbl-wrap"><table class="db"><thead><tr>
+   : `<div class="tbl-wrap prod-tbl"><table class="db"><thead><tr>
       <th class="cb"><span><input type="checkbox" data-selall ${allSel?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th><th><span></span></th>
       ${cols.map(c=>`<th class="${c.n?"n":c.c?"c":""}" aria-sort="${S.sort.k===c.k?(S.sort.dir>0?"ascending":"descending"):"none"}"><button data-sort="${c.k}">${c.t}${arrow(c.k)}</button></th>`).join("")}
       <th class="n"><span>Acciones</span></th></tr></thead>
@@ -1508,59 +1634,102 @@ function openDoc(id){
 }
 $("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc]")) $("#dDoc").close(); });
 
-/* ---------- Picking (traslado de Reposición a un piso, en unidades) ---------- */
+/* ---------- Picking (traslado de Reposición a una bodega de tránsito, en unidades) ---------- */
+const PK_COLORS=["var(--accent)","var(--orange)","var(--c2)","var(--c1)","var(--c5)","var(--c6)"];
+const DIAS_CORTO=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const pkColor = id => PK_COLORS[Math.max(0,S.bodegas.filter(b=>b.tipo==="picking").findIndex(b=>b.id===id))%PK_COLORS.length];
+const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h40m0 0-8-8m8 8-8 8"/></svg>';
+
+function pkBodCard(b, sel, attr, tag, color){
+  const un=S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
+  return `<button type="button" class="pk-bod ${sel?"on":""}" ${attr}="${esc(b.id)}" style="--c:${color}" aria-pressed="${sel}">
+    <span class="pk-tag">${tag}</span><b>${esc(b.nombre)}</b><small>${fmt(un)} un en total</small></button>`;
+}
+function pkTotales(){
+  let un=0, packs=0;
+  S.pkLineas.forEach(l=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return; const q=+l.cantidad||0; un+=q; packs+=q/(p.packUn||1); });
+  return {n:S.pkLineas.length, un, packs};
+}
+function pkLineHtml(l,i){
+  const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
+  const q=+l.cantidad||0, dispO=p.ubic[S.pkOrig]||0, bad=q>dispO, pk=p.packUn||1;
+  return `<li class="pk-line ${bad?"bad":""}" data-pkline="${i}" style="--c:${catColor(p.categoria)}">
+    <span class="pk-n">${i+1}</span>
+    <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
+    <div class="pk-info"><div class="nm">${esc(p.nombre)}</div>
+      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un</span><span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
+      <div class="pk-warn" ${bad?"":"hidden"}>Solo hay ${fmt(dispO)} un disponibles en ${esc(bodNom(S.pkOrig))}</div></div>
+    <div class="pk-qty"><div class="pk-step"><button type="button" data-pkstep="${i}" data-d="-1" aria-label="Menos una unidad">−</button>
+      <input type="number" min="0" step="1" inputmode="numeric" data-pkq="${i}" value="${esc(l.cantidad)}" aria-label="Unidades de ${esc(p.nombre)}">
+      <button type="button" data-pkstep="${i}" data-d="1" aria-label="Más una unidad">+</button></div>
+      <div class="pk-sub"><span data-pkpacks="${i}">${pk>1?`= ${fmt(q/pk)} packs`:"unidades"}</span>${pk>1?`<button type="button" class="link" data-pkstep="${i}" data-d="${pk}">+${fmt(pk)}</button>`:""}</div></div>
+    <button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></li>`;
+}
+function pkTiles(){
+  const q=norm(S.pkq);
+  let ps=S.productos.filter(p=>(p.ubic[S.pkOrig]||0)>0);
+  if(q) ps=ps.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
+  ps=ps.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).slice(0,60);
+  if(!ps.length) return `<div class="mini-empty" style="grid-column:1/-1">${q?"Sin coincidencias en "+esc(bodNom(S.pkOrig))+".":"No hay productos con stock en "+esc(bodNom(S.pkOrig))+"."}</div>`;
+  return ps.map(p=>{ const l=S.pkLineas.find(x=>x.id===p.id);
+    return `<button type="button" class="pk-tile ${l?"in":""}" data-pkpick="${p.id}" style="--c:${catColor(p.categoria)}">
+      <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
+      <span class="pk-tn">${esc(p.nombre)}</span><span class="pk-ts">${fmt(p.ubic[S.pkOrig]||0)} un en ${esc(bodNom(S.pkOrig))}</span>
+      ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
+}
 function viewPicking(){
   const origenes=bods("reposicion"), destinos=bods("picking");
-  if(!origenes.length || !destinos.length) return `<div class="ph"><h1>Picking</h1></div><div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking. ${esAdmin?'Créalas en <b>Más → Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
+  const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
+  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → bodegas de tránsito</span></div>`;
+  if(!origenes.length || !destinos.length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición y una de Picking. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
   if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=origenes[0].id;
   if(!destinos.some(b=>b.id===S.pkUbic)) S.pkUbic=destinos[0].id;
-  const o=(v,cur)=>`<option value="${esc(v)}" ${v===cur?"selected":""}>`;
-  const head=`<div class="ph"><h1>Picking</h1>
-    <label class="pillsel"><span>Desde:</span><select id="pkOrigSel">${origenes.map(b=>o(b.id,S.pkOrig)+esc(b.nombre)+"</option>").join("")}</select></label>
-    <label class="pillsel"><span>Hacia:</span><select id="pkUbicSel">${destinos.map(b=>o(b.id,S.pkUbic)+esc(b.nombre)+"</option>").join("")}</select></label>
-    <span class="spacer"></span></div>`;
-  if(!S.productos.length) return head+`<div class="card empty">Aún no hay productos cargados.</div>`;
-  const nomOrig=bodNom(S.pkOrig), nomDest=bodNom(S.pkUbic);
-  const lines=S.pkLineas.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
-    const q=+l.cantidad||0, bad=q>(p.ubic[S.pkOrig]||0);
-    return `<tr><td>${esc(p.codigo)||'<span class="muted">-</span>'}</td><td class="prod">${esc(p.nombre)}</td>
-      <td class="n">${fmt(p.ubic[S.pkOrig]||0)}</td><td class="n">${fmt(p.ubic[S.pkUbic]||0)}</td>
-      <td class="n"><input type="number" min="0" step="1" data-pkq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Unidades de ${esc(p.nombre)}"></td>
-      <td class="c"><button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></td></tr>`; }).join("");
-  const tot=S.pkLineas.reduce((a,l)=>a+(+l.cantidad||0),0);
-  return head+`<div class="card">
-    <div class="card-h">Unidades para rellenar ${esc(nomDest)}
-      <div class="pick-wrap"><input id="pkPick" type="search" autocomplete="off" value="${esc(S.pkq)}" placeholder="Escanea o escribe código o nombre y presiona Enter" aria-label="Agregar producto"><div class="sugs" id="pkSugs" role="listbox"></div></div>
-    </div>
-    ${S.pkLineas.length?`<div class="tbl-wrap" style="max-height:none"><table class="db lines" style="min-width:640px"><thead><tr>
-      <th><span>Código</span></th><th><span>Producto</span></th>
-      <th class="n"><span>En ${esc(nomOrig)}</span></th><th class="n"><span>Ya en ${esc(nomDest)}</span></th>
-      <th class="n"><span>Unidades a llevar</span></th><th></th></tr></thead>
-      <tbody>${lines}</tbody></table></div>`:`<div class="empty">Agrega productos escaneando su código o buscándolos por nombre.</div>`}
-    <div class="form-foot"><span class="muted" id="pkTot">${S.pkLineas.length} producto${S.pkLineas.length===1?"":"s"} · ${fmt(tot)} unidades</span><span class="spacer"></span>
-      <button class="btn brand" id="pkConfirm" data-pkconfirm ${!S.pkLineas.length?"disabled":""}>Confirmar picking</button></div>
-  </div>
-  ${S.pkErr?`<p class="ferr" role="alert">${esc(S.pkErr)}</p>`:""}`;
+  return ph+tabs+(S.pkTab==="hist"?viewPkHist(destinos):viewPkNuevo(origenes,destinos));
 }
+function viewPkNuevo(origenes,destinos){
+  const t=pkTotales();
+  const flow=`<div class="pk-flow">
+    <div class="pk-side"><div class="pk-lbl">Desde</div><div class="pk-cards">${origenes.map(b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig","Origen","var(--c1)")).join("")}</div></div>
+    <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
+    <div class="pk-side"><div class="pk-lbl">Hacia · bodega de tránsito</div><div class="pk-cards">${destinos.map(b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest","Tránsito",pkColor(b.id))).join("")}</div></div></div>`;
+  if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
+  const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
+      <div class="pick-wrap"><input id="pkPick" type="search" autocomplete="off" value="${esc(S.pkq)}" placeholder="Filtra o escanea un código y presiona Enter" aria-label="Buscar producto"></div></div>
+    <div class="pk-tiles" id="pkTiles">${pkTiles()}</div></div>`;
+  const list=`<div class="card" style="margin-top:14px"><div class="card-h">2 · Lista de picking<span class="muted" style="font-weight:500;font-size:.85rem">se va sumando hacia abajo</span></div>
+    ${S.pkLineas.length?`<ol class="pk-list" id="pkList">${S.pkLineas.map(pkLineHtml).join("")}</ol>`:`<div class="empty" id="pkList">Aún no agregaste productos. Toca uno de arriba para empezar.</div>`}
+    <div class="pk-foot" id="pkFoot">${pkFootHtml(t)}</div></div>`;
+  return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>${picker}${list}${S.pkErr?`<p class="ferr" role="alert">${esc(S.pkErr)}</p>`:""}`;
+}
+function pkFootHtml(t){
+  const hay=!!S.pkLineas.length, over=S.pkLineas.some(l=>{ const p=S.productos.find(x=>x.id===l.id); return p && (+l.cantidad||0)>(p.ubic[S.pkOrig]||0); });
+  return `<div class="pk-tot"><b>${t.n}</b> producto${t.n===1?"":"s"}<span>·</span><b>${fmt(t.un)}</b> unidades<span>·</span><b>${fmt(Math.round(t.packs*100)/100)}</b> packs</div><span class="spacer"></span>
+    <button class="btn ghost" type="button" data-pkprintdraft ${hay?"":"disabled"}>🖨 Imprimir lista</button>
+    <button class="btn ghost" type="button" data-pkclear ${hay?"":"disabled"}>Vaciar</button>
+    <button class="btn brand" type="button" id="pkConfirm" data-pkconfirm ${hay&&!over?"":"disabled"}>Confirmar picking</button>`;
+}
+function pkRender(){ const ts=$("#pkTiles")?.scrollTop||0; render(true); const el=$("#pkTiles"); if(el) el.scrollTop=ts; }
 function addLineaPk(id){
+  const p=S.productos.find(x=>x.id===id); if(!p) return;
   let i=S.pkLineas.findIndex(l=>l.id===id);
-  if(i<0){ S.pkLineas.push({id, cantidad:""}); i=S.pkLineas.length-1; }
-  S.pkq=""; S.pkErr=""; render(true);
-  setTimeout(()=>document.querySelector(`[data-pkq="${i}"]`)?.focus(),0);
-}
-function showPkSugs(){
-  const box=$("#pkSugs"); if(!box) return; const r=buscarProd(S.pkq);
-  if(!r.length){ box.classList.remove("open"); box.innerHTML = S.pkq.trim()?'<div class="empty" style="padding:12px">Sin coincidencias.</div>':""; if(S.pkq.trim()) box.classList.add("open"); return; }
-  box.innerHTML=r.map((p,i)=>`<button role="option" data-pkpick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · ${esc(bodNom(S.pkOrig))} ${fmt(p.ubic[S.pkOrig]||0)} un</span></button>`).join("");
-  box.classList.add("open");
+  if(i<0){ S.pkLineas.push({id, cantidad:"1"}); i=S.pkLineas.length-1; }
+  else S.pkLineas[i].cantidad=String((+S.pkLineas[i].cantidad||0)+1);
+  S.pkErr=""; pkRender();
+  document.querySelector(`[data-pkline="${i}"]`)?.classList.add("flash");
 }
 function updPkLinea(i){
   const l=S.pkLineas[i], p=S.productos.find(x=>x.id===l.id); if(!p) return;
-  const q=+l.cantidad||0, bad=q>(p.ubic[S.pkOrig]||0);
-  document.querySelector(`[data-pkq="${i}"]`)?.classList.toggle("bad",bad);
-  const tot=S.pkLineas.reduce((a,x)=>a+(+x.cantidad||0),0);
-  $("#pkTot").textContent=`${S.pkLineas.length} producto${S.pkLineas.length===1?"":"s"} · ${fmt(tot)} unidades`;
-  $("#pkConfirm").disabled=!S.pkLineas.length;
+  const q=+l.cantidad||0, disp=p.ubic[S.pkOrig]||0, bad=q>disp, pk=p.packUn||1;
+  const li=document.querySelector(`[data-pkline="${i}"]`);
+  if(li){ li.classList.toggle("bad",bad); const w=li.querySelector(".pk-warn"); if(w) w.hidden=!bad; const pp=li.querySelector("[data-pkpacks]"); if(pp&&pk>1) pp.textContent=`= ${fmt(q/pk)} packs`; }
+  $("#pkFoot").innerHTML=pkFootHtml(pkTotales());
+  const tile=document.querySelector(`[data-pkpick="${l.id}"] .pk-badge`); if(tile) tile.textContent=fmt(q);
+}
+function stepPk(i,d){
+  const l=S.pkLineas[i]; if(!l) return;
+  l.cantidad=String(Math.max(0,(+l.cantidad||0)+d));
+  const inp=document.querySelector(`[data-pkq="${i}"]`); if(inp) inp.value=l.cantidad;
+  updPkLinea(i);
 }
 async function confirmarPicking(){
   const orig=S.pkOrig, dest=S.pkUbic;
@@ -1584,13 +1753,120 @@ async function confirmarPicking(){
         nota:`${folio} · Picking de ${bodNom(orig)} a ${bodNom(dest)}`,fecha:now,folio}, true);
       hechas++;
     }
-    await Store.addDocu({id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
-      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q}))});
-    S.pkLineas=[]; render(); toast(`${folio} registrado · ${fmt(lines.reduce((a,l)=>a+l.q,0))} unidades a ${bodNom(dest)}`);
+    const doc={id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
+      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||""}))};
+    await Store.addDocu(doc);
+    S.pkLineas=[]; S.pkq=""; render();
+    toast(`${folio} registrado · ${fmt(doc.unidades)} unidades a ${bodNom(dest)}`);
+    if(confirm(`${folio} registrado.\n¿Imprimir la hoja de recolección?`)) imprimirHojaPicking(doc);
   }catch(e){
     S.pkErr = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
     render(true);
   }
+}
+
+/* ---------- Picking: historial (día / semana) ---------- */
+function pkFechaLocal(d){ return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function pkRangoFechas(){
+  const hoy=new Date(); hoy.setHours(12,0,0,0);
+  if(S.pkRango==="hoy"){ const f=pkFechaLocal(hoy); return {ini:f, fin:f, dias:[f]}; }
+  const dow=(hoy.getDay()+6)%7, lun=new Date(hoy); lun.setDate(hoy.getDate()-dow);
+  const dias=[...Array(7)].map((_,i)=>{ const d=new Date(lun); d.setDate(lun.getDate()+i); return pkFechaLocal(d); });
+  return {ini:dias[0], fin:dias[6], dias};
+}
+function pkDocs(){
+  const r=pkRangoFechas();
+  return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || (d.ubicDestino||d.ubic)===S.pkDestF))
+    .sort((a,b)=>String(b.creado).localeCompare(String(a.creado)));
+}
+function viewPkHist(destinos){
+  const r=pkRangoFechas(), docs=pkDocs(), hoyF=pkFechaLocal(new Date());
+  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking").map(d=>d.ubicDestino||d.ubic)])].filter(Boolean);
+  const dNom=id=>bodNom(id);
+  const filtros=`<div class="pk-filters"><div class="seg" role="group" aria-label="Periodo">
+      <button type="button" data-pkrango="hoy" aria-pressed="${S.pkRango==="hoy"}">Hoy</button><button type="button" data-pkrango="semana" aria-pressed="${S.pkRango==="semana"}">Esta semana</button></div>
+    <div class="seg" role="group" aria-label="Bodega de tránsito"><button type="button" data-pkdf="todas" aria-pressed="${S.pkDestF==="todas"}">Todas</button>
+      ${ids.map(id=>`<button type="button" data-pkdf="${esc(id)}" aria-pressed="${S.pkDestF===id}"><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))}</button>`).join("")}</div>
+    <span class="spacer"></span><span class="muted">${fFecha(r.ini)}${r.ini!==r.fin?" al "+fFecha(r.fin):""}</span>
+    <button class="btn brand" type="button" data-pkprinthist ${docs.length?"":"disabled"}>🖨 Imprimir consolidado</button></div>`;
+  if(!docs.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}<div class="empty">No hay pickings registrados ${S.pkRango==="hoy"?"hoy":"esta semana"}${S.pkDestF!=="todas"?" para "+esc(dNom(S.pkDestF)):""}.<div class="btns"><button class="btn brand" type="button" data-pktab="nuevo">Hacer un picking</button></div></div></div>`;
+  const uds=d=>d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0);
+  const totUn=docs.reduce((a,d)=>a+uds(d),0);
+  const prodSet=new Set(docs.flatMap(d=>(d.lineas||[]).map(l=>l.productoId||l.nombre)));
+  const kpi=(c,v,t)=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span></div>`;
+  const kpis=`<div class="pk-kpis">${kpi("var(--accent)",docs.length,"Pickings")}${kpi("var(--orange)",fmt(totUn),"Unidades movidas")}${kpi("var(--c2)",prodSet.size,"Productos distintos")}${kpi("var(--c1)",[...new Set(docs.map(d=>d.ubicDestino||d.ubic))].length,"Bodegas abastecidas")}</div>`;
+  // gráfico: unidades por día apiladas por bodega de tránsito
+  const destUsados=[...new Set(docs.map(d=>d.ubicDestino||d.ubic))];
+  const porDia=r.dias.map(f=>{ const ds=docs.filter(d=>d.fecha===f); const seg={}; ds.forEach(d=>{ const k=d.ubicDestino||d.ubic; seg[k]=(seg[k]||0)+uds(d); }); return {f, tot:Object.values(seg).reduce((a,n)=>a+n,0), seg, n:ds.length}; });
+  const max=Math.max(1,...porDia.map(x=>x.tot));
+  const chart=`<div class="pk-chart" role="img" aria-label="Unidades por día">${porDia.map((x,i)=>`<div class="pk-col ${x.f===hoyF?"hoy":""}"><span class="pk-cv">${x.tot?fmt(x.tot):""}</span>
+      <div class="pk-bar" title="${fFecha(x.f)}: ${fmt(x.tot)} un en ${x.n} picking${x.n===1?"":"s"}">${destUsados.map(id=>x.seg[id]?`<i style="height:${x.seg[id]/max*100}%;background:${pkColor(id)}" title="${esc(dNom(id))}: ${fmt(x.seg[id])} un"></i>`:"").join("")}</div>
+      <span class="pk-cl">${r.dias.length>1?DIAS_CORTO[i]:"Hoy"}</span></div>`).join("")}</div>
+    <div class="pk-legend">${destUsados.map(id=>`<span><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))} · ${fmt(docs.filter(d=>(d.ubicDestino||d.ubic)===id).reduce((a,d)=>a+uds(d),0))} un</span>`).join("")}</div>`;
+  // consolidado por producto
+  const cons=pkConsolidado(docs), tot=cons.reduce((a,x)=>a+x.total,0), maxP=Math.max(1,...cons.map(x=>x.total));
+  const consT=`<div class="tbl-wrap" style="max-height:none"><table class="db" style="min-width:${360+destUsados.length*90}px"><thead><tr><th><span>Producto</span></th>${destUsados.map(id=>`<th class="n"><span>${esc(dNom(id))}</span></th>`).join("")}<th class="n"><span>Total un</span></th><th class="n"><span>Packs</span></th></tr></thead>
+    <tbody>${cons.map(x=>`<tr><td class="prod"><span class="pk-mini" style="width:${x.total/maxP*100}%"></span><b>${esc(x.nombre)}</b><span class="sub">${esc(x.codigo||"")}${x.ubicacion?" · Ubic. "+esc(x.ubicacion):""}</span></td>
+      ${destUsados.map(id=>`<td class="n">${x.por[id]?fmt(x.por[id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmt(x.total)}</td><td class="n">${x.packUn>1?fmt(Math.round(x.total/x.packUn*100)/100):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table></div>`;
+  const lista=docs.map(d=>{ const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic, hora=new Date(d.creado).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+    return `<details class="pk-doc" style="--c:${pkColor(de)}"><summary><span class="pk-folio">${esc(d.folio)}</span><span class="pk-ruta">${esc(dNom(o))} <i>→</i> <b>${esc(dNom(de))}</b></span>
+      <span class="muted">${S.pkRango==="semana"?DIAS_CORTO[(new Date(d.fecha+"T12:00").getDay()+6)%7]+" ":""}${hora}</span><span class="spacer"></span><span class="pk-chip">${(d.lineas||[]).length} prod.</span><span class="pk-chip strong">${fmt(uds(d))} un</span></summary>
+      <div class="pk-doc-b"><table class="db" style="min-width:420px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th><th class="n"><span>Unidades</span></th><th class="n"><span>Packs</span></th></tr></thead><tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td><td class="n stk">${fmt(l.cantidad)}</td><td class="n">${(l.packUn||1)>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table>
+      <div style="padding:10px 0 2px"><button class="btn ghost sm" type="button" data-pkprintdoc="${d.id}">🖨 Imprimir esta hoja</button></div></div></details>`; }).join("");
+  return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}${kpis}
+      <h3 class="pk-h">Unidades ${S.pkRango==="hoy"?"de hoy":"por día"}</h3>${chart}</div>
+    <div class="card" style="margin-top:14px"><div class="card-h">Qué hay que recolectar<span class="muted" style="font-weight:500;font-size:.85rem">${cons.length} producto${cons.length===1?"":"s"} · ${fmt(tot)} unidades</span></div>${consT}</div>
+    <div class="card" style="margin-top:14px"><div class="card-h">Pickings registrados<span class="muted" style="font-weight:500;font-size:.85rem">toca uno para ver el detalle</span></div><div class="pk-docs">${lista}</div></div>`;
+}
+function pkConsolidado(docs){
+  const m=new Map();
+  docs.forEach(d=>{ const de=d.ubicDestino||d.ubic; (d.lineas||[]).forEach(l=>{ const k=l.productoId||l.nombre;
+    const x=m.get(k)||{nombre:l.nombre, codigo:l.codigo, packUn:l.packUn||1, ubicacion:l.ubicacion||"", total:0, por:{}, dia:{}};
+    x.total+=+l.cantidad||0; x.por[de]=(x.por[de]||0)+(+l.cantidad||0); x.dia[d.fecha]=(x.dia[d.fecha]||0)+(+l.cantidad||0);
+    const p=S.productos.find(p=>p.id===l.productoId); if(p){ x.packUn=p.packUn||x.packUn; x.ubicacion=p.ubicacion||x.ubicacion; }
+    m.set(k,x); }); });
+  return [...m.values()].sort((a,b)=>(a.ubicacion||"~").localeCompare(b.ubicacion||"~","es",{numeric:true})||a.nombre.localeCompare(b.nombre,"es"));
+}
+
+/* ---------- Picking: impresión ---------- */
+function imprimir(html){
+  const a=$("#printArea"); a.innerHTML=html;
+  const limpiar=()=>{ a.innerHTML=""; window.removeEventListener("afterprint",limpiar); };
+  window.addEventListener("afterprint",limpiar);
+  setTimeout(()=>window.print(),50);
+}
+function hojaCab(titulo, sub, extra=""){
+  const ahora=new Date().toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
+  return `<header class="ph-cab"><div class="ph-brand"><span class="ph-logo">B<i></i></span><div><b>bodeka</b><small>${esc(titulo)}</small></div></div>
+    <div class="ph-meta"><div>${sub}</div><div class="ph-imp">Impreso ${ahora}</div>${extra}</div></header>`;
+}
+function hojaFirmas(){ return `<div class="ph-firmas"><div>Preparó (recolectó)</div><div>Recibió en tránsito</div><div>Observaciones</div></div>`; }
+function imprimirHojaPicking(d){
+  const o=d.ubicOrigen||"repo", de=d.ubicDestino||d.ubic;
+  const ls=[...(d.lineas||[])].map(l=>{ const p=S.productos.find(x=>x.id===l.productoId); return {...l, ubicacion:(p&&p.ubicacion)||l.ubicacion||"", packUn:(p&&p.packUn)||l.packUn||1}; })
+    .sort((a,b)=>(a.ubicacion||"~").localeCompare(b.ubicacion||"~","es",{numeric:true})||a.nombre.localeCompare(b.nombre,"es"));
+  const un=ls.reduce((a,l)=>a+(+l.cantidad||0),0);
+  imprimir(`<section class="ph-doc">${hojaCab("Hoja de recolección · picking", `<b>${esc(d.folio||"BORRADOR")}</b>`, d.folio?"":'<div class="ph-borrador">BORRADOR · aún no confirmado</div>')}
+    <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia (tránsito)</small><b>${esc(bodNom(de))}</b></div></div>
+    <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Unidades</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
+    <tbody>${ls.map(l=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(l.codigo)}</td><td><b>${esc(l.nombre)}</b></td><td>${esc(l.ubicacion)}</td><td class="n"><b>${fmt(l.cantidad)}</b></td><td class="n">${l.packUn>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="4">${ls.length} producto${ls.length===1?"":"s"}</td><td class="n"><b>${fmt(un)}</b></td><td colspan="2"></td></tr></tfoot></table>${hojaFirmas()}</section>`);
+}
+function imprimirPickingBorrador(){
+  if(!S.pkLineas.length) return;
+  const lineas=S.pkLineas.map(l=>{ const p=S.productos.find(x=>x.id===l.id); return p?{productoId:p.id, codigo:p.codigo||"", nombre:p.nombre, cantidad:+l.cantidad||0, packUn:p.packUn||1, ubicacion:p.ubicacion||""}:null; }).filter(Boolean);
+  imprimirHojaPicking({folio:"", ubicOrigen:S.pkOrig, ubicDestino:S.pkUbic, lineas});
+}
+function imprimirConsolidado(){
+  const r=pkRangoFechas(), docs=pkDocs(); if(!docs.length) return;
+  const semana=r.dias.length>1;
+  const uds=d=>d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0);
+  const destinos=[...new Set(docs.map(d=>d.ubicDestino||d.ubic))];
+  const secc=destinos.map(id=>{ const ds=docs.filter(d=>(d.ubicDestino||d.ubic)===id), cons=pkConsolidado(ds), tot=cons.reduce((a,x)=>a+x.total,0);
+    return `<section class="ph-bloque"><h2>Hacia ${esc(bodNom(id))} <small>${ds.length} picking${ds.length===1?"":"s"} · ${fmt(tot)} unidades</small></h2>
+      <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th>${semana?r.dias.map((f,i)=>`<th class="n d">${DIAS_CORTO[i]}<small>${f.slice(8)}</small></th>`).join(""):""}<th class="n">Total un</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
+      <tbody>${cons.map(x=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(x.codigo||"")}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.ubicacion)}</td>${semana?r.dias.map(f=>`<td class="n d">${x.dia[f]?fmt(x.dia[f]):""}</td>`).join(""):""}<td class="n"><b>${fmt(x.total)}</b></td><td class="n">${x.packUn>1?fmt(Math.round(x.total/x.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody></table></section>`; }).join("");
+  imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de picking · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(docs.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
 }
 
 /* ---------- Bodegas (admin) ---------- */
@@ -1609,7 +1885,7 @@ function viewBodegas(){
   const archivadas=S.bodegas.filter(b=>b.activa===false);
   return `<div class="ph"><h1>Bodegas</h1><span class="spacer"></span><button class="addlink" data-addbod>+ Agregar bodega</button></div>
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
-    <div class="card" style="margin-bottom:14px">${grupo("picking","Picking")}</div>
+    <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
     ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
 }
 let editBodId=null;
@@ -1643,7 +1919,7 @@ function render(force=true){   // live data updates call render(false)
   $("#cats").innerHTML = cats().map(c=>`<option value="${esc(c)}">`).join("");
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
-  if((S.screen==="form"||S.screen==="picking") && !force) return;   // don't wipe a document being typed when live data arrives
+  if((S.screen==="form"||(S.screen==="picking"&&S.pkTab==="nuevo")) && !force) return;   // don't wipe a document being typed when live data arrives
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="form"&&S.form?viewForm():viewTabla();
   if(aid && (["fq","mq","dq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
@@ -1734,7 +2010,17 @@ C.addEventListener("click",e=>{
   const rm=t.closest("[data-rm]"); if(rm){ S.form.lineas.splice(+rm.dataset.rm,1); render(true); $("#pick")?.focus(); return; }
   if(t.closest("[data-confirm]")) return confirmarDoc();
   const pkp=t.closest("[data-pkpick]"); if(pkp) return addLineaPk(pkp.dataset.pkpick);
-  const pkrm=t.closest("[data-pkrm]"); if(pkrm){ S.pkLineas.splice(+pkrm.dataset.pkrm,1); render(true); $("#pkPick")?.focus(); return; }
+  const pkrm=t.closest("[data-pkrm]"); if(pkrm){ S.pkLineas.splice(+pkrm.dataset.pkrm,1); pkRender(); return; }
+  const pks=t.closest("[data-pkstep]"); if(pks) return stepPk(+pks.dataset.pkstep, +pks.dataset.d);
+  const pkt=t.closest("[data-pktab]"); if(pkt){ S.pkTab=pkt.dataset.pktab; S.pkErr=""; render(true); return; }
+  const pko=t.closest("[data-pkorig]"); if(pko){ S.pkOrig=pko.dataset.pkorig; S.pkErr=""; pkRender(); return; }
+  const pkd=t.closest("[data-pkdest]"); if(pkd){ S.pkUbic=pkd.dataset.pkdest; S.pkErr=""; pkRender(); return; }
+  const pkr=t.closest("[data-pkrango]"); if(pkr){ S.pkRango=pkr.dataset.pkrango; render(true); return; }
+  const pkf=t.closest("[data-pkdf]"); if(pkf){ S.pkDestF=pkf.dataset.pkdf; render(true); return; }
+  if(t.closest("[data-pkclear]")){ if(S.pkLineas.length && confirm("¿Vaciar la lista de picking?")){ S.pkLineas=[]; S.pkErr=""; pkRender(); } return; }
+  if(t.closest("[data-pkprintdraft]")) return imprimirPickingBorrador();
+  if(t.closest("[data-pkprinthist]")) return imprimirConsolidado();
+  const pkpd=t.closest("[data-pkprintdoc]"); if(pkpd){ const d=S.docs.find(x=>x.id===pkpd.dataset.pkprintdoc); if(d) imprimirHojaPicking(d); return; }
   if(t.closest("[data-pkconfirm]")) return confirmarPicking();
   const dc=t.closest("[data-doc]"); if(dc) return openDoc(dc.dataset.doc);
   const km=t.closest("[data-dmenu]"); if(km){ e.stopPropagation(); return pop.classList.contains("open")&&pop._btn===km ? closeMenu() : openMenu(km); }
@@ -1763,7 +2049,7 @@ C.addEventListener("input",e=>{
     if(id==="pick"){ S.form.pq=v; showSugs(); return; }
   }
   if(t.dataset.pkq!==undefined){ S.pkLineas[+t.dataset.pkq].cantidad=v; updPkLinea(+t.dataset.pkq); return; }
-  if(id==="pkPick"){ S.pkq=v; showPkSugs(); return; }
+  if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
   if(!["fq","mq","dq"].includes(id)) return;
   clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; S.page=1; render(); },200);
 });
@@ -1778,13 +2064,8 @@ C.addEventListener("keydown",e=>{
   }
   if(t.dataset && t.dataset.lq!==undefined && e.key==="Enter"){ e.preventDefault(); $("#pick")?.focus(); }
   if(t.dataset && t.dataset.ef!==undefined && e.key==="Escape"){ S.open=null; render(true); }
-  if(t.id==="pkPick"){
-    const box=$("#pkSugs"), items=box?[...box.querySelectorAll("[data-pkpick]")]:[], hi=items.findIndex(x=>x.classList.contains("hl"));
-    if(e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value); const sel=items[hi]?.dataset.pkpick || (r[0]&&r[0].id);
-      if(sel) addLineaPk(sel); else if(t.value.trim()){ S.pkErr=`No existe un producto con "${t.value.trim()}". Créalo primero en Productos.`; render(true); } }
-    if((e.key==="ArrowDown"||e.key==="ArrowUp") && items.length){ e.preventDefault(); const n=(hi+(e.key==="ArrowDown"?1:-1)+items.length)%items.length; items.forEach((x,i)=>x.classList.toggle("hl",i===n)); items[n].scrollIntoView({block:"nearest"}); }
-    if(e.key==="Escape") box?.classList.remove("open");
-  }
+  if(t.id==="pkPick" && e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value).filter(p=>(p.ubic[S.pkOrig]||0)>0);
+    if(r[0]){ S.pkq=""; addLineaPk(r[0].id); } else if(t.value.trim()){ S.pkErr=`No hay stock de "${t.value.trim()}" en ${bodNom(S.pkOrig)}.`; render(true); } }
   if(t.dataset && t.dataset.pkq!==undefined && e.key==="Enter"){ e.preventDefault(); $("#pkPick")?.focus(); }
 });
 C.addEventListener("change",e=>{
@@ -1794,8 +2075,6 @@ C.addEventListener("change",e=>{
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
   if(t.dataset.sel!==undefined){ t.checked?S.sel.add(t.dataset.sel):S.sel.delete(t.dataset.sel); render(); return; }
   if(t.hasAttribute("data-selall")){ const ids=[...C.querySelectorAll("[data-sel]")].map(x=>x.dataset.sel); ids.forEach(i=>t.checked?S.sel.add(i):S.sel.delete(i)); render(); return; }
-  if(id==="pkOrigSel"){ S.pkOrig=v; S.pkErr=""; render(true); return; }
-  if(id==="pkUbicSel"){ S.pkUbic=v; S.pkErr=""; render(true); return; }
   if(id==="fcat"){ S.cat=v; S.bod="todas"; S.open=null; }
   else if(id==="fbod"){ S.bod=v; S.open=null; }
   else if(id==="psize"){ S.size=+v; }
