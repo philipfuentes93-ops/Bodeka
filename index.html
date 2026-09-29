@@ -581,6 +581,34 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .pk-gqty .pk-sub{justify-content:flex-end}
 @media (max-width:860px){ .pk-grid{justify-content:space-between;width:100%} .pk-g{flex:1;min-width:0} .pk-step.sm button{width:26px} .pk-step.sm input{width:100%;min-width:0} .pk-step.sm{width:100%} .pk-gqty .pk-sub{justify-content:space-between} .pk-qty.pk-gqty{flex-direction:column;align-items:stretch} }
 @media print{ .ph-t .g{width:56px;text-align:center} }
+/* Inventario por bodega */
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:.86rem;font-weight:600;color:var(--muted);cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+.inv-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.inv-tools .spacer{flex:1}
+.inv-p{display:flex;align-items:center;gap:10px}
+.inv-p .sub{display:block}
+.ubin{width:88px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--field);text-align:right;font-weight:700}
+.ubin:focus{outline:2px solid var(--accent);background:var(--panel)}
+td.n .ubin{display:block;margin-left:auto}
+.bchip{display:inline-flex;align-items:center;gap:5px;background:var(--field);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:.76rem;margin:0 4px 3px 0;white-space:nowrap}
+.bchip.on{border-color:var(--accent);background:var(--accent-soft)}
+.exp-bodh{align-self:flex-start;font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.exp-bodh + .ov-m .ubin{width:70px;padding:4px 6px}
+.exp-bodh + .ov-m .nm{white-space:normal;overflow:visible;font-size:.8rem;line-height:1.2}
+.cmp td:first-child,.cmp th:first-child{position:sticky;left:0;z-index:1}
+.cmp td:first-child{background:var(--panel)}
+.cmp th:first-child{background:var(--thead)}
+.cmp th button{all:unset;cursor:pointer;font-weight:700}
+.cmp th button:hover{color:var(--accent)}
+.cmp tfoot td{border-top:2px solid var(--line);padding:10px}
+.icards{display:none}
+.inv-c{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.inv-c label{display:flex;flex-direction:column;gap:3px;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.inv-c label b{font-size:1.05rem;color:var(--ink);padding-top:6px}
+.inv-c .ubin{width:100%}
+.inv-c small{text-transform:none;font-weight:500}
+@media (max-width:860px){ .inv-tbl{display:none} .icards{display:block} .ftabs button{padding:10px 12px 12px} }
 /* Impresión */
 #printArea{display:none}
 @media print{
@@ -664,6 +692,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
       <div><div class="movil-sheet-nombre" id="movilAcctName">Bodeka</div><div class="movil-sheet-email" id="movilAcctEmail"></div></div>
     </div>
     <button class="movil-sheet-item" type="button" data-tab="desp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg><span>Despacho</span></button>
+    <button class="movil-sheet-item" type="button" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Por bodega</span></button>
     <button class="movil-sheet-item" type="button" data-tab="movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Movimientos</span></button>
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
@@ -701,16 +730,18 @@ table.db thead th:last-child{border-top-right-radius:14px}
     <div class="f"><label for="pUnd">Unidad</label><input id="pUnd" maxlength="10" list="unds" value="UN"></div>
   </div>
   <div class="f"><label for="pNombre">Producto</label><input id="pNombre" required maxlength="120" placeholder="Ej: Té de manzanilla Lipton x20 bl"></div>
-  <div class="grid3">
+  <div class="grid2">
     <div class="f"><label for="pCat">Categoría</label><input id="pCat" maxlength="40" list="cats"></div>
-    <div class="f"><label for="pBod">Bodega</label><input id="pBod" maxlength="40" list="bods" placeholder="Ej: piso 11"></div>
-    <div class="f"><label for="pUbic">Ubicación</label><input id="pUbic" maxlength="20"></div>
+    <div class="f"><label for="pUbic">Ubicación (estante)</label><input id="pUbic" maxlength="20"></div>
   </div>
   <div class="grid2">
     <div class="f"><label for="pMin">Stock mínimo</label><input id="pMin" type="number" min="0" step="any" value="0"></div>
     <div class="f"><label for="pPack">Unidades por pack</label><input id="pPack" type="number" min="1" step="1" value="1" placeholder="Ej: 6, 4, 12"></div>
   </div>
-  <div class="f" id="stockField"><label for="pStock" id="pStockLbl">Stock inicial</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
+  <div class="grid2" id="stockField">
+    <div class="f"><label for="pBodIni">Bodega donde está</label><select id="pBodIni"></select></div>
+    <div class="f"><label for="pStock">Stock inicial (unidades)</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
+  </div>
   <div class="f"><label for="pVenc">Vencimiento (opcional)</label><input id="pVenc" type="date"></div>
   <datalist id="unds"><option value="UN"><option value="CJ"><option value="PQ"><option value="BL"><option value="BID"><option value="LT"><option value="KG"><option value="RL"></datalist>
   <datalist id="cats"></datalist><datalist id="bods"></datalist>
@@ -806,7 +837,7 @@ let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (!tipo || b.tipo===tipo));
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", bfNombre:"", bfTipo:"picking", bfErr:""};
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -830,6 +861,7 @@ function fixProd(p){
   // Se asume que ese stock vivía todo en la bodega de reposición por defecto, sin perder unidades.
   q.ubic = q.ubic ? {...q.ubic} : {repo:+q.stock||0};
   Object.keys(q.ubic).forEach(k=>{ q.ubic[k]=+q.ubic[k]||0; });
+  q.minUbic = Object.fromEntries(Object.entries(q.minUbic||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.stock = Object.values(q.ubic).reduce((a,n)=>a+n,0);
   return q;
 }
@@ -1000,9 +1032,10 @@ function openProd(id){
   $("#dProdSub").textContent=p?"El stock se cambia con Entrada, Salida o Conteo.":"El stock inicial queda registrado como primer movimiento.";
   $("#pCod").value=p?.codigo||""; $("#pCod").disabled=!!(p&&p.codigo);
   $("#pNombre").value=p?.nombre||""; $("#pUnd").value=p?.unidad||"UN";
-  $("#pCat").value=p?.categoria||(S.cat!=="todas"&&S.screen==="tabla"?catName(S.cat):""); $("#pBod").value=p?.bodega||(S.bod!=="todas"?S.bod:"");
+  $("#pCat").value=p?.categoria||(S.cat!=="todas"&&S.screen==="tabla"?catName(S.cat):"");
   $("#pUbic").value=p?.ubicacion||""; $("#pMin").value=p?.minimo??0; $("#pPack").value=p?.packUn??1; $("#pStock").value=0; $("#pVenc").value=p?.vencimiento||"";
-  $("#pStockLbl").textContent=`Stock inicial (unidades, en ${bodNom((bods("reposicion")[0]||{}).id||"repo")})`;
+  const bi=bods().filter(b=>b.tipo!=="cooler"); $("#pBodIni").innerHTML=bi.map(b=>`<option value="${esc(b.id)}">${esc(b.nombre)}</option>`).join("");
+  $("#pBodIni").value=(S.screen==="inv"&&bi.some(b=>b.id===S.invBod))?S.invBod:((bods("reposicion")[0]||bi[0]||{}).id||"");
   $("#stockField").hidden=!!p; $("#pDel").hidden=!p; $("#pErr").textContent="";
   $("#dProd").showModal(); (p?$("#pNombre"):$("#pCod")).focus();
 }
@@ -1020,18 +1053,18 @@ $("#fProd").addEventListener("submit", async e=>{
   if(!prev && codigo && S.productos.some(x=>x.codigo===codigo)){ $("#pErr").textContent="Ya existe un producto con ese código."; return; }
   const p={ id: prev?prev.id:(codigo?idFromCode(codigo):uid()), codigo, nombre,
     unidad:$("#pUnd").value.trim().toUpperCase()||"UN", categoria:$("#pCat").value.trim()||"Sin categoría",
-    bodega:$("#pBod").value.trim(), ubicacion:$("#pUbic").value.trim(),
+    bodega:prev?.bodega||"", ubicacion:$("#pUbic").value.trim(), minUbic:prev?.minUbic||{},
     minimo:Math.max(0,+$("#pMin").value||0),
     packUn:Math.max(1,+$("#pPack").value||1),
     vencimiento:$("#pVenc").value||"",
     foto: fotoPend!==undefined ? (fotoPend||"") : (prev?.foto||""),
-    ubic: prev ? prev.ubic : {[(bods("reposicion")[0]||{}).id||"repo"]:Math.max(0,+$("#pStock").value||0)} };
+    ubic: prev ? prev.ubic : {[$("#pBodIni").value||(bods("reposicion")[0]||{}).id||"repo"]:Math.max(0,+$("#pStock").value||0)} };
   p.stock = Object.values(p.ubic).reduce((a,n)=>a+n,0);
   p.actualizado = new Date().toISOString();
   try{
     $("#pSave").disabled=true;
     await Store.putProducto(p);
-    if(!prev && p.stock>0) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"entrada",cantidad:p.stock,stockFinal:p.stock,nota:"Stock inicial",fecha:new Date().toISOString()});
+    if(!prev && p.stock>0) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"entrada",cantidad:p.stock,stockFinal:p.stock,nota:"Stock inicial · "+bodNom($("#pBodIni").value),fecha:new Date().toISOString()});
     $("#dProd").close(); toast(prev?"Producto guardado":"Producto agregado");
   }catch{ $("#pErr").textContent="No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."; }
   finally{ $("#pSave").disabled=false; }
@@ -1061,12 +1094,12 @@ function updPrev(){
   $("#mErr").textContent = r.n<0 ? "El resultado no puede ser negativo." : "";
   $("#mSave").textContent = movT==="entrada"?"Registrar entrada":movT==="salida"?"Registrar salida":"Guardar conteo";
 }
-function openMov(id,t){
+function openMov(id,t,bodId){
   movP=S.productos.find(x=>x.id===id); if(!movP) return; movT=t;
-  const opts=bods(); movU=(opts[0]||{}).id||"repo";
+  const opts=bods(); movU=(bodId&&opts.some(b=>b.id===bodId)?bodId:(opts[0]||{}).id||"repo");
   $("#mUbicSel").innerHTML=opts.map(b=>`<option value="${esc(b.id)}">${esc(b.nombre)}</option>`).join("");
   $("#mUbicSel").value=movU;
-  $("#mTitle").textContent=movP.nombre; $("#mSub").textContent=[movP.codigo,movP.categoria,movP.bodega].filter(Boolean).join(" · ");
+  $("#mTitle").textContent=movP.nombre; $("#mSub").textContent=[movP.codigo,movP.categoria].filter(Boolean).join(" · ");
   $("#mCant").value=""; $("#mNota").value=""; $("#mVenc").value="";
   updPrev(); $("#dMov").showModal(); $("#mCant").focus();
 }
@@ -1116,6 +1149,8 @@ function mapHeader(row){
     if(i<0 && k==="stock") i=h.findIndex(x=>x.startsWith("existencia"));
     if(i>=0) m[k]=i;
   }
+  m.bods={};   // columnas que se llaman igual que una bodega (p. ej. las que genera Exportar)
+  bods().forEach(b=>{ const i=h.findIndex(x=>x===norm(b.nombre)); if(i>=0) m.bods[b.id]=i; });
   if(m.stock===undefined && m.minimo!==undefined){          // header sin nombre claro: columna numérica tras STOCK MÍNIMO
     for(let i=m.minimo+1;i<h.length;i++){ if(!/pmp|precio|costo|valoriz|venc|dias|estado/.test(h[i])){ m.stock=i; break; } }
   }
@@ -1126,7 +1161,7 @@ $("#file").addEventListener("change", async e=>{
   if(!window.XLSX){ toast("No se pudo cargar el lector de Excel. Recarga la página."); return; }
   try{
     const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
-    const hojas=[]; pendientes=[]; let malos=0;
+    const hojas=[]; pendientes=[]; let malos=0; const bodsDet=new Set();
     for(const name of wb.SheetNames){
       const r=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:""});
       const hi=r.slice(0,30).findIndex(x=>x.some(c=>["producto","descripcion"].includes(norm(c))));
@@ -1139,11 +1174,15 @@ $("#file").addEventListener("change", async e=>{
         if(!nombre && !codigo) continue;
         if(!nombre || /^[\d.,]+(e\+?\d+)?$/i.test(nombre)){ nombre=`Sin nombre (código ${codigo||"s/c"})`; malos++; }
         const get=k=>map[k]!==undefined?row[map[k]]:"";
-        pendientes.push({ codigo, nombre,
+        const set={};
+        Object.entries(map.bods||{}).forEach(([id,i])=>{ const v=row[i]; if(v!==""&&v!==undefined&&v!==null){ set[id]=Math.max(0,parseNum(v)); bodsDet.add(id); } });
+        const bt=norm(get("bodega")), bm=bt&&bods().find(b=>norm(b.nombre)===bt);   // fila que indica su bodega: el mismo producto puede repetirse en varias
+        if(!Object.keys(set).length && bm){ set[bm.id]=Math.max(0,parseNum(get("stock"))); bodsDet.add(bm.id); }
+        pendientes.push({ codigo, nombre, set,
           unidad:String(get("unidad")||"UN").trim().toUpperCase()||"UN",
           categoria:String(get("categoria")).trim()||"Sin categoría",
           bodega:String(get("bodega")).trim(), ubicacion:String(get("ubicacion")).trim().replace(/^-$/,""),
-          minimo:parseNum(get("minimo")), stock:parseNum(get("stock")),
+          minimo:parseNum(get("minimo")), stock:Object.keys(set).length?Object.values(set).reduce((a,n)=>a+n,0):parseNum(get("stock")),
           vencimiento:parseFecha(get("vencimiento")) });
         n++;
       }
@@ -1151,7 +1190,9 @@ $("#file").addEventListener("change", async e=>{
     }
     if(!hojas.length){ toast("No encontré una columna PRODUCTO en el archivo."); return; }
     // dedupe by código inside the file (last one wins)
-    const byCode=new Map(); pendientes.forEach((p,i)=>byCode.set(p.codigo||("#"+i),p)); pendientes=[...byCode.values()];
+    const byCode=new Map(); pendientes.forEach((p,i)=>{ const k=p.codigo||("#"+i), a=byCode.get(k);
+      if(a && Object.keys(a.set).length && Object.keys(p.set).length){ p.set={...a.set,...p.set}; p.stock=Object.values(p.set).reduce((x,n)=>x+n,0); }   // mismo producto en varias bodegas: se suman las ubicaciones
+      byCode.set(k,p); }); pendientes=[...byCode.values()];
     if(!pendientes.length){ toast("El archivo no tiene filas de productos."); return; }
     const nuevos=pendientes.filter(p=>!S.productos.some(x=>(p.codigo&&x.codigo===p.codigo))).length;
     const conVenc=pendientes.filter(p=>p.vencimiento).length;
@@ -1159,6 +1200,7 @@ $("#file").addEventListener("change", async e=>{
     $("#iPrev").innerHTML=`<strong>${pendientes.length}</strong> productos encontrados: ${nuevos} nuevos y ${pendientes.length-nuevos} que ya existen (se actualizan por código).<br>
       ${pendientes.filter(p=>p.stock<=0).length} sin stock y ${pendientes.filter(p=>p.stock>0&&p.stock<p.minimo).length} bajo el mínimo.
       <br>${conVenc} con fecha de vencimiento.
+      ${bodsDet.size?`<br>Stock por bodega reconocido para: <strong>${[...bodsDet].map(bodNom).map(esc).join(", ")}</strong>.`:`<br>Sin columnas de bodega: el stock se carga en <strong>${esc(bodNom((bods("reposicion")[0]||{}).id||"repo"))}</strong>.`}
       ${malos?`<br><strong>${malos}</strong> fila${malos===1?"":"s"} con el nombre del producto vacío o con un número en vez de texto: se cargan como "Sin nombre" para que las corrijas con Editar.`:""}`;
     $("#iErr").textContent=""; $("#iBar").hidden=true; $("#iGo").disabled=false;
     $("#dImp").showModal();
@@ -1171,9 +1213,10 @@ $("#iGo").addEventListener("click", async ()=>{
     for(const [i,row] of pendientes.entries()){
       const prev=row.codigo ? S.productos.find(x=>x.codigo===row.codigo) : null;
       // El Excel representa el conteo de la primera bodega de Reposición; lo demás se conserva.
-      const bodImp=(bods("reposicion")[0]||{}).id||"repo";
-      const ubic={...(prev?.ubic||{}), [bodImp]:+row.stock||0};
-      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...row, ubic, packUn:prev?.packUn||1,
+      const {set:setB, ...rest}=row, bodImp=(bods("reposicion")[0]||{}).id||"repo";
+      const ubic={...(prev?.ubic||{})};
+      if(Object.keys(setB||{}).length) Object.assign(ubic,setB); else ubic[bodImp]=+row.stock||0;
+      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, packUn:prev?.packUn||1,
         stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString() };
       await Store.putProducto(p);
       if(!prev || prev.stock!==p.stock)
@@ -1194,14 +1237,14 @@ async function exportar(list){
   if(!Store.dl || !window.XLSX) return;
   const bs=bods();
   const data=list.map(p=>{
-    const row={ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria, "BODEGA":p.bodega,
+    const row={ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria,
       "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":p.stock };
     bs.forEach(b=>{ row[b.nombre.toUpperCase()]=p.ubic[b.id]||0; });
     row["VENCIMIENTO"]=fFecha(p.vencimiento); row["DÍAS DISPONIBLES"]=diasVenc(p)??""; row["ESTADO PRODUCTO"]={none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)];
     return row;
   });
   const ws=XLSX.utils.json_to_sheet(data), wb=XLSX.utils.book_new();
-  ws["!cols"]=[{wch:15},{wch:48},{wch:6},{wch:8},{wch:14},{wch:10},{wch:10},{wch:12},{wch:13},{wch:14},...bs.map(()=>({wch:12})),{wch:16},{wch:15}];
+  ws["!cols"]=[{wch:15},{wch:48},{wch:6},{wch:8},{wch:14},{wch:10},{wch:12},{wch:13},{wch:14},...bs.map(()=>({wch:12})),{wch:16},{wch:15}];
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   const hoy=new Date().toISOString().slice(0,10);
@@ -1224,6 +1267,7 @@ const ICON = {
   inn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><path d="M8 5v8m0 0-3-3m3 3 3-3"/></svg>',
   out:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg>',
   hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  house:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
   pick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="7" height="10" rx="1.5"/><rect x="13" y="6" width="7" height="14" rx="1.5"/><path d="M7.5 10V7a2 2 0 0 1 2-2h1M16.5 6V4.5"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -1236,7 +1280,7 @@ function baseList(){
   const q=norm(S.q);
   return S.productos
     .filter(p=> S.cat==="todas" || norm(p.categoria)===norm(S.cat))
-    .filter(p=> S.bod==="todas" || p.bodega===S.bod)
+    .filter(p=> S.bod==="todas" || (p.ubic[S.bod]||0)>0)
     .filter(p=> !q || norm(p.nombre+" "+(p.codigo||"")).includes(q));
 }
 function visibles(){ return baseList().filter(TABF[S.tab]||TABF.todos); }
@@ -1247,6 +1291,7 @@ function renderNav(){
   $("#nav").innerHTML=`<div class="grp">Inventario</div>
     ${it("home","Resumen",ICON.home,S.screen==="home")}
     ${it("tabla","Productos",ICON.box,S.screen==="tabla",nRep)}
+    ${it("inv","Por bodega",ICON.house,S.screen==="inv")}
     ${it("movs","Movimientos",ICON.hist,S.screen==="movs")}
     <div class="grp">Operación</div>
     ${it("picking","Picking",ICON.pick,S.screen==="picking")}
@@ -1335,9 +1380,9 @@ function viewHome(){
       <button class="link more" data-go="movs">Ver todos</button>`:'<p class="mini-empty">Aún no hay movimientos.</p>'}</section>`;
   const donut = ps.length ? `<div class="span-4">${donutCard()}</div>` : "";
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
-    return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
-  const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-go="bodegas" style="font-size:.8rem">Gestionar bodegas</button></span>`:""}</h3>
-      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}${bodGrupo("cooler","Coolers")}</div></section>`:"";
+    return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><button class="rowlink nm" data-invbod="${esc(b.id)}" title="Ver el inventario de ${esc(b.nombre)}">${esc(b.nombre)}</button><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
+  const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-invbod="comparar" style="font-size:.8rem">Comparar bodegas</button></span>`:""}</h3>
+      <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}</div></section>`:"";
   return `<div class="ph"><h1>Resumen</h1><span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>
     <div class="dash">${hero}${health}${ps.length?kpis:""}${bodCard}${donut?catsCard.replace("span-12","span-8"):catsCard}${donut}${ps.length?repCard+vencCard+actCard:""}</div>`;
 }
@@ -1371,7 +1416,8 @@ function expDetalle(p){
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
         <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b> ${esc(p.unidad)}<span>disponibles · mínimo ${fmt(p.minimo)}</span></div>
-        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().map(b=>`<li><span class="nm">${esc(b.nombre)}</span><span class="q">${fmt(p.ubic[b.id]||0)}</span></li>`).join("")}</ul>
+        <div class="exp-bodh">Stock por bodega (unidades) · editable</div>
+        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${p.ubic[b.id]||0}" aria-label="Unidades en ${esc(b.nombre)}"></span></li>`).join("")}</ul>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
         ${f("nombre","Producto",p.nombre,'maxlength="120"',"wide")}
@@ -1380,7 +1426,6 @@ function expDetalle(p){
         ${f("unidad","Unidad",p.unidad,'list="unds" maxlength="10"')}
         ${f("minimo","Stock mínimo",p.minimo,'type="number" min="0" step="any"')}
         ${f("packUn","Unidades por pack",p.packUn,'type="number" min="1" step="1"')}
-        ${f("bodega","Bodega",p.bodega||"",'list="bods" maxlength="40"')}
         ${f("ubicacion","Ubicación",p.ubicacion||"",'maxlength="20"')}
         ${f("vencimiento","Vencimiento",p.vencimiento||"",'type="date"')}
       </div>
@@ -1399,7 +1444,7 @@ function pcard(p){
     <div class="pcard-top">
       <span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${thumbHtml(p)}</span>
       <div class="pcard-info"><button class="rowlink" data-open="${p.id}">${esc(p.nombre)}</button>
-        <span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.bodega?` · ${esc(p.bodega)}`:""}</span></div>
+        <span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?` · Ubic. ${esc(p.ubicacion)}`:""}</span></div>
       <span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span>
     </div>
     <div class="pcard-mid">
@@ -1419,12 +1464,12 @@ function pcard(p){
 function viewTabla(){
   const cs=[...cats()].sort((a,b)=>a.localeCompare(b,"es"));
   const baseCat=S.cat==="todas"?S.productos:S.productos.filter(p=>norm(p.categoria)===norm(S.cat));
-  const bs=[...new Set(baseCat.map(p=>p.bodega).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
-  if(!bs.includes(S.bod)) S.bod="todas";
+  const bs=bods().filter(b=>b.tipo!=="cooler");
+  if(S.bod!=="todas" && !bs.some(b=>b.id===S.bod)) S.bod="todas";
   const o=(v,t,cur)=>`<option value="${esc(v)}" ${norm(v)===norm(cur)?"selected":""}>${esc(t)}</option>`;
   const head=`<div class="ph"><h1>Productos</h1>
     <label class="pillsel"><span>Categoría:</span><select id="fcat" aria-label="Categoría">${o("todas","Todas",S.cat)}${cs.map(c=>o(c,c,S.cat)).join("")}</select></label>
-    ${bs.length>1?`<label class="pillsel"><span>Bodega:</span><select id="fbod" aria-label="Bodega">${o("todas","Todas",S.bod)}${bs.map(b=>o(b,b,S.bod)).join("")}</select></label>`:""}
+    ${bs.length>1?`<label class="pillsel"><span>Bodega:</span><select id="fbod" aria-label="Bodega">${o("todas","Todas",S.bod)}${bs.map(b=>o(b.id,b.nombre,S.bod)).join("")}</select></label>`:""}
     <label class="qsearch">${ICON.search}<input id="fq" type="search" value="${esc(S.q)}" placeholder="Búsqueda rápida" aria-label="Buscar por producto o código"></label>
     <span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>`;
   if(!S.productos.length) return head+`<div class="card empty">Aún no hay productos cargados.<div class="btns"><button class="btn brand" data-imp>Importar Excel</button><button class="btn ghost" data-add>Agregar producto</button></div></div>`;
@@ -1434,8 +1479,8 @@ function viewTabla(){
   const cols=[
     {k:"nombre",t:"Producto",v:p=>p.nombre},
     showCat&&{k:"categoria",t:"Categoría",v:p=>p.categoria||""},
-    {k:"bodega",t:"Bodega",v:p=>p.bodega||""},
-    {k:"stock",t:"Stock / mín.",v:p=>+p.stock||0},
+    {k:"bodega",t:"Dónde está",v:p=>S.bod!=="todas"?(p.ubic[S.bod]||0):(+p.stock||0)},
+    {k:"stock",t:S.bod!=="todas"?"Stock general / mín.":"Stock / mín.",v:p=>+p.stock||0},
     {k:"status",t:"Status",c:1,v:p=>["critico","minimo","ok"].indexOf(estado(p))},
     {k:"dias",t:"Vencimiento",v:p=>diasVenc(p)??1e9},
     showPedir&&{k:"pedir",t:"Pedir",n:1,v:pedir}
@@ -1451,7 +1496,8 @@ function viewTabla(){
       case "codigo": return `<td class="muted">${esc(p.codigo)||"-"}</td>`;
       case "nombre": return `<td class="prod"><button class="rowlink" data-open="${p.id}">${esc(p.nombre)}</button><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?` · Ubic. ${esc(p.ubicacion)}`:""}</span></td>`;
       case "categoria": return `<td><span class="catpill" style="--c:${catColor(p.categoria)}">${esc(p.categoria)}</span></td>`;
-      case "bodega": return `<td>${esc(p.bodega)||'<span class="muted">-</span>'}</td>`;
+      case "bodega": { const ch=bods().filter(b=>b.tipo!=="cooler"&&(p.ubic[b.id]||0)>0).map(b=>`<span class="bchip${b.id===S.bod?" on":""}" title="${esc(b.nombre)}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(bShort(b))} <b>${fmt(p.ubic[b.id])}</b></span>`).join("");
+        return `<td style="white-space:normal;min-width:170px;max-width:240px">${ch||'<span class="muted">-</span>'}</td>`; }
       case "stock": { const pct=Math.min(100,(+p.stock||0)/Math.max(1,(+p.minimo||0)*2)*100);
         return `<td><div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b><span>/ ${fmt(p.minimo)}</span></div><div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div></td>`; }
       case "status": return `<td class="c"><span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span></td>`;
@@ -1553,7 +1599,7 @@ function buscarProd(q){
 function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); const base=p.ubic[S.form.bod]||0; return S.form.tipo==="recepcion"?base+qUn:base-qUn; }
 function viewForm(){
   const f=S.form, D=DOC[f.tipo], R=f.tipo==="recepcion";
-  const origenes=bods("reposicion");
+  const origenes=R?bods("reposicion"):[...bods("reposicion"),...bods("picking"),...bods("cooler")];
   if(!origenes.some(b=>b.id===f.bod)) f.bod=(origenes[0]||{}).id||"repo";
   const nomBod=bodNom(f.bod);
   const opt=(v,cur)=>`<option ${v===cur?"selected":""}>${esc(v)}</option>`;
@@ -1569,7 +1615,7 @@ function viewForm(){
   return `<div class="page-head"><h1>${D.nueva}</h1><span class="spacer"></span><button class="btn ghost" data-go="${R?"recep":"desp"}">Cancelar</button></div>
   <div class="card" style="margin-bottom:14px"><div class="card-h">Datos del documento</div>
     <div class="form-grid">
-      ${origenes.length>1?`<div class="fbox"><label for="ff-bod">Bodega</label><select id="ff-bod" data-ff="bod">${origenes.map(b=>`<option value="${esc(b.id)}" ${b.id===f.bod?"selected":""}>${esc(b.nombre)}</option>`).join("")}</select></div>`:""}
+      ${origenes.length>1?`<div class="fbox"><label for="ff-bod">${R?"Bodega":"Sale de la bodega"}</label><select id="ff-bod" data-ff="bod">${origenes.map(b=>`<option value="${esc(b.id)}" ${b.id===f.bod?"selected":""}>${esc(b.nombre)}</option>`).join("")}</select></div>`:""}
       <div class="fbox"><label for="ff-fecha">Fecha</label><input id="ff-fecha" type="date" data-ff="fecha" value="${esc(f.fecha)}"></div>
       <div class="fbox"><label for="ff-dt">Tipo de documento</label><select id="ff-dt" data-ff="docTipo">${DOC_TIPOS[f.tipo].map(v=>opt(v,f.docTipo)).join("")}</select></div>
       <div class="fbox"><label for="ff-dn">N° documento</label><input id="ff-dn" data-ff="docNum" value="${esc(f.docNum)}" placeholder="${R?"Ej: 5521":"Opcional"}"></div>
@@ -1949,13 +1995,142 @@ function imprimirConsolidado(){
   imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de picking · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(parts.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
 }
 
+/* ---------- Inventario por bodega ---------- */
+const bShort = b => b.nombre.replace(/^(reposici[oó]n|tr[aá]nsito|coolers?)\s+/i,"");
+const invBods = () => S.bodegas.filter(b=>b.activa!==false && (S.invCool || b.tipo!=="cooler"));
+const uniBod = b => S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
+const nProdBod = b => S.productos.filter(p=>(p.ubic[b.id]||0)>0).length;
+const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;
+const faltaBod = (p,b) => Math.max(0, minBod(p,b)-(p.ubic[b.id]||0));
+
+function abrirInv(id){
+  S.invBod=id||"comparar"; S.invQ=""; S.invAll=false; S.page=1;
+  if(S.screen!=="inv") go({go:"inv"}); else { render(true); window.scrollTo?.(0,0); }
+}
+function viewInv(){
+  const bs=invBods();
+  if(S.invBod!=="comparar" && !bs.some(b=>b.id===S.invBod)) S.invBod="comparar";
+  const head=`<div class="ph"><h1>Inventario por bodega</h1><span class="spacer"></span>
+    <label class="chk"><input type="checkbox" data-invcool ${S.invCool?"checked":""}> Mostrar coolers</label>
+    ${esAdmin?`<button class="addlink" data-go="bodegas">Administrar bodegas</button>`:""}</div>`;
+  const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-invbod="comparar" aria-selected="${S.invBod==="comparar"}">Comparar todas</button>
+    ${bs.map(b=>`<button role="tab" data-invbod="${esc(b.id)}" aria-selected="${S.invBod===b.id}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(b.nombre)}<span class="ct">${fmt(uniBod(b))}</span></button>`).join("")}</div>`;
+  if(!S.productos.length) return head+tabs+`<div class="card empty">Aún no hay productos cargados.</div>`;
+  return head+tabs+(S.invBod==="comparar"?viewInvComparar(bs):viewInvBodega(bs.find(b=>b.id===S.invBod)));
+}
+function invToolbar(extra=""){
+  return `<div class="inv-tools"><label class="qsearch">${ICON.search}<input id="iq" type="search" value="${esc(S.invQ)}" placeholder="Buscar producto o código" aria-label="Buscar en el inventario"></label>${extra}<span class="spacer"></span>
+    <button class="btn ghost sm" type="button" data-invprint>🖨 Imprimir</button>${Store.dl?'<button class="btn ghost sm" type="button" data-invexp>Exportar Excel</button>':""}</div>`;
+}
+function invFiltrados(b){
+  const q=norm(S.invQ);
+  let ps=S.productos;
+  if(b && !S.invAll) ps=ps.filter(p=>(p.ubic[b.id]||0)>0 || minBod(p,b)>0);
+  if(q) ps=ps.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
+  return [...ps].sort((a,c)=>a.nombre.localeCompare(c.nombre,"es"));
+}
+function viewInvBodega(b){
+  const tot=S.productos.reduce((a,p)=>a+(p.stock||0),0), un=uniBod(b), np=nProdBod(b);
+  const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, uFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
+  const kpi=(c,v,t)=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span></div>`;
+  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmt(un),"Unidades aquí")}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(tot?Math.round(un/tot*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmt(uFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes")}</div>`;
+  const ps=invFiltrados(b), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
+  const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)}"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmt(p.ubic[x.id])}</b></span>`).join("")||'<span class="muted">-</span>';
+  const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="1" inputmode="numeric" ${attr} value="${val||val===0?val:""}" placeholder="${ph}">`;
+  const falta=p=>{ const f=faltaBod(p,b), m=minBod(p,b); return f>0?`<span class="pill venc" style="min-width:0">Falta ${fmt(f)}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
+  const rowT=p=>{ const q=p.ubic[b.id]||0, pk=p.packUn||1, share=p.stock?q/p.stock*100:0;
+    return `<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div></div></td>
+      <td class="n">${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}<span class="sub" style="text-align:right">${pk>1?"= "+fmt(q/pk)+" packs":""}</span></td>
+      <td class="n">${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</td>
+      <td class="c">${falta(p)}</td>
+      <td>${otras(p)}</td>
+      <td class="n"><b>${fmt(p.stock)}</b><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td></tr>`; };
+  const cardT=p=>{ const q=p.ubic[b.id]||0, pk=p.packUn||1;
+    return `<div class="pcard"><div class="pcard-top"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div class="pcard-info"><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div>${falta(p)}</div>
+      <div class="inv-c"><label>Aquí (un)${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}${pk>1?`<small>= ${fmt(q/pk)} packs</small>`:""}</label>
+        <label>Mínimo${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</label>
+        <label>Total general<b>${fmt(p.stock)}</b></label></div>
+      <div class="inv-o">${otras(p)}</div></div>`; };
+  const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmt(uFalta)} un)</button>`:""}`;
+  const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
+  return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${invToolbar(extra)}
+      <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe las unidades que hay en <b>${esc(b.nombre)}</b> y el mínimo que debería tener. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:860px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí (un)</span></th><th class="n"><span>Mínimo</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas</span></th><th class="n"><span>Total general</span></th></tr></thead>
+      <tbody>${rows.map(rowT).join("")}</tbody></table></div><div class="pcards icards">${rows.map(cardT).join("")}</div>${pag}`:vacio}</div>`;
+}
+function viewInvComparar(bs){
+  const ps=invFiltrados(null), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
+  const totB=b=>fmt(uniBod(b)), totG=S.productos.reduce((a,p)=>a+(p.stock||0),0);
+  const st=p=>{ const s=estado(p); return `<span class="pill ${ESTADO_CLS[s]}">${ESTADO_TXT[s]}</span>`; };
+  return `<div class="card" style="padding:18px;border-top-left-radius:0">${invToolbar()}
+    <p class="muted" style="margin:0;font-size:.84rem">Dónde está cada producto. El total general suma todas las bodegas: al sacar de una bodega baja el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap" style="max-height:none"><table class="db cmp" style="min-width:${300+bs.length*120}px"><thead><tr><th><span>Producto</span></th>${bs.map(b=>`<th class="n"><button data-invbod="${esc(b.id)}"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</button></th>`).join("")}<th class="n"><span>Total general</span></th><th class="c"><span>Estado</span></th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n">${(p.ubic[b.id]||0)?fmt(p.ubic[b.id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmt(p.stock)}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
+}
+async function ajustarUbic(prodId, bodId, val){
+  const p=S.productos.find(x=>x.id===prodId); if(!p) return;
+  const v=Math.max(0,Math.round(+val||0)), old=p.ubic[bodId]||0;
+  if(v===old){ render(true); return; }
+  const ubic={...p.ubic,[bodId]:v}, now=new Date().toISOString();
+  const np={...p, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
+  try{
+    await Store.putProducto(np);
+    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${fmt(old)} → ${fmt(v)}`,fecha:now});
+    toast(`${p.nombre}: ${fmt(v)} un en ${bodNom(bodId)}`);
+  }catch{ toast("No se pudo guardar. Revisa tu conexión."); }
+  render(true);
+}
+async function fijarMinUbic(prodId, bodId, val){
+  const p=S.productos.find(x=>x.id===prodId); if(!p) return;
+  const v=Math.max(0,Math.round(+val||0)), minUbic={...(p.minUbic||{})};
+  if(v===minBod(p,{id:bodId})){ render(true); return; }
+  if(v>0) minUbic[bodId]=v; else delete minUbic[bodId];
+  try{ await Store.putProducto({...p, minUbic, actualizado:new Date().toISOString()}); }
+  catch{ toast("No se pudo guardar. Revisa tu conexión."); }
+  render(true);
+}
+function armarPickingRellenar(bid){
+  const b=S.bodegas.find(x=>x.id===bid), orig=bods("reposicion")[0]; if(!b||!orig) return;
+  const lineas=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>({id:p.id, cantidad:String(faltaBod(p,b))}));
+  if(!lineas.length){ toast("No hay productos por debajo del mínimo en "+b.nombre); return; }
+  S.pkOrig=orig.id; S.pkUbic=bid; S.pkLineas=lineas; S.pkTab="nuevo"; S.pkErr=""; S.pkq="";
+  go({go:"picking"});
+}
+function invDatos(){
+  const bs=invBods(), b=S.invBod==="comparar"?null:bs.find(x=>x.id===S.invBod);
+  return {bs, b, ps:invFiltrados(b)};
+}
+function imprimirInv(){
+  const {bs,b,ps}=invDatos(); if(!ps.length) return;
+  const cab=hojaCab(b?`Inventario · ${b.nombre}`:"Inventario por bodega", `<b>${b?esc(b.nombre):"Todas las bodegas"}</b>`, `<div>${ps.length} productos</div>`);
+  const cuerpo=b
+    ? `<table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Unidades</th><th class="n">Packs</th><th class="rec">Conteo</th></tr></thead>
+      <tbody>${ps.map(p=>{ const q=p.ubic[b.id]||0; return `<tr><td class="ck"><span class="box"></span></td><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td><td>${esc(p.ubicacion||"")}</td><td class="n"><b>${fmt(q)}</b></td><td class="n">${(p.packUn||1)>1?fmt(Math.round(q/p.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`; }).join("")}</tbody>
+      <tfoot><tr><td colspan="4">${ps.length} productos</td><td class="n"><b>${fmt(ps.reduce((a,p)=>a+(p.ubic[b.id]||0),0))}</b></td><td colspan="2"></td></tr></tfoot></table>`
+    : `<table class="ph-t"><thead><tr><th>Código</th><th>Producto</th>${bs.map(x=>`<th class="n g">${esc(bShort(x))}</th>`).join("")}<th class="n">Total</th></tr></thead>
+      <tbody>${ps.map(p=>`<tr><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td>${bs.map(x=>`<td class="n g">${(p.ubic[x.id]||0)?fmt(p.ubic[x.id]):""}</td>`).join("")}<td class="n"><b>${fmt(p.stock)}</b></td></tr>`).join("")}</tbody></table>`;
+  imprimir(`<section class="ph-doc ${b?"":"ph-wide"}">${cab}${cuerpo}<div class="ph-firmas"><div>Contó</div><div>Revisó</div><div>Observaciones</div></div></section>`);
+}
+async function exportarInv(){
+  if(!Store.dl || !window.XLSX) return;
+  const {bs,b,ps}=invDatos(); if(!ps.length) return;
+  const data=b
+    ? ps.map(p=>({"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad,"UBICACIÓN":p.ubicacion||"","UNIDADES":p.ubic[b.id]||0,"UN/PACK":p.packUn||1,"PACKS":(p.packUn||1)>1?Math.round((p.ubic[b.id]||0)/p.packUn*100)/100:"","MÍNIMO":minBod(p,b),"FALTA":faltaBod(p,b),"TOTAL GENERAL":p.stock}))
+    : ps.map(p=>{ const r={"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad}; bs.forEach(x=>{ r[x.nombre.toUpperCase()]=p.ubic[x.id]||0; }); r["TOTAL GENERAL"]=p.stock; return r; });
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), (b?b.nombre:"Todas").slice(0,30));
+  const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"}), hoy=new Date().toISOString().slice(0,10);
+  try{ await Store.dl.save({filename:`bodeka-${b?norm(b.nombre).replace(/[^a-z0-9]+/g,"-"):"por-bodega"}-${hoy}.xlsx`, data:new Blob([buf])}); }
+  catch(err){ if(err && err.code!=="declined") toast("No se pudo generar la descarga."); }
+}
+
 /* ---------- Bodegas (admin) ---------- */
 function viewBodegas(){
   if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
   const stockDe=b=>S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
   const fila=b=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
-      <div style="flex:1;min-width:0"><b>${esc(b.nombre)}</b></div>
-      <div class="muted">${fmt(stockDe(b))} un</div>
+      <div style="flex:1;min-width:0"><button class="rowlink" data-invbod="${esc(b.id)}" title="Ver el inventario de esta bodega"><b>${esc(b.nombre)}</b></button></div>
+      <div class="muted">${nProdBod(b)} prod. · ${fmt(stockDe(b))} un</div>
       <button class="link" data-editbod="${b.id}">Editar</button>
     </div>`;
   const grupo=(tipo,t)=>{
@@ -2001,9 +2176,9 @@ function render(force=true){   // live data updates call render(false)
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
   if((S.screen==="form"||(S.screen==="picking"&&S.pkTab==="nuevo")) && !force) return;   // don't wipe a document being typed when live data arrives
-  if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
-  $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="form"&&S.form?viewForm():viewTabla();
-  if(aid && (["fq","mq","dq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
+  if(!force && ae && ae.dataset && (ae.dataset.ef!==undefined || ae.dataset.ubq!==undefined || ae.dataset.ubmin!==undefined)) return;   // same for inline editing
+  $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
+  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
   S.screen=d.go||"home";
@@ -2090,6 +2265,11 @@ C.addEventListener("click",e=>{
   const pk=t.closest("[data-pick]"); if(pk) return addLinea(pk.dataset.pick);
   const rm=t.closest("[data-rm]"); if(rm){ S.form.lineas.splice(+rm.dataset.rm,1); render(true); $("#pick")?.focus(); return; }
   if(t.closest("[data-confirm]")) return confirmarDoc();
+  const ib=t.closest("[data-invbod]"); if(ib) return abrirInv(ib.dataset.invbod);
+  if(t.closest("[data-invall-on]")){ S.invAll=true; S.page=1; render(true); return; }
+  if(t.closest("[data-invprint]")) return imprimirInv();
+  if(t.closest("[data-invexp]")) return exportarInv();
+  const irf=t.closest("[data-invrellenar]"); if(irf) return armarPickingRellenar(irf.dataset.invrellenar);
   const pkp=t.closest("[data-pkpick]"); if(pkp) return addLineaPk(pkp.dataset.pkpick);
   const pkrm=t.closest("[data-pkrm]"); if(pkrm){ S.pkLineas.splice(+pkrm.dataset.pkrm,1); pkRender(); return; }
   const pks=t.closest("[data-pkstep]"); if(pks) return stepPk(+pks.dataset.pkstep, +pks.dataset.d, pks.dataset.pkd);
@@ -2136,8 +2316,8 @@ C.addEventListener("input",e=>{
     if(t.dataset.pkd){ l.por=l.por||{}; l.por[t.dataset.pkd]=v; pkSetGen(l); } else l.cantidad=v;
     updPkLinea(+t.dataset.pkq); return; }
   if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
-  if(!["fq","mq","dq"].includes(id)) return;
-  clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; S.page=1; render(); },200);
+  if(!["fq","mq","dq","iq"].includes(id)) return;
+  clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; if(id==="iq") S.invQ=v; S.page=1; render(); },200);
 });
 C.addEventListener("keydown",e=>{
   const t=e.target;
@@ -2157,6 +2337,10 @@ C.addEventListener("keydown",e=>{
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
+  if(t.dataset.ubq!==undefined) return ajustarUbic(t.dataset.ubq, t.dataset.ubb, t.value);
+  if(t.dataset.ubmin!==undefined) return fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
+  if(t.hasAttribute("data-invcool")){ S.invCool=t.checked; S.page=1; render(true); return; }
+  if(t.hasAttribute("data-invall")){ S.invAll=t.checked; S.page=1; render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
   if(t.dataset.sel!==undefined){ t.checked?S.sel.add(t.dataset.sel):S.sel.delete(t.dataset.sel); render(); return; }
