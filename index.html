@@ -1009,8 +1009,12 @@ const Store = {
   async addDocu(d){
     const {id,...body}=d;
     if(this.db) this.db.doc("documentos/"+id).set(body).catch(syncErr);
-    if(!S.docs.find(x=>x.id===id)) S.docs.unshift(d);
+    const i=S.docs.findIndex(x=>x.id===id); if(i>=0) S.docs[i]=d; else S.docs.unshift(d);
     this.saveLocal();
+  },
+  async delDocu(id){
+    if(this.db) this.db.doc("documentos/"+id).delete().catch(syncErr);
+    S.docs=S.docs.filter(x=>x.id!==id); this.saveLocal();
   },
   async putBodega(b){
     const {id,...body}=b;
@@ -1624,7 +1628,16 @@ function buscarProd(q){
   if(exact.length) return exact;
   return S.productos.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,8);
 }
-function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); const base=p.ubic[S.form.bod]||0; return S.form.tipo==="recepcion"?base+qUn:base-qUn; }
+const primeraRepo=()=>(bods("reposicion")[0]||{}).id||"repo";
+const sgDoc=tipo=>tipo==="recepcion"?1:-1;
+// Existencia de la bodega del formulario sin contar el efecto del documento que se está editando.
+function baseForm(p){
+  const f=S.form; let b=p.ubic[f.bod]||0;
+  const o=f.editId&&S.docs.find(d=>d.id===f.editId);
+  if(o && (o.bod||primeraRepo())===f.bod){ const l=(o.lineas||[]).find(x=>x.productoId===p.id); if(l) b-=sgDoc(f.tipo)*(+l.cantidad||0); }
+  return b;
+}
+function lineaRes(l){ const p=S.productos.find(x=>x.id===l.id); if(!p) return 0; const qUn=(+l.cantidad||0)*(p.packUn||1); const base=baseForm(p); return S.form.tipo==="recepcion"?base+qUn:base-qUn; }
 function viewForm(){
   const f=S.form, D=DOC[f.tipo], R=f.tipo==="recepcion";
   const origenes=R?bods("reposicion"):bods();
@@ -1634,13 +1647,13 @@ function viewForm(){
   const lines=f.lineas.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
     const res=lineaRes(l), bad=!R && res<0;
     return `<tr><td>${esc(p.codigo)||'<span class="muted">-</span>'}</td><td class="prod">${esc(p.nombre)}<span class="sub">${fmt(p.packUn)} un/pack</span></td><td>${esc(p.unidad)}</td>
-      <td class="n">${fmt(p.ubic[f.bod]||0)}</td>
+      <td class="n">${fmt(baseForm(p))}</td>
       <td class="n"><input type="number" min="0" step="1" data-lq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Packs de ${esc(p.nombre)}"></td>
       ${R?`<td><input type="date" data-lv="${i}" value="${esc(l.venc)}" aria-label="Vencimiento de ${esc(p.nombre)}"></td>`:""}
       <td class="n stk ${bad?"neg":""}" data-lr="${i}">${fmt(res)}</td>
       <td class="c"><button class="rm" data-rm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></td></tr>`; }).join("");
   const tot=f.lineas.reduce((a,l)=>{ const p=S.productos.find(x=>x.id===l.id); return a+(+l.cantidad||0)*(p?.packUn||1); },0);
-  return `<div class="page-head"><h1>${D.nueva}</h1><span class="spacer"></span><button class="btn ghost" data-go="${R?"recep":"desp"}">Cancelar</button></div>
+  return `<div class="page-head"><h1>${f.editId?`Editar ${D.t.toLowerCase()} ${esc((S.docs.find(d=>d.id===f.editId)||{}).folio||"")}`:D.nueva}</h1><span class="spacer"></span><button class="btn ghost" data-go="${R?"recep":"desp"}">Cancelar</button></div>
   <div class="card" style="margin-bottom:14px"><div class="card-h">Datos del documento</div>
     <div class="form-grid">
       ${origenes.length>1?`<div class="fbox"><label for="ff-bod">${R?"Bodega":"Sale de la bodega"}</label><select id="ff-bod" data-ff="bod">${origenes.map(b=>`<option value="${esc(b.id)}" ${b.id===f.bod?"selected":""}>${esc(b.nombre)}</option>`).join("")}</select></div>`:""}
@@ -1665,7 +1678,7 @@ function viewForm(){
       ${R?'<th><span>Vencimiento</span></th>':""}<th class="n"><span>Queda en ${esc(nomBod)} (un)</span></th><th></th></tr></thead>
       <tbody>${lines}</tbody></table></div>`:`<div class="empty">Agrega productos escaneando su código de barras o buscándolos por nombre.</div>`}
     <div class="form-foot"><span class="muted" id="ftot">${f.lineas.length} producto${f.lineas.length===1?"":"s"} · ${fmt(tot)} unidades</span><span class="spacer"></span>
-      <button class="btn brand" id="confirmBtn" data-confirm>${D.verbo}</button></div>
+      <button class="btn brand" id="confirmBtn" data-confirm>${f.editId?"Guardar cambios":D.verbo}</button></div>
   </div>
   ${f.err?`<p class="ferr" role="alert">${esc(f.err)}</p>`:""}`;
 }
@@ -1683,39 +1696,75 @@ function updLinea(i){
   $("#ftot").textContent=`${S.form.lineas.length} producto${S.form.lineas.length===1?"":"s"} · ${fmt(tot)} unidades`;
 }
 async function confirmarDoc(){
-  const f=S.form, D=DOC[f.tipo];
+  const f=S.form, D=DOC[f.tipo], sg=sgDoc(f.tipo), edit=f.editId?S.docs.find(d=>d.id===f.editId):null;
   const lines=f.lineas.map(l=>({...l, p:S.productos.find(x=>x.id===l.id), q:+l.cantidad})).filter(l=>l.p);
   let err="";
   if(!lines.length) err="Agrega al menos un producto.";
   else if(lines.some(l=>!(l.q>0))) err="Todas las líneas necesitan una cantidad mayor a cero.";
-  else if(f.tipo==="despacho"){ const x=lines.find(l=>l.q*(l.p.packUn||1)>(l.p.ubic[f.bod]||0)); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(f.bod)}: disponible ${fmt(x.p.ubic[f.bod]||0)} un (${fmt((x.p.ubic[f.bod]||0)/(x.p.packUn||1))} packs).`; }
+  else if(f.tipo==="despacho"){ const x=lines.find(l=>l.q*(l.p.packUn||1)>baseForm(l.p)); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(f.bod)}: disponible ${fmt(baseForm(x.p))} un (${fmt(baseForm(x.p)/(x.p.packUn||1))} packs).`; }
   if(!err && !f.tercero.trim()) err=`Indica el ${D.tercero.toLowerCase()}.`;
+  // Existencias resultantes: se deshace el efecto del documento original (si se edita) y se aplica el nuevo.
+  const ob=edit?(edit.bod||primeraRepo()):null, mapa=new Map();
+  const ub=id=>{ if(!mapa.has(id)){ const p=S.productos.find(x=>x.id===id); mapa.set(id,p?{...p.ubic}:null); } return mapa.get(id); };
+  if(edit) (edit.lineas||[]).forEach(l=>{ const u=ub(l.productoId); if(u) u[ob]=(u[ob]||0)-sg*(+l.cantidad||0); });
+  lines.forEach(l=>{ const u=ub(l.id); u[f.bod]=(u[f.bod]||0)+sg*l.q*(l.p.packUn||1); });
+  if(!err){ const mal=[...mapa].find(([,u])=>u && (u[f.bod]<0 || (ob&&u[ob]<0)));
+    if(mal){ const p=S.productos.find(x=>x.id===mal[0]); err=`Con este cambio "${p.nombre}" quedaría con stock negativo en ${bodNom(mal[1][f.bod]<0?f.bod:ob)}.`; } }
   if(err){ f.err=err; render(true); return; }
-  const numero=Math.max(0,...S.docs.filter(d=>d.tipo===f.tipo).map(d=>+d.numero||0))+1;
-  const folio=`${D.pref}-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
+  const numero=edit?edit.numero:Math.max(0,...S.docs.filter(d=>d.tipo===f.tipo).map(d=>+d.numero||0))+1;
+  const folio=edit?edit.folio:`${D.pref}-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
   const btn=$("#confirmBtn"); btn.disabled=true; btn.textContent="Guardando…";
   let hechas=0;
   try{
+    const stockFinal={};
+    for(const [id,u] of mapa){ if(!u) continue;
+      const cur=S.productos.find(x=>x.id===id), l=lines.find(x=>x.id===id);
+      const p={...cur, ubic:u, stock:Object.values(u).reduce((a,n)=>a+n,0), actualizado:now};
+      if(f.tipo==="recepcion" && l && l.venc) p.vencimiento=l.venc;
+      await Store.putProducto(p); stockFinal[id]=p.stock;
+    }
+    if(edit) for(const m of S.movs.filter(m=>m.folio===folio && m.tipo===D.mov)) await Store.delMov(m.id);
     for(const l of lines){
-      const cur=S.productos.find(x=>x.id===l.id)||l.p;
-      const qUn=l.q*(cur.packUn||1);
-      const nuevoVal=f.tipo==="recepcion"?(cur.ubic[f.bod]||0)+qUn:(cur.ubic[f.bod]||0)-qUn;
-      const ubic={...cur.ubic, [f.bod]:nuevoVal};
-      const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
-      if(f.tipo==="recepcion" && l.venc) p.vencimiento=l.venc;
-      await Store.putProducto(p);
-      await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:D.mov,cantidad:qUn,cantidadPack:l.q,stockFinal:p.stock,
-        nota:[folio, f.docNum?`${f.docTipo} ${f.docNum}`:"", f.tercero.trim()].filter(Boolean).join(" · "), fecha:now, folio}, true);
+      const p=l.p, qUn=l.q*(p.packUn||1);
+      await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:D.mov,cantidad:qUn,cantidadPack:l.q,stockFinal:stockFinal[p.id],
+        nota:[folio, f.docNum?`${f.docTipo} ${f.docNum}`:"", f.tercero.trim(), edit?"(editado)":""].filter(Boolean).join(" · "), fecha:edit?edit.creado:now, folio}, true);
       hechas++;
     }
-    await Store.addDocu({id:uid(), tipo:f.tipo, numero, folio, fecha:f.fecha, docTipo:f.docTipo, docNum:f.docNum.trim(), tercero:f.tercero.trim(),
-      solicitante:f.solicitante.trim(), nota:f.nota.trim(), creado:now, unidades:lines.reduce((a,l)=>a+l.q*(l.p.packUn||1),0),
+    await Store.addDocu({id:edit?edit.id:uid(), tipo:f.tipo, numero, folio, fecha:f.fecha, docTipo:f.docTipo, docNum:f.docNum.trim(), tercero:f.tercero.trim(),
+      solicitante:f.solicitante.trim(), nota:f.nota.trim(), bod:f.bod, creado:edit?edit.creado:now, ...(edit?{editado:now}:{}), unidades:lines.reduce((a,l)=>a+l.q*(l.p.packUn||1),0),
       lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, unidad:l.p.unidad, cantidad:l.q*(l.p.packUn||1), packs:l.q, packUn:l.p.packUn||1, vencimiento:l.venc||""}))});
-    S.form=null; S.screen=f.tipo==="recepcion"?"recep":"desp"; S.page=1; render(); toast(`${D.t} ${folio} ${D.hecho}`);
+    S.form=null; S.screen=f.tipo==="recepcion"?"recep":"desp"; S.page=1; render(); toast(`${D.t} ${folio} ${edit?(f.tipo==="recepcion"?"modificada":"modificado"):D.hecho}`);
   }catch(e){
     f.err = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión. Revisa Movimientos antes de reintentar para no duplicar.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
     render(true);
   }
+}
+function editarDoc(id){
+  const d=S.docs.find(x=>x.id===id); if(!d || !DOC[d.tipo]) return;
+  const dlg=$("#dDoc"); if(dlg.open) dlg.close();
+  S.form={tipo:d.tipo, bod:d.bod||primeraRepo(), fecha:d.fecha, docTipo:d.docTipo||DOC_TIPOS[d.tipo][0], docNum:d.docNum||"", tercero:d.tercero||"", solicitante:d.solicitante||"", nota:d.nota||"",
+    lineas:(d.lineas||[]).map(l=>({id:l.productoId, cantidad:String(l.packs ?? Math.round((+l.cantidad||0)/(l.packUn||1)*100)/100), venc:l.vencimiento||""})), err:"", pq:"", editId:id};
+  S.screen="form"; closeSide(); render(true); window.scrollTo?.(0,0);
+}
+async function eliminarDoc(id){
+  const d=S.docs.find(x=>x.id===id); if(!d || !DOC[d.tipo]) return;
+  if(!esAdmin){ toast("Solo un administrador puede eliminar documentos."); return; }
+  const D=DOC[d.tipo], sg=sgDoc(d.tipo), ob=d.bod||primeraRepo(), lineas=d.lineas||[];
+  const un=lineas.reduce((a,l)=>a+(+l.cantidad||0),0);
+  const faltan=d.tipo==="recepcion"?lineas.map(l=>({l,p:S.productos.find(x=>x.id===l.productoId)})).filter(x=>x.p && (x.p.ubic[ob]||0)<(+x.l.cantidad||0)):[];
+  let msg=`¿Eliminar ${D.t.toLowerCase()} ${d.folio}?\n${sg>0?`Se descontarán ${fmt(un)} unidades de ${bodNom(ob)}`:`Se devolverán ${fmt(un)} unidades a ${bodNom(ob)}`} y se borrarán sus movimientos.`;
+  if(faltan.length) msg+=`\n\nAtención: de ${faltan.map(x=>x.p.nombre).join(", ")} ya no queda lo recibido en esa bodega; quedará en 0.`;
+  if(!confirm(msg)) return;
+  const now=new Date().toISOString();
+  try{
+    for(const l of lineas){ const cur=S.productos.find(x=>x.id===l.productoId); if(!cur) continue;
+      const ubic={...cur.ubic,[ob]:Math.max(0,(cur.ubic[ob]||0)-sg*(+l.cantidad||0))};
+      await Store.putProducto({...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now}); }
+    for(const m of S.movs.filter(m=>m.folio===d.folio && m.tipo===D.mov)) await Store.delMov(m.id);
+    await Store.delDocu(d.id);
+    const dlg=$("#dDoc"); if(dlg.open) dlg.close();
+    toast(`${D.t} ${d.folio} eliminad${d.tipo==="recepcion"?"a":"o"}`); render(true);
+  }catch{ toast("No se pudo eliminar. Revisa tu conexión."); }
 }
 function viewDocs(tipo){
   const D=DOC[tipo], R=tipo==="recepcion", q=norm(S.dq);
@@ -1733,13 +1782,15 @@ function openDoc(id){
   const d=S.docs.find(x=>x.id===id); if(!d) return; const D=DOC[d.tipo], R=d.tipo==="recepcion";
   $("#docBody").innerHTML=`<h2>${D.t} ${esc(d.folio)}</h2>
     <div class="kv"><div><span>Fecha</span>${fFecha(d.fecha)}</div><div><span>Documento</span>${esc(d.docTipo)} ${esc(d.docNum)}</div><div><span>${D.tercero}</span>${esc(d.tercero)}</div>
-      ${R?"":`<div><span>Solicitante</span>${esc(d.solicitante)||"-"}</div>`}<div><span>Registrado</span>${new Date(d.creado).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})}</div>${d.nota?`<div><span>Nota</span>${esc(d.nota)}</div>`:""}</div>
+      ${R?"":`<div><span>Solicitante</span>${esc(d.solicitante)||"-"}</div>`}<div><span>Bodega</span>${esc(bodNom(d.bod||primeraRepo()))}</div><div><span>Registrado</span>${new Date(d.creado).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})}${d.editado?` · editado ${new Date(d.editado).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})}`:""}</div>${d.nota?`<div><span>Nota</span>${esc(d.nota)}</div>`:""}</div>
     <div class="tbl-wrap" style="max-height:50vh;border:1px solid var(--line);border-radius:6px"><table class="db" style="min-width:560px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th><th><span>UND</span></th><th class="n"><span>Cantidad</span></th>${R?'<th><span>Vencimiento</span></th>':""}</tr></thead>
     <tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td><td>${esc(l.unidad)}</td><td class="n stk">${fmt(l.cantidad)}</td>${R?`<td>${fFecha(l.vencimiento)||"-"}</td>`:""}</tr>`).join("")}</tbody></table></div>
-    <div class="dlg-actions" style="margin-top:14px"><button class="btn ghost" data-close-doc>Cerrar</button></div>`;
+    <div class="dlg-actions" style="margin-top:14px">${esAdmin?`<button class="btn danger" data-doc-del="${d.id}">Eliminar</button>`:""}<span class="spacer"></span><button class="btn ghost" data-doc-edit="${d.id}">Editar</button><button class="btn ghost" data-close-doc>Cerrar</button></div>`;
   $("#dDoc").showModal(); $("#docBody [data-close-doc]").focus();
 }
-$("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc]")) $("#dDoc").close(); });
+$("#docBody").addEventListener("click",e=>{ if(e.target.closest("[data-close-doc]")) $("#dDoc").close();
+  const ed=e.target.closest("[data-doc-edit]"); if(ed) editarDoc(ed.dataset.docEdit);
+  const dl=e.target.closest("[data-doc-del]"); if(dl) eliminarDoc(dl.dataset.docDel); });
 
 /* ---------- Picking (traslado de Reposición a una bodega de tránsito, en unidades) ---------- */
 const PK_COLORS=["var(--accent)","var(--orange)","var(--c2)","var(--c1)","var(--c5)","var(--c6)"];
@@ -2252,7 +2303,7 @@ $("#instBtn").addEventListener("click",async()=>{ if(!deferredInstall) return; d
 /* ---------- Row menu ---------- */
 const pop=$("#pop");
 function openMenu(btn){
-  if(btn.dataset.dmenu){ const id=btn.dataset.dmenu; pop.innerHTML=`<button role="menuitem" data-doc="${id}">Ver detalle</button>`; }
+  if(btn.dataset.dmenu){ const id=btn.dataset.dmenu; pop.innerHTML=`<button role="menuitem" data-doc="${id}">Ver detalle</button><button role="menuitem" data-docedit="${id}">Editar</button>${esAdmin?`<button role="menuitem" data-docdel="${id}" style="color:var(--danger)">Eliminar</button>`:""}`; }
   else { const id=btn.dataset.menu;
   pop.innerHTML=`<button role="menuitem" data-newp="recepcion" data-id="${id}">Recibir</button><button role="menuitem" data-newp="despacho" data-id="${id}">Despachar</button><button role="menuitem" data-mov="ajuste" data-id="${id}">Conteo físico</button><button role="menuitem" data-edit="${id}">Editar producto</button>`; }
   pop.classList.add("open");
@@ -2263,7 +2314,8 @@ function openMenu(btn){
 }
 function closeMenu(){ if(pop.classList.contains("open")){ pop.classList.remove("open"); } }
 pop.addEventListener("click",e=>{
-  const m=e.target.closest("[data-mov]"), ed=e.target.closest("[data-edit]"), np=e.target.closest("[data-newp]"), dc=e.target.closest("[data-doc]"); closeMenu();
+  const m=e.target.closest("[data-mov]"), ed=e.target.closest("[data-edit]"), np=e.target.closest("[data-newp]"), dc=e.target.closest("[data-doc]"), de=e.target.closest("[data-docedit]"), dd=e.target.closest("[data-docdel]"); closeMenu();
+  if(de) return editarDoc(de.dataset.docedit); if(dd) return eliminarDoc(dd.dataset.docdel);
   if(m) openMov(m.dataset.id,m.dataset.mov); else if(ed) openProd(ed.dataset.edit); else if(np) nuevoForm(np.dataset.newp, np.dataset.id); else if(dc) openDoc(dc.dataset.doc);
 });
 pop.addEventListener("keydown",e=>{
