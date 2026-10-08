@@ -699,6 +699,7 @@ td.n .ubin{display:block;margin-left:auto}
       <span class="movil-avatar-lg" id="movilAcctAv" aria-hidden="true">?</span>
       <div><div class="movil-sheet-nombre" id="movilAcctName">Depósito</div><div class="movil-sheet-email" id="movilAcctEmail"></div></div>
     </div>
+    <button class="movil-sheet-item" type="button" data-tab="traspaso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg><span>Traspaso interno</span></button>
     <button class="movil-sheet-item" type="button" data-tab="desp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg><span>Despacho</span></button>
     <button class="movil-sheet-item" type="button" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Por bodega</span></button>
     <button class="movil-sheet-item" type="button" data-tab="movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Movimientos</span></button>
@@ -852,7 +853,7 @@ const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (tipo ? b.tipo===ti
 const esCooler = id => (S.bodegas.find(b=>b.id===id)||{}).tipo==="cooler";
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
-const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, msel:new Set(), bfNombre:"", bfTipo:"picking", bfErr:""};
+const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkModo:"picking", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, msel:new Set(), bfNombre:"", bfTipo:"picking", bfErr:""};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -1298,6 +1299,7 @@ const ICON = {
   out:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg>',
   hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
   house:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
+  swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg>',
   pick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="7" height="10" rx="1.5"/><rect x="13" y="6" width="7" height="14" rx="1.5"/><path d="M7.5 10V7a2 2 0 0 1 2-2h1M16.5 6V4.5"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -1324,10 +1326,11 @@ function renderNav(){
     ${it("inv","Por bodega",ICON.house,S.screen==="inv")}
     ${it("movs","Movimientos",ICON.hist,S.screen==="movs")}
     <div class="grp">Operación</div>
-    ${it("picking","Picking",ICON.pick,S.screen==="picking")}
+    ${it("traspaso","Traspaso interno",ICON.swap,S.screen==="picking"&&PKT())}
+    ${it("picking","Picking",ICON.pick,S.screen==="picking"&&!PKT())}
     ${it("recep","Recepción",ICON.inn,S.screen==="recep"||fr==="recepcion")}
     ${it("desp","Despacho",ICON.out,S.screen==="desp"||fr==="despacho")}`;
-  const activo={home:S.screen==="home", tabla:S.screen==="tabla", picking:S.screen==="picking", recep:S.screen==="recep"||fr==="recepcion", desp:S.screen==="desp"||fr==="despacho"};
+  const activo={home:S.screen==="home", tabla:S.screen==="tabla", picking:S.screen==="picking"&&!PKT(), recep:S.screen==="recep"||fr==="recepcion", desp:S.screen==="desp"||fr==="despacho"};
   document.querySelectorAll(".movil-tab[data-tab]").forEach(b=>b.classList.toggle("activa", !!activo[b.dataset.tab]));
   $("#bodBtn").hidden=!esAdmin;
   $("#movilBod").hidden=!esAdmin;
@@ -1427,7 +1430,7 @@ function pager(total){
 
 function overview(){
   const n=f=>S.productos.filter(f).length;
-  const TP={entrada:["Entrada","in","+"],salida:["Salida","out","−"],ajuste:["Conteo","adj","="],picking:["Picking","adj","↔"]};
+  const TP={entrada:["Entrada","in","+"],salida:["Salida","out","−"],ajuste:["Conteo","adj","="],picking:["Picking","adj","↔"],traspaso:["Traspaso","adj","↔"]};
   return `<aside class="ov" aria-label="Resumen">
     <p class="ov-t">Resumen</p>
     <button class="ov-i" data-tab="todos"><span>Productos</span><b>${S.productos.length}</b></button>
@@ -1441,7 +1444,7 @@ function overview(){
 
 function expDetalle(p){
   const hist=S.movs.filter(m=>m.productoId===p.id).slice(0,5);
-  const TP={entrada:["Entrada","in","+"],salida:["Salida","out","−"],ajuste:["Conteo","adj","="],picking:["Picking","adj","↔"]};
+  const TP={entrada:["Entrada","in","+"],salida:["Salida","out","−"],ajuste:["Conteo","adj","="],picking:["Picking","adj","↔"],traspaso:["Traspaso","adj","↔"]};
   const f=(k,t,v,extra="",cls="")=>`<div class="uf ${cls}"><label for="ef-${k}">${t}</label><input id="ef-${k}" data-ef="${k}" value="${esc(v)}" ${extra}></div>`;
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
@@ -1561,7 +1564,7 @@ function viewMovs(){
   S.msel=new Set([...S.msel].filter(id=>S.movs.some(m=>m.id===id)));
   if(!ms.length) return head+`<div class="card empty">Sin movimientos registrados.</div>`;
   const tot=ms.length, pag=pager(tot), rows=ms.slice((S.page-1)*S.size,S.page*S.size);
-  const TP={entrada:["Entrada","in"],salida:["Salida","out"],ajuste:["Conteo","adj"],picking:["Picking","adj"]};
+  const TP={entrada:["Entrada","in"],salida:["Salida","out"],ajuste:["Conteo","adj"],picking:["Picking","adj"],traspaso:["Traspaso","adj"]};
   const th=(t,c="")=>`<th class="${c}"><span>${t}</span></th>`;
   const allM=rows.length&&rows.every(m=>S.msel.has(m.id));
   const bulkM=esAdmin&&S.msel.size?`<div class="bulk"><b>${S.msel.size} seleccionado${S.msel.size===1?"":"s"}</b><button class="btn danger sm" data-mdel>Eliminar del historial</button><span class="spacer"></span><button class="link" data-mclear>Quitar selección</button></div>`:"";
@@ -1799,11 +1802,15 @@ const DIAS_CORTO=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 const pkColor = id => { if(id===PK_GEN) return "var(--accent)"; const b=S.bodegas.find(x=>x.id===id); if(!b||b.tipo==="reposicion") return "var(--c1)";
   return PK_COLORS[Math.max(0,S.bodegas.filter(x=>x.tipo!=="reposicion").findIndex(x=>x.id===id))%PK_COLORS.length]; };
 const PK_TAG={reposicion:"Reposición",picking:"Tránsito",cooler:"Cooler"};
+// "Traspaso interno" = subir producto de Reposición al picking (tránsito) de los pisos; usa el mismo motor que Picking.
+const PKT=()=>S.pkModo==="traspaso";
+const tipoBod=id=>(S.bodegas.find(b=>b.id===id)||{}).tipo;
+const esTraspasoDoc=d=>d.modo ? d.modo==="traspaso" : (tipoBod(d.ubicOrigen||"repo")==="reposicion" && tipoBod(d.ubicDestino||d.ubic)==="picking");
 const pkCoolers=()=>bods("cooler");
 const pkShort=b=>b.nombre.replace(/^coolers?\s+/i,"");
 const pkGen=()=>S.pkUbic===PK_GEN;
 const pkOrigTipo=()=>(S.bodegas.find(b=>b.id===S.pkOrig)||{}).tipo;
-const pkGenOk=()=>pkCoolers().length>=2;
+const pkGenOk=()=>!PKT() && pkCoolers().length>=2;
 const pkSum=l=>Object.values(l.por||{}).reduce((a,n)=>a+(+n||0),0);
 const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h40m0 0-8-8m8 8-8 8"/></svg>';
 
@@ -1851,32 +1858,33 @@ function pkTiles(){
       ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
 }
 function viewPicking(){
-  const origenes=[...bods("reposicion"),...bods("picking")];
+  const T=PKT();
+  const origenes=T?bods("reposicion"):[...bods("reposicion"),...bods("picking")];
   if(!origenes.some(b=>b.id===S.pkOrig)) S.pkOrig=(bods("reposicion")[0]||origenes[0]||{}).id;
   // Hacia: cada cooler, General (todos los coolers) y las bodegas de tránsito; siempre menos el origen.
-  const todosDest = [...bods("cooler"), ...bods("picking")];
+  const todosDest = T ? bods("picking") : [...bods("cooler"), ...bods("picking")];
   const destinos=todosDest.filter(b=>b.id!==S.pkOrig);
-  const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">Nuevo picking${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
-  const ph=`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → tránsito → coolers</span></div>`;
-  if(!bods("reposicion").length || !bods("picking").length || !bods("cooler").length) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
+  const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">${T?"Nuevo traspaso":"Nuevo picking"}${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
+  const ph=T?`<div class="ph"><h1>Traspaso interno</h1><span class="muted">Reposición → picking de los pisos (tránsito)</span></div>`:`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → tránsito → coolers</span></div>`;
+  if(!bods("reposicion").length || !bods("picking").length || (!T && !bods("cooler").length)) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
   const okDest = S.pkUbic===PK_GEN ? pkGenOk() : destinos.some(b=>b.id===S.pkUbic);
   if(destinos.length && !okDest){ if(S.pkUbic===PK_GEN) S.pkLineas.forEach(l=>{ delete l.por; }); S.pkUbic=destinos[0].id; }
-  return ph+tabs+(S.pkTab==="hist"?viewPkHist([...bods("reposicion"),...bods("picking"),...bods("cooler")]):viewPkNuevo(origenes,destinos));
+  return ph+tabs+(S.pkTab==="hist"?viewPkHist(T?bods("picking"):[...bods("reposicion"),...bods("picking"),...bods("cooler")]):viewPkNuevo(origenes,destinos));
 }
 function viewPkNuevo(origenes,destinos){
   const t=pkTotales();
   const oc=b=>pkBodCard(b,b.id===S.pkOrig,"data-pkorig",PK_TAG[b.tipo],pkColor(b.id));
   const dc=b=>pkBodCard(b,b.id===S.pkUbic,"data-pkdest",PK_TAG[b.tipo],pkColor(b.id));
   const flow=`<div class="pk-flow">
-    <div class="pk-side"><div class="pk-lbl">Desde · reposición o tránsito</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
+    <div class="pk-side"><div class="pk-lbl">${PKT()?"Desde · reposición":"Desde · reposición o tránsito"}</div><div class="pk-cards">${origenes.map(oc).join("")}</div></div>
     <div class="pk-arrow" style="color:${pkColor(S.pkUbic)}">${ARROW}</div>
-    <div class="pk-side"><div class="pk-lbl">Hacia · general, cooler o tránsito</div><div class="pk-cards">${destinos.length?destinos.filter(b=>b.tipo==="cooler").map(dc).join("")+(pkGenOk()?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos · sale del inventario</small></button>`:"")+destinos.filter(b=>b.tipo!=="cooler").map(dc).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
+    <div class="pk-side"><div class="pk-lbl">${PKT()?"Hacia · picking (tránsito)":"Hacia · general, cooler o tránsito"}</div><div class="pk-cards">${destinos.length?destinos.filter(b=>b.tipo==="cooler").map(dc).join("")+(pkGenOk()?`<button type="button" class="pk-bod pk-gen ${pkGen()?"on":""}" data-pkdest="${PK_GEN}" style="--c:var(--accent)" aria-pressed="${pkGen()}"><span class="pk-tag">General</span><b>Todos los coolers</b><small>Reparte a ${pkCoolers().length} pisos · sale del inventario</small></button>`:"")+destinos.filter(b=>b.tipo!=="cooler").map(dc).join(""):'<div class="mini-empty">No hay otra bodega de destino distinta al origen.</div>'}</div></div></div>`;
   if(!destinos.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>`;
   if(!S.productos.length) return `<div class="card" style="padding:18px">${flow}<div class="empty">Aún no hay productos cargados.</div></div>`;
   const picker=`<div class="card" style="margin-top:14px"><div class="card-h">1 · Toca los productos que necesitas llevar a ${esc(bodNom(S.pkUbic))}
       <div class="pick-wrap"><input id="pkPick" type="search" autocomplete="off" value="${esc(S.pkq)}" placeholder="Filtra o escanea un código y presiona Enter" aria-label="Buscar producto"></div></div>
     <div class="pk-tiles" id="pkTiles">${pkTiles()}</div></div>`;
-  const list=`<div class="card" style="margin-top:14px"><div class="card-h">2 · Lista de picking<span class="muted" style="font-weight:500;font-size:.85rem">se va sumando hacia abajo</span></div>
+  const list=`<div class="card" style="margin-top:14px"><div class="card-h">2 · ${PKT()?"Lista del traspaso":"Lista de picking"}<span class="muted" style="font-weight:500;font-size:.85rem">se va sumando hacia abajo</span></div>
     ${S.pkLineas.length?`<ol class="pk-list" id="pkList">${S.pkLineas.map(pkLineHtml).join("")}</ol>`:`<div class="empty" id="pkList">Aún no agregaste productos. Toca uno de arriba para empezar.</div>`}
     <div class="pk-foot" id="pkFoot">${pkFootHtml(t)}</div></div>`;
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${flow}</div>${picker}${list}${S.pkErr?`<p class="ferr" role="alert">${esc(S.pkErr)}</p>`:""}`;
@@ -1886,7 +1894,7 @@ function pkFootHtml(t){
   return `<div class="pk-tot"><b>${t.n}</b> producto${t.n===1?"":"s"}<span>·</span><b>${fmt(t.un)}</b> unidades<span>·</span><b>${fmt(Math.round(t.packs*100)/100)}</b> packs</div><span class="spacer"></span>
     <button class="btn ghost" type="button" data-pkprintdraft ${hay?"":"disabled"}>🖨 Imprimir lista</button>
     <button class="btn ghost" type="button" data-pkclear ${hay?"":"disabled"}>Vaciar</button>
-    <button class="btn brand" type="button" id="pkConfirm" data-pkconfirm ${hay&&!over?"":"disabled"}>Confirmar picking</button>`;
+    <button class="btn brand" type="button" id="pkConfirm" data-pkconfirm ${hay&&!over?"":"disabled"}>${PKT()?"Confirmar traspaso":"Confirmar picking"}</button>`;
 }
 function pkRender(){ const ts=$("#pkTiles")?.scrollTop||0; render(true); const el=$("#pkTiles"); if(el) el.scrollTop=ts; }
 function addLineaPk(id){
@@ -1923,8 +1931,9 @@ async function confirmarPicking(){
   if(x){ S.pkErr=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(orig)}: disponible ${fmt(x.p.ubic[orig]||0)} un.`; render(true); return; }
   S.pkErr="";
   const reparto=l=>{ const r={}; cs.forEach(c=>{ const n=+(l.por||{})[c.id]||0; if(n>0) r[c.id]=n; }); return r; };
-  const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking").map(d=>+d.numero||0))+1;
-  const folio=`PK-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
+  const T=PKT();
+  const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking" && (T?d.modo==="traspaso":d.modo!=="traspaso")).map(d=>+d.numero||0))+1;
+  const folio=`${T?"TI":"PK"}-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
   const btn=$("#pkConfirm"); btn.disabled=true; btn.textContent="Guardando…";
   let hechas=0;
   try{
@@ -1936,17 +1945,17 @@ async function confirmarPicking(){
       const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
       await Store.putProducto(p);
       const det=gen?Object.entries(rp).map(([k,n])=>`${bodNom(k)}: ${fmt(n)}`).join(", "):bodNom(dest);
-      await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"picking",cantidad:l.q,stockFinal:p.stock,
-        nota:`${folio} · Picking de ${bodNom(orig)} a ${gen?"General ("+det+")":det}${esCooler(dest)||gen?" · sale a cooler":""}`,fecha:now,folio}, true);
+      await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:T?"traspaso":"picking",cantidad:l.q,stockFinal:p.stock,
+        nota:`${folio} · ${T?"Traspaso interno":"Picking"} de ${bodNom(orig)} a ${gen?"General ("+det+")":det}${esCooler(dest)||gen?" · sale a cooler":""}`,fecha:now,folio}, true);
       hechas++;
     }
-    const doc={id:uid(), tipo:"picking", numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
+    const doc={id:uid(), tipo:"picking", ...(T?{modo:"traspaso"}:{}), numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
       lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||"", ...(gen?{reparto:reparto(l)}:{})}))};
     if(gen) doc.destinos=cs.map(c=>c.id);
     await Store.addDocu(doc);
     S.pkLineas=[]; S.pkq=""; render();
     toast(`${folio} registrado · ${fmt(doc.unidades)} unidades a ${bodNom(dest)}`);
-    if(confirm(`${folio} registrado.\n¿Imprimir la hoja de recolección?`)) imprimirHojaPicking(doc);
+    if(confirm(`${folio} registrado.\n¿Imprimir la hoja ${T?"del traspaso":"de recolección"}?`)) imprimirHojaPicking(doc);
   }catch(e){
     S.pkErr = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
     render(true);
@@ -1975,12 +1984,12 @@ function pkParts(docs, F){
 }
 function pkDocs(){
   const r=pkRangoFechas();
-  return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || pkParts([d],S.pkDestF).length))
+  return S.docs.filter(d=>d.tipo==="picking" && esTraspasoDoc(d)===PKT() && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || pkParts([d],S.pkDestF).length))
     .sort((a,b)=>String(b.creado).localeCompare(String(a.creado)));
 }
 function viewPkHist(destinos){
   const r=pkRangoFechas(), docs=pkDocs(), hoyF=pkFechaLocal(new Date());
-  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking").map(d=>d.ubicDestino||d.ubic)])].filter(x=>x&&x!==PK_GEN);
+  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking" && esTraspasoDoc(d)===PKT()).map(d=>d.ubicDestino||d.ubic)])].filter(x=>x&&x!==PK_GEN);
   const dNom=id=>bodNom(id);
   const filtros=`<div class="pk-filters"><div class="seg" role="group" aria-label="Periodo">
       <button type="button" data-pkrango="hoy" aria-pressed="${S.pkRango==="hoy"}">Hoy</button><button type="button" data-pkrango="semana" aria-pressed="${S.pkRango==="semana"}">Esta semana</button></div>
@@ -1988,13 +1997,13 @@ function viewPkHist(destinos){
       ${ids.map(id=>`<button type="button" data-pkdf="${esc(id)}" aria-pressed="${S.pkDestF===id}"><i class="dot" style="background:${pkColor(id)}"></i>${esc(dNom(id))}</button>`).join("")}</div>
     <span class="spacer"></span><span class="muted">${fFecha(r.ini)}${r.ini!==r.fin?" al "+fFecha(r.fin):""}</span>
     <button class="btn brand" type="button" data-pkprinthist ${docs.length?"":"disabled"}>🖨 Imprimir consolidado</button></div>`;
-  if(!docs.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}<div class="empty">No hay pickings registrados ${S.pkRango==="hoy"?"hoy":"esta semana"}${S.pkDestF!=="todas"?" para "+esc(dNom(S.pkDestF)):""}.<div class="btns"><button class="btn brand" type="button" data-pktab="nuevo">Hacer un picking</button></div></div></div>`;
+  if(!docs.length) return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}<div class="empty">No hay ${PKT()?"traspasos":"pickings"} registrados ${S.pkRango==="hoy"?"hoy":"esta semana"}${S.pkDestF!=="todas"?" para "+esc(dNom(S.pkDestF)):""}.<div class="btns"><button class="btn brand" type="button" data-pktab="nuevo">Hacer un ${PKT()?"traspaso":"picking"}</button></div></div></div>`;
   const uds=d=>d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0);
   const parts=pkParts(docs,S.pkDestF);
   const totUn=parts.reduce((a,d)=>a+uds(d),0);
   const prodSet=new Set(parts.flatMap(d=>(d.lineas||[]).map(l=>l.productoId||l.nombre)));
   const kpi=(c,v,t)=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span></div>`;
-  const kpis=`<div class="pk-kpis">${kpi("var(--accent)",docs.length,"Pickings")}${kpi("var(--orange)",fmt(totUn),"Unidades movidas")}${kpi("var(--c2)",prodSet.size,"Productos distintos")}${kpi("var(--c1)",[...new Set(parts.map(d=>d.ubicDestino))].length,"Bodegas abastecidas")}</div>`;
+  const kpis=`<div class="pk-kpis">${kpi("var(--accent)",docs.length,PKT()?"Traspasos":"Pickings")}${kpi("var(--orange)",fmt(totUn),"Unidades movidas")}${kpi("var(--c2)",prodSet.size,"Productos distintos")}${kpi("var(--c1)",[...new Set(parts.map(d=>d.ubicDestino))].length,"Bodegas abastecidas")}</div>`;
   // gráfico: unidades por día apiladas por bodega de tránsito
   const destUsados=[...new Set(parts.map(d=>d.ubicDestino))];
   const porDia=r.dias.map(f=>{ const ds=parts.filter(d=>d.fecha===f); const seg={}; ds.forEach(d=>{ const k=d.ubicDestino; seg[k]=(seg[k]||0)+uds(d); }); return {f, tot:Object.values(seg).reduce((a,n)=>a+n,0), seg, n:docs.filter(d=>d.fecha===f).length}; });
@@ -2017,7 +2026,7 @@ function viewPkHist(destinos){
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}${kpis}
       <h3 class="pk-h">Unidades ${S.pkRango==="hoy"?"de hoy":"por día"}</h3>${chart}</div>
     <div class="card" style="margin-top:14px"><div class="card-h">Qué hay que recolectar<span class="muted" style="font-weight:500;font-size:.85rem">${cons.length} producto${cons.length===1?"":"s"} · ${fmt(tot)} unidades</span></div>${consT}</div>
-    <div class="card" style="margin-top:14px"><div class="card-h">Pickings registrados<span class="muted" style="font-weight:500;font-size:.85rem">toca uno para ver el detalle</span></div><div class="pk-docs">${lista}</div></div>`;
+    <div class="card" style="margin-top:14px"><div class="card-h">${PKT()?"Traspasos":"Pickings"} registrados<span class="muted" style="font-weight:500;font-size:.85rem">toca uno para ver el detalle</span></div><div class="pk-docs">${lista}</div></div>`;
 }
 function pkConsolidado(docs){
   const m=new Map();
@@ -2048,7 +2057,7 @@ function imprimirHojaPicking(d){
     .sort((a,b)=>(a.ubicacion||"~").localeCompare(b.ubicacion||"~","es",{numeric:true})||a.nombre.localeCompare(b.nombre,"es"));
   const un=ls.reduce((a,l)=>a+(+l.cantidad||0),0);
   const destTxt=gen?`General · ${cs.map(c=>bodNom(c)).join(" / ")}`:bodNom(de);
-  imprimir(`<section class="ph-doc">${hojaCab("Hoja de recolección · picking", `<b>${esc(d.folio||"BORRADOR")}</b>`, d.folio?"":'<div class="ph-borrador">BORRADOR · aún no confirmado</div>')}
+  imprimir(`<section class="ph-doc">${hojaCab(esTraspasoDoc(d)?"Hoja de traspaso interno":"Hoja de recolección · picking", `<b>${esc(d.folio||"BORRADOR")}</b>`, d.folio?"":'<div class="ph-borrador">BORRADOR · aún no confirmado</div>')}
     <div class="ph-ruta"><div><small>Desde</small><b>${esc(bodNom(o))}</b></div><span>→</span><div><small>Hacia</small><b>${esc(destTxt)}</b></div></div>
     <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th>${gen?cs.map(c=>`<th class="n g">${esc(pkShort({nombre:bodNom(c)}))}</th>`).join(""):""}<th class="n">${gen?"Total un":"Unidades"}</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
     <tbody>${ls.map(l=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(l.codigo)}</td><td><b>${esc(l.nombre)}</b></td><td>${esc(l.ubicacion)}</td>${gen?cs.map(c=>`<td class="n g">${(l.reparto||{})[c]?fmt(l.reparto[c]):""}</td>`).join(""):""}<td class="n"><b>${fmt(l.cantidad)}</b></td><td class="n">${l.packUn>1?fmt(Math.round(l.cantidad/l.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody>
@@ -2060,7 +2069,7 @@ function imprimirPickingBorrador(){
   const lineas=S.pkLineas.map(l=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return null;
     const r={}; if(gen) cs.forEach(c=>{ const n=+(l.por||{})[c.id]||0; if(n>0) r[c.id]=n; });
     return {productoId:p.id, codigo:p.codigo||"", nombre:p.nombre, cantidad:+l.cantidad||0, packUn:p.packUn||1, ubicacion:p.ubicacion||"", ...(gen?{reparto:r}:{})}; }).filter(Boolean);
-  imprimirHojaPicking({folio:"", ubicOrigen:S.pkOrig, ubicDestino:S.pkUbic, ...(gen?{destinos:cs.map(c=>c.id)}:{}), lineas});
+  imprimirHojaPicking({folio:"", ...(PKT()?{modo:"traspaso"}:{}), ubicOrigen:S.pkOrig, ubicDestino:S.pkUbic, ...(gen?{destinos:cs.map(c=>c.id)}:{}), lineas});
 }
 function imprimirConsolidado(){
   const r=pkRangoFechas(), docs=pkDocs(); if(!docs.length) return;
@@ -2071,7 +2080,7 @@ function imprimirConsolidado(){
     return `<section class="ph-bloque"><h2>Hacia ${esc(bodNom(id))} <small>${nd} picking${nd===1?"":"s"} · ${fmt(tot)} unidades</small></h2>
       <table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th>${semana?r.dias.map((f,i)=>`<th class="n d">${DIAS_CORTO[i]}<small>${f.slice(8)}</small></th>`).join(""):""}<th class="n">Total un</th><th class="n">Packs</th><th class="rec">Recolectado</th></tr></thead>
       <tbody>${cons.map(x=>`<tr><td class="ck"><span class="box"></span></td><td>${esc(x.codigo||"")}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(x.ubicacion)}</td>${semana?r.dias.map(f=>`<td class="n d">${x.dia[f]?fmt(x.dia[f]):""}</td>`).join(""):""}<td class="n"><b>${fmt(x.total)}</b></td><td class="n">${x.packUn>1?fmt(Math.round(x.total/x.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`).join("")}</tbody></table></section>`; }).join("");
-  imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de picking · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(parts.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
+  imprimir(`<section class="ph-doc ${semana?"ph-wide":""}">${hojaCab(`Consolidado de ${PKT()?"traspasos":"picking"} · ${semana?"semana":"día"}`, `<b>${fFecha(r.ini)}${semana?" al "+fFecha(r.fin):""}</b>`, `<div>${docs.length} pickings · ${fmt(parts.reduce((a,d)=>a+uds(d),0))} unidades</div>`)}${secc}${hojaFirmas()}</section>`);
 }
 
 /* ---------- Inventario por bodega ---------- */
@@ -2262,6 +2271,11 @@ function render(force=true){   // live data updates call render(false)
   if(aid && (["fq","mq","dq","iq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
+  if(d.go==="traspaso"||d.go==="picking"){
+    const m=d.go==="traspaso"?"traspaso":"picking";
+    if(S.pkModo!==m){ S.pkModo=m; S.pkLineas=[]; S.pkErr=""; S.pkq=""; S.pkTab="nuevo"; }
+    d={...d,go:"picking"};
+  }
   S.screen=d.go||"home";
   if(S.screen==="tabla"){
     S.cat=d.cat||"todas"; S.tab=d.tab||"todos"; S.q=d.q||""; S.bod="todas"; S.open=null; S.sel.clear();
