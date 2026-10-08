@@ -583,6 +583,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
 @media (max-width:860px){ .pk-grid{justify-content:space-between;width:100%} .pk-g{flex:1;min-width:0} .pk-step.sm button{width:26px} .pk-step.sm input{width:100%;min-width:0} .pk-step.sm{width:100%} .pk-gqty .pk-sub{justify-content:space-between} .pk-qty.pk-gqty{flex-direction:column;align-items:stretch} }
 @media print{ .ph-t .g{width:56px;text-align:center} }
 /* Inventario por bodega */
+.doc-acts{display:flex;gap:6px;align-items:center;justify-content:center;white-space:nowrap}
 .cool-det summary{cursor:pointer;padding:14px 18px;font-weight:700;color:var(--muted);list-style:none}
 .cool-det summary::-webkit-details-marker{display:none}
 .cool-det summary::before{content:"▸ ";transition:transform .15s}
@@ -1776,7 +1777,7 @@ function viewDocs(tipo){
   return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Unidades</span></th><th class="c"><span>Opciones</span></th></tr></thead>
     <tbody>${rows.map(d=>`<tr><td><button class="link" data-doc="${d.id}">${esc(d.folio)}</button></td><td>${fFecha(d.fecha)}</td><td>${esc(d.docTipo)}${d.docNum?" "+esc(d.docNum):""}</td><td class="prod">${esc(d.tercero)}</td>${R?"":`<td>${esc(d.solicitante)||'<span class="muted">-</span>'}</td>`}
       <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmt(d.unidades??(d.lineas||[]).reduce((a,l)=>a+l.cantidad,0))}</td>
-      <td class="c"><button class="kebab" data-dmenu="${d.id}" aria-label="Opciones de ${esc(d.folio)}" aria-haspopup="menu">⋮</button></td></tr>`).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><div class="doc-acts"><button class="btn soft sm" data-docedit="${d.id}">Editar</button>${esAdmin?`<button class="btn danger sm" data-docdel="${d.id}">Eliminar</button>`:""}<button class="kebab" data-dmenu="${d.id}" aria-label="Más opciones de ${esc(d.folio)}" aria-haspopup="menu">⋮</button></div></td></tr>`).join("")}</tbody></table></div>${pag}</div>`;
 }
 function openDoc(id){
   const d=S.docs.find(x=>x.id===id); if(!d) return; const D=DOC[d.tipo], R=d.tipo==="recepcion";
@@ -2373,6 +2374,8 @@ C.addEventListener("click",e=>{
   const pkpd=t.closest("[data-pkprintdoc]"); if(pkpd){ const d=S.docs.find(x=>x.id===pkpd.dataset.pkprintdoc); if(d) imprimirHojaPicking(d); return; }
   if(t.closest("[data-pkconfirm]")) return confirmarPicking();
   const dc=t.closest("[data-doc]"); if(dc) return openDoc(dc.dataset.doc);
+  const dce=t.closest("[data-docedit]"); if(dce) return editarDoc(dce.dataset.docedit);
+  const dcd=t.closest("[data-docdel]"); if(dcd) return eliminarDoc(dcd.dataset.docdel);
   const km=t.closest("[data-dmenu]"); if(km){ e.stopPropagation(); return pop.classList.contains("open")&&pop._btn===km ? closeMenu() : openMenu(km); }
   const so=t.closest("[data-sort]"); if(so){ const k=so.dataset.sort; S.sort = S.sort.k===k ? {k, dir:-S.sort.dir} : {k, dir:1}; S.page=1; render(); $(`[data-sort="${k}"]`)?.focus(); return; }
   const pg=t.closest("[data-page]"); if(pg && !pg.disabled){ S.page=+pg.dataset.page; S.open=null; render(); return; }
