@@ -538,6 +538,7 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .pk-kpi{border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(140deg,var(--c),color-mix(in srgb,var(--c) 72%,#000));box-shadow:0 8px 20px color-mix(in srgb,var(--c) 25%,transparent)}
 .pk-kpi b{display:block;font-size:1.7rem;font-weight:800;line-height:1.1}
 .pk-kpi span{font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.92}
+.pk-kpi small{display:block;font-size:.74rem;opacity:.85;margin-top:2px}
 .pk-h{margin:4px 0 10px;font-size:.98rem;font-weight:700}
 .pk-chart{display:flex;align-items:stretch;gap:10px;height:210px;padding-top:4px}
 .pk-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -744,12 +745,12 @@ td.n .ubin{display:block;margin-left:auto}
     <div class="f"><label for="pUbic">Ubicación (estante)</label><input id="pUbic" maxlength="20"></div>
   </div>
   <div class="grid2">
-    <div class="f"><label for="pMin">Stock mínimo</label><input id="pMin" type="number" min="0" step="any" value="0"></div>
+    <div class="f"><label for="pMin">Stock mínimo (packs)</label><input id="pMin" type="number" min="0" step="any" value="0"></div>
     <div class="f"><label for="pPack">Unidades por pack</label><input id="pPack" type="number" min="1" step="1" value="1" placeholder="Ej: 6, 4, 12"></div>
   </div>
   <div class="grid2" id="stockField">
     <div class="f"><label for="pBodIni">Bodega donde está</label><select id="pBodIni"></select></div>
-    <div class="f"><label for="pStock">Stock inicial (unidades)</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
+    <div class="f"><label for="pStock">Stock inicial (packs)</label><input id="pStock" type="number" min="0" step="any" value="0"></div>
   </div>
   <div class="f"><label for="pVenc">Vencimiento (opcional)</label><input id="pVenc" type="date"></div>
   <datalist id="unds"><option value="UN"><option value="CJ"><option value="PQ"><option value="BL"><option value="BID"><option value="LT"><option value="KG"><option value="RL"></datalist>
@@ -1029,7 +1030,22 @@ const Store = {
 
 /* ---------- Logic ---------- */
 // Same rule as the Excel: sin stock → CRÍTICO, bajo el mínimo → MÍNIMO, resto → SUFICIENTE
-const estado = p => (+p.stock||0) <= 0 ? "critico" : (+p.stock||0) < (+p.minimo||0) ? "minimo" : "ok";
+// El inventario se guarda en unidades, pero se muestra y se cuenta en PACKS (unidades por pack de cada producto).
+// Las unidades se usan solo para hacer picking. El mínimo del producto está en packs.
+const pkn = p => Math.max(1,+p.packUn||1);
+const toPk = (u,p) => (+u||0)/pkn(p);
+const fmtPk = n => fmt(Math.round((+n||0)*100)/100);
+const stkPk = p => toPk(p.stock,p);
+const ubPk = (p,id) => toPk((p.ubic||{})[id],p);
+const lblPk = p => pkn(p)>1 ? "packs" : String(p.unidad||"un").toLowerCase().replace(/^pack$/,"packs");
+const movProd = m => S.productos.find(x=>x.id===m.productoId);
+const movPk = m => m.cantidadPack!=null ? +m.cantidadPack : (movProd(m) ? toPk(m.cantidad,movProd(m)) : (+m.cantidad||0));
+const movSf = m => movProd(m) ? toPk(m.stockFinal,movProd(m)) : (+m.stockFinal||0);
+const docPacks = d => (d.lineas||[]).reduce((a,l)=>a+(l.packs!=null?+l.packs:(+l.cantidad||0)/Math.max(1,+l.packUn||1)),0);
+// Al cambiar las unidades por pack se conservan los PACKS y se recalculan las unidades.
+const reescalarUbic = (ubic,pkViejo,pkNuevo) => Object.fromEntries(Object.entries(ubic||{}).map(([k,u])=>[k,Math.round((+u||0)/pkViejo*pkNuevo)]));
+const packsBod = b => S.productos.reduce((a,p)=>a+ubPk(p,b.id),0);
+const estado = p => stkPk(p) <= 0 ? "critico" : stkPk(p) < (+p.minimo||0) ? "minimo" : "ok";
 const critico = p => estado(p)!=="ok";   // needs replenishment (crítico or mínimo)
 const ESTADO_TXT = {critico:"Crítico", minimo:"Mínimo", ok:"Suficiente"}, ESTADO_CLS = {critico:"crit", minimo:"min", ok:"ok"};
 const DIAS_AVISO = 30;
@@ -1085,13 +1101,14 @@ $("#fProd").addEventListener("submit", async e=>{
     packUn:Math.max(1,+$("#pPack").value||1),
     vencimiento:$("#pVenc").value||"",
     foto: fotoPend!==undefined ? (fotoPend||"") : (prev?.foto||""),
-    ubic: prev ? prev.ubic : {[$("#pBodIni").value||(bods("reposicion")[0]||{}).id||"repo"]:Math.max(0,+$("#pStock").value||0)} };
+    ubic: prev ? prev.ubic : {[$("#pBodIni").value||(bods("reposicion")[0]||{}).id||"repo"]:Math.round(Math.max(0,+$("#pStock").value||0)*Math.max(1,+$("#pPack").value||1))} };
+  if(prev && pkn(prev)!==p.packUn) p.ubic=reescalarUbic(prev.ubic,pkn(prev),p.packUn);   // se conservan los packs
   p.stock = Object.values(p.ubic).reduce((a,n)=>a+n,0);
   p.actualizado = new Date().toISOString();
   try{
     $("#pSave").disabled=true;
     await Store.putProducto(p);
-    if(!prev && p.stock>0) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"entrada",cantidad:p.stock,stockFinal:p.stock,nota:"Stock inicial · "+bodNom($("#pBodIni").value),fecha:new Date().toISOString()});
+    if(!prev && p.stock>0) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"entrada",cantidad:p.stock,cantidadPack:toPk(p.stock,p),stockFinal:p.stock,nota:"Stock inicial · "+bodNom($("#pBodIni").value),fecha:new Date().toISOString()});
     $("#dProd").close(); toast(prev?"Producto guardado":"Producto agregado");
   }catch{ $("#pErr").textContent="No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."; }
   finally{ $("#pSave").disabled=false; }
@@ -1106,16 +1123,16 @@ $("#pDel").addEventListener("click", async ()=>{
 /* ---------- Movement dialog (Conteo físico) ---------- */
 let movP=null, movT="ajuste", movU="repo";
 function calc(){
-  const c=Math.max(0,+$("#mCant").value||0), st=+movP.ubic[movU]||0;
-  return {n: movT==="entrada" ? st+c : movT==="salida" ? st-c : c};
+  const cp=Math.max(0,+$("#mCant").value||0), c=Math.round(cp*pkn(movP)), st=+movP.ubic[movU]||0;   // se escribe en packs; se guarda en unidades
+  return {cp, c, n: movT==="entrada" ? st+c : movT==="salida" ? st-c : c};
 }
 function updPrev(){
   document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===movT));
-  $("#mCantLbl").textContent = movT==="ajuste"?"Cantidad contada":"Cantidad";
+  $("#mCantLbl").textContent = movT==="ajuste"?"Cantidad contada (packs)":"Cantidad (packs)";
   $("#vencField").hidden = movT!=="entrada";
-  const r=calc(), u=esc(movP.unidad);
-  let h=`${esc(bodNom(movU))}: <strong>${fmt(movP.ubic[movU]||0)}</strong> ${u} → queda <strong>${fmt(r.n)}</strong> ${u}`;
-  h+=`<br>Total del producto tras el conteo: <strong>${fmt(movP.stock-(movP.ubic[movU]||0)+r.n)}</strong> ${u}`;
+  const r=calc(), u=lblPk(movP), pu=x=>pkn(movP)>1?` <span class="muted">(${fmt(x)} un)</span>`:"";
+  let h=`${esc(bodNom(movU))}: <strong>${fmtPk(toPk(movP.ubic[movU]||0,movP))}</strong> ${u}${pu(movP.ubic[movU]||0)} → queda <strong>${fmtPk(toPk(r.n,movP))}</strong> ${u}${pu(r.n)}`;
+  h+=`<br>Total del producto tras el conteo: <strong>${fmtPk(toPk(movP.stock-(movP.ubic[movU]||0)+r.n,movP))}</strong> ${u}`;
   if(movT==="entrada" && $("#mVenc").value) h+=`<br>Vencimiento → <strong>${fFecha($("#mVenc").value)}</strong>`;
   $("#mPrev").innerHTML=h;
   $("#mErr").textContent = r.n<0 ? "El resultado no puede ser negativo." : "";
@@ -1126,7 +1143,7 @@ function openMov(id,t,bodId){
   const opts=bods(), fijas=opts.filter(b=>b.tipo!=="cooler");
   const masStock=[...fijas].sort((a,b)=>(movP.ubic[b.id]||0)-(movP.ubic[a.id]||0))[0];
   movU=(bodId&&opts.some(b=>b.id===bodId)?bodId:((movP.ubic[(masStock||{}).id]||0)>0?masStock.id:(fijas[0]||opts[0]||{}).id||"repo"));
-  const op=b=>`<option value="${esc(b.id)}">${esc(b.nombre)} · ${fmt(movP.ubic[b.id]||0)} ${esc(movP.unidad)}</option>`;
+  const op=b=>`<option value="${esc(b.id)}">${esc(b.nombre)} · ${fmtPk(toPk(movP.ubic[b.id]||0,movP))} ${lblPk(movP)}</option>`;
   const grp=(t,tipo)=>{ const l=opts.filter(b=>b.tipo===tipo); return l.length?`<optgroup label="${t}">${l.map(op).join("")}</optgroup>`:""; };
   $("#mUbicSel").innerHTML=grp("Reposición","reposicion")+grp("Tránsito","picking")+grp("Coolers","cooler");
   $("#mUbicSel").value=movU;
@@ -1139,16 +1156,16 @@ $("#mUbicSel").addEventListener("change",()=>{movU=$("#mUbicSel").value;updPrev(
 $("#mCant").addEventListener("input",updPrev); $("#mVenc").addEventListener("input",updPrev);
 $("#fMov").addEventListener("submit", async e=>{
   e.preventDefault();
-  const raw=$("#mCant").value, c=+raw;
-  if(raw==="" || c<0 || (c===0 && movT!=="ajuste")){ $("#mErr").textContent="Ingresa una cantidad mayor a cero."; return; }
-  const r=calc(); if(r.n<0) return;
+  const raw=$("#mCant").value, cr=+raw;
+  if(raw==="" || cr<0 || (cr===0 && movT!=="ajuste")){ $("#mErr").textContent="Ingresa una cantidad mayor a cero."; return; }
+  const r=calc(), c=r.c; if(r.n<0) return;
   const ubic={...movP.ubic, [movU]:r.n};
   const p={...movP, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString()};
   if(movT==="entrada" && $("#mVenc").value) p.vencimiento=$("#mVenc").value;
   try{
     $("#mSave").disabled=true;
     await Store.putProducto(p);
-    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,stockFinal:p.stock,nota:[bodNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
+    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,cantidadPack:r.cp,stockFinal:p.stock,nota:[bodNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
     $("#dMov").close(); toast(movT==="entrada"?"Entrada registrada":movT==="salida"?"Salida registrada":"Conteo guardado");
   }catch{ $("#mErr").textContent="No se pudo registrar. Revisa tu conexión e inténtalo de nuevo."; }
   finally{ $("#mSave").disabled=false; }
@@ -1231,6 +1248,7 @@ $("#file").addEventListener("change", async e=>{
     $("#iPrev").innerHTML=`<strong>${pendientes.length}</strong> productos encontrados: ${nuevos} nuevos y ${pendientes.length-nuevos} que ya existen (se actualizan por código).<br>
       ${pendientes.filter(p=>p.stock<=0).length} sin stock y ${pendientes.filter(p=>p.stock>0&&p.stock<p.minimo).length} bajo el mínimo.
       <br>${conVenc} con fecha de vencimiento.
+      <br>Las cantidades del Excel se leen como <strong>packs</strong>.
       ${bodsDet.size?`<br>Stock por bodega reconocido para: <strong>${[...bodsDet].map(bodNom).map(esc).join(", ")}</strong>.`:`<br>Sin columnas de bodega: el stock se carga en <strong>${esc(bodNom((bods("reposicion")[0]||{}).id||"repo"))}</strong>.`}
       ${malos?`<br><strong>${malos}</strong> fila${malos===1?"":"s"} con el nombre del producto vacío o con un número en vez de texto: se cargan como "Sin nombre" para que las corrijas con Editar.`:""}`;
     $("#iErr").textContent=""; $("#iBar").hidden=true; $("#iGo").disabled=false;
@@ -1246,12 +1264,13 @@ $("#iGo").addEventListener("click", async ()=>{
       // El Excel representa el conteo de la primera bodega de Reposición; lo demás se conserva.
       const {set:setB, ...rest}=row, bodImp=(bods("reposicion")[0]||{}).id||"repo";
       const ubic={...(prev?.ubic||{})};
-      if(Object.keys(setB||{}).length) Object.assign(ubic,setB); else ubic[bodImp]=+row.stock||0;
+      const pkI=prev?pkn(prev):1;   // el Excel trae packs; se guardan en unidades
+      if(Object.keys(setB||{}).length) Object.entries(setB).forEach(([k,v])=>{ ubic[k]=Math.round(v*pkI); }); else ubic[bodImp]=Math.round((+row.stock||0)*pkI);
       const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, packUn:prev?.packUn||1,
         stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString() };
       await Store.putProducto(p);
       if(!prev || prev.stock!==p.stock)
-        await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:p.stock,stockFinal:p.stock,nota:"Importado desde Excel",fecha:new Date().toISOString()}, true);
+        await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:p.stock,cantidadPack:toPk(p.stock,p),stockFinal:p.stock,nota:"Importado desde Excel",fecha:new Date().toISOString()}, true);
       ok++; bar.style.width=((i+1)/pendientes.length*100)+"%";
     }
     $("#dImp").close(); render(); toast(`${ok} productos importados`);
@@ -1269,8 +1288,8 @@ async function exportar(list){
   const bs=bods();
   const data=list.map(p=>{
     const row={ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria,
-      "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":p.stock };
-    bs.forEach(b=>{ row[b.nombre.toUpperCase()]=p.ubic[b.id]||0; });
+      "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":Math.round(stkPk(p)*100)/100 };
+    bs.forEach(b=>{ row[b.nombre.toUpperCase()]=Math.round(ubPk(p,b.id)*100)/100; });
     row["VENCIMIENTO"]=fFecha(p.vencimiento); row["DÍAS DISPONIBLES"]=diasVenc(p)??""; row["ESTADO PRODUCTO"]={none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)];
     return row;
   });
@@ -1289,7 +1308,7 @@ $("#expBtn").addEventListener("click", ()=>exportar(S.screen==="tabla" ? visible
 /* ---------- Views ---------- */
 const EV_TXT = {none:"Sin fecha", vencido:"Vencido", pv:"Por vencer", vig:"Vigente"};
 const EV_CLS = {vencido:"venc", pv:"pv", vig:"ok"};
-const pedir = p => Math.max(0,(+p.minimo||0)*2-(+p.stock||0));
+const pedir = p => Math.max(0,(+p.minimo||0)*2-stkPk(p));
 const catName = c => c==="todas" ? "Todas" : (cats().find(x=>norm(x)===norm(c))||c);
 const ini = c => { const w=String(c||"?").trim().split(/\s+/).filter(x=>x.length>2); if(!w.length) return String(c||"?").slice(0,2).toUpperCase(); return (w.length>1 ? w[0][0]+w[1][0] : w[0].slice(0,2)).toUpperCase(); };
 const ICON = {
@@ -1393,27 +1412,27 @@ function viewHome(){
   const rep=ps.filter(critico).sort((a,b)=>(a.stock/Math.max(a.minimo,1))-(b.stock/Math.max(b.minimo,1))).slice(0,6);
   const repCard=`<section class="card dcard span-4"><h3>Por reponer<span class="muted">${nMin+nCrit} productos</span></h3>
       ${rep.length?`<ul class="plist">${rep.map(p=>{const st=estado(p), c=st==="critico"?"var(--danger)":"var(--warn)";
-        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb" style="--c:${c}"><span class="mb"><i style="width:${Math.min(100,p.stock/Math.max(1,p.minimo)*100)}%"></i></span>${fmt(p.stock)} / ${fmt(p.minimo)}</div></div><div class="rt">Pedir<b>${fmt(pedir(p))}</b></div></li>`;}).join("")}</ul>
+        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb" style="--c:${c}"><span class="mb"><i style="width:${Math.min(100,stkPk(p)/Math.max(1,p.minimo)*100)}%"></i></span>${fmtPk(stkPk(p))} / ${fmtPk(p.minimo)} packs</div></div><div class="rt">Pedir<b>${fmtPk(pedir(p))}</b>packs</div></li>`;}).join("")}</ul>
       <button class="link more" data-go="tabla" data-cat="todas" data-tab="reponer">Ver todos</button>`:'<p class="mini-empty">Nada por reponer. ¡Bien!</p>'}</section>`;
   const venc=ps.filter(p=>["vencido","pv"].includes(estVenc(p))&&(+p.stock||0)>0).sort((a,b)=>diasVenc(a)-diasVenc(b)).slice(0,6);
   const vencCard=`<section class="card dcard span-4"><h3>Vencimientos<span class="muted">con stock en bodega</span></h3>
       ${venc.length?`<ul class="plist">${venc.map(p=>{const d=diasVenc(p);
-        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb">${fFecha(p.vencimiento)} · ${fmt(p.stock)} ${esc(p.unidad)}</div></div><div class="rt"><span class="pill ${d<0?"venc":"pv"}" style="min-width:0">${d<0?`Hace ${-d} d`:d===0?"Hoy":`${d} d`}</span></div></li>`;}).join("")}</ul>
+        return `<li><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div style="min-width:0"><div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div><div class="sb">${fFecha(p.vencimiento)} · ${fmtPk(stkPk(p))} ${lblPk(p)}</div></div><div class="rt"><span class="pill ${d<0?"venc":"pv"}" style="min-width:0">${d<0?`Hace ${-d} d`:d===0?"Hoy":`${d} d`}</span></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="tabla" data-cat="todas" data-tab="vencido">Ver vencidos</button>`:'<p class="mini-empty">Sin productos vencidos ni próximos a vencer.</p>'}</section>`;
   const hoy=hoyISO(), dh=S.docs.filter(d=>d.fecha===hoy);
-  const sumU=t=>dh.filter(d=>d.tipo===t).reduce((a,d)=>a+(+d.unidades||0),0), cntD=t=>dh.filter(d=>d.tipo===t).length;
+  const sumU=t=>dh.filter(d=>d.tipo===t).reduce((a,d)=>a+docPacks(d),0), cntD=t=>dh.filter(d=>d.tipo===t).length;
   const TP={entrada:["+","var(--ok)"],salida:["−","var(--danger)"],ajuste:["=","var(--accent)"],picking:["↔","var(--c2)"]};
   const feed=S.movs.slice(0,6);
   const actCard=`<section class="card dcard span-4"><h3>Actividad de hoy</h3>
-      <div class="today"><div class="tbox" style="--c:var(--ok)"><span>Recepciones</span><b>${cntD("recepcion")}</b><small>${fmt(sumU("recepcion"))} unidades</small></div>
-        <div class="tbox" style="--c:var(--danger)"><span>Despachos</span><b>${cntD("despacho")}</b><small>${fmt(sumU("despacho"))} unidades</small></div></div>
+      <div class="today"><div class="tbox" style="--c:var(--ok)"><span>Recepciones</span><b>${cntD("recepcion")}</b><small>${fmtPk(sumU("recepcion"))} packs</small></div>
+        <div class="tbox" style="--c:var(--danger)"><span>Despachos</span><b>${cntD("despacho")}</b><small>${fmtPk(sumU("despacho"))} packs</small></div></div>
       <h3 style="margin:18px 0 6px">Últimos movimientos</h3>
       ${feed.length?`<ul class="feed">${feed.map(m=>{const t=TP[m.tipo]||TP.ajuste, d=new Date(m.fecha);
-        return `<li><span class="fi" style="--c:${t[1]}">${t[0]}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${t[0]}${fmt(m.cantidad)}<small>queda ${fmt(m.stockFinal)}</small></div></li>`;}).join("")}</ul>
+        return `<li><span class="fi" style="--c:${t[1]}">${t[0]}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${t[0]}${fmtPk(movPk(m))}<small>queda ${fmtPk(movSf(m))}</small></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="movs">Ver todos</button>`:'<p class="mini-empty">Aún no hay movimientos.</p>'}</section>`;
   const donut = ps.length ? `<div class="span-4">${donutCard()}</div>` : "";
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
-    return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><button class="rowlink nm" data-invbod="${esc(b.id)}" title="Ver el inventario de ${esc(b.nombre)}">${esc(b.nombre)}</button><span class="q">${fmt(ps.reduce((a,p)=>a+(p.ubic?.[b.id]||0),0))} un</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
+    return `<div><p class="bt">${t}</p>${bs.length?`<ul class="ov-m bl">${bs.map(b=>`<li><button class="rowlink nm" data-invbod="${esc(b.id)}" title="Ver el inventario de ${esc(b.nombre)}">${esc(b.nombre)}</button><span class="q">${fmtPk(ps.reduce((a,p)=>a+ubPk(p,b.id),0))} packs</span></li>`).join("")}</ul>`:'<p class="mini-empty">Sin bodegas de este tipo.</p>'}</div>`; };
   const bodCard = ps.length&&bods().length?`<section class="card dcard span-12"><h3>Inventario por bodega${esAdmin?`<span class="muted"><button class="link" data-invbod="comparar" style="font-size:.8rem">Comparar bodegas</button></span>`:""}</h3>
       <div class="bodgrid">${bodGrupo("reposicion","Reposición")}${bodGrupo("picking","Picking · tránsito")}</div></section>`:"";
   return `<div class="ph"><h1>Resumen</h1><span class="spacer"></span><button class="addlink" data-add>+ Agregar producto</button></div>
@@ -1438,7 +1457,7 @@ function overview(){
     <button class="ov-i" data-tab="vencido"><span>Vencidos</span><b class="r">${n(p=>estVenc(p)==="vencido")}</b></button>
     <button class="ov-i" data-tab="pv"><span>Por vencer (${DIAS_AVISO} días)</span><b class="w">${n(p=>estVenc(p)==="pv")}</b></button>
     <hr><p class="ov-t">Movimientos recientes</p>
-    ${S.movs.length?`<ul class="ov-m">${S.movs.slice(0,6).map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</span><span class="q">${t[2]}${fmt(m.cantidad)}</span></li>`;}).join("")}</ul><button class="link" data-go="movs">Ver todos</button>`:'<p class="muted" style="margin:0;font-size:.84rem">Aún no hay movimientos.</p>'}
+    ${S.movs.length?`<ul class="ov-m">${S.movs.slice(0,6).map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</span><span class="q">${t[2]}${fmtPk(movPk(m))}</span></li>`;}).join("")}</ul><button class="link" data-go="movs">Ver todos</button>`:'<p class="muted" style="margin:0;font-size:.84rem">Aún no hay movimientos.</p>'}
   </aside>`;
 }
 
@@ -1448,21 +1467,21 @@ function expDetalle(p){
   const f=(k,t,v,extra="",cls="")=>`<div class="uf ${cls}"><label for="ef-${k}">${t}</label><input id="ef-${k}" data-ef="${k}" value="${esc(v)}" ${extra}></div>`;
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
-        <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b> ${esc(p.unidad)}<span>disponibles · mínimo ${fmt(p.minimo)}</span></div>
-        <div class="exp-bodh">Stock por bodega (unidades) · editable</div>
-        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${p.ubic[b.id]||0}" aria-label="Unidades en ${esc(b.nombre)}"></span></li>`).join("")}</ul>
+        <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b> ${lblPk(p)}<span>${pkn(p)>1?fmt(p.stock)+" un · ":""}mínimo ${fmtPk(p.minimo)} packs</span></div>
+        <div class="exp-bodh">Stock por bodega (packs) · editable</div>
+        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${ubPk(p,b.id)||0}" aria-label="Packs en ${esc(b.nombre)}"></span></li>`).join("")}</ul>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
         ${f("nombre","Producto",p.nombre,'maxlength="120"',"wide")}
         ${f("codigo","Código",p.codigo||"",'maxlength="30" inputmode="numeric"')}
         ${f("categoria","Categoría",p.categoria||"",'list="cats" maxlength="40"')}
         ${f("unidad","Unidad",p.unidad,'list="unds" maxlength="10"')}
-        ${f("minimo","Stock mínimo",p.minimo,'type="number" min="0" step="any"')}
+        ${f("minimo","Stock mínimo (packs)",p.minimo,'type="number" min="0" step="any"')}
         ${f("packUn","Unidades por pack",p.packUn,'type="number" min="1" step="1"')}
         ${f("ubicacion","Ubicación",p.ubicacion||"",'maxlength="20"')}
         ${f("vencimiento","Vencimiento",p.vencimiento||"",'type="date"')}
       </div>
-      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmt(m.cantidad)}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
+      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmtPk(movPk(m))}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
     </div>
     <div class="exp-foot"><button class="link danger" data-delp="${p.id}">Eliminar producto</button><span class="spacer"></span>
       <span class="saved ${S.saved===p.id?"ok":""}">${S.saved===p.id?"✓ Guardado automáticamente":"Los cambios se guardan automáticamente"}</span></div>`;
@@ -1472,7 +1491,7 @@ function expRow(p, span){
 }
 function pcard(p){
   const st=estado(p), op=S.open===p.id;
-  const pct=Math.min(100,(+p.stock||0)/Math.max(1,(+p.minimo||0)*2)*100);
+  const pct=Math.min(100,stkPk(p)/Math.max(1,(+p.minimo||0)*2)*100);
   return `<div class="pcard ${op?"is-open":""}">
     <div class="pcard-top">
       <span class="thumb" style="--c:${catColor(p.categoria)}" aria-hidden="true">${thumbHtml(p)}</span>
@@ -1481,7 +1500,7 @@ function pcard(p){
       <span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span>
     </div>
     <div class="pcard-mid">
-      <div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b><span>/ ${fmt(p.minimo)}</span></div>
+      <div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)} packs${pkn(p)>1?` · ${fmt(p.stock)} un`:""}</span></div>
       <div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div>
       ${chipVenc(p)}
     </div>
@@ -1512,8 +1531,8 @@ function viewTabla(){
   const cols=[
     {k:"nombre",t:"Producto",v:p=>p.nombre},
     showCat&&{k:"categoria",t:"Categoría",v:p=>p.categoria||""},
-    {k:"bodega",t:"Dónde está",v:p=>S.bod!=="todas"?(p.ubic[S.bod]||0):(+p.stock||0)},
-    {k:"stock",t:S.bod!=="todas"?"Stock general / mín.":"Stock / mín.",v:p=>+p.stock||0},
+    {k:"bodega",t:"Dónde está (packs)",v:p=>S.bod!=="todas"?ubPk(p,S.bod):stkPk(p)},
+    {k:"stock",t:S.bod!=="todas"?"Stock general / mín. (packs)":"Stock / mín. (packs)",v:p=>stkPk(p)},
     {k:"status",t:"Status",c:1,v:p=>["critico","minimo","ok"].indexOf(estado(p))},
     {k:"dias",t:"Vencimiento",v:p=>diasVenc(p)??1e9},
     showPedir&&{k:"pedir",t:"Pedir",n:1,v:pedir}
@@ -1529,10 +1548,10 @@ function viewTabla(){
       case "codigo": return `<td class="muted">${esc(p.codigo)||"-"}</td>`;
       case "nombre": return `<td class="prod"><button class="rowlink" data-open="${p.id}">${esc(p.nombre)}</button><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?` · Ubic. ${esc(p.ubicacion)}`:""}</span></td>`;
       case "categoria": return `<td><span class="catpill" style="--c:${catColor(p.categoria)}">${esc(p.categoria)}</span></td>`;
-      case "bodega": { const ch=bods().filter(b=>b.tipo!=="cooler"&&(p.ubic[b.id]||0)>0).map(b=>`<span class="bchip${b.id===S.bod?" on":""}" title="${esc(b.nombre)}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(bShort(b))} <b>${fmt(p.ubic[b.id])}</b></span>`).join("");
+      case "bodega": { const ch=bods().filter(b=>b.tipo!=="cooler"&&(p.ubic[b.id]||0)>0).map(b=>`<span class="bchip${b.id===S.bod?" on":""}" title="${esc(b.nombre)}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(bShort(b))} <b>${fmtPk(ubPk(p,b.id))}</b></span>`).join("");
         return `<td style="white-space:normal;min-width:170px;max-width:240px">${ch||'<span class="muted">-</span>'}</td>`; }
-      case "stock": { const pct=Math.min(100,(+p.stock||0)/Math.max(1,(+p.minimo||0)*2)*100);
-        return `<td><div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmt(p.stock)}</b><span>/ ${fmt(p.minimo)}</span></div><div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div></td>`; }
+      case "stock": { const pct=Math.min(100,stkPk(p)/Math.max(1,(+p.minimo||0)*2)*100);
+        return `<td><div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)}</span></div>${pkn(p)>1?`<div class="sub">${fmt(p.stock)} un</div>`:""}<div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div></td>`; }
       case "status": return `<td class="c"><span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span></td>`;
       case "dias": { const e=estVenc(p), d=diasVenc(p); if(e==="none") return `<td class="muted">-</td>`;
         return `<td>${fFecha(p.vencimiento)}<span class="vd" style="color:${e==="vencido"?"var(--danger)":e==="pv"?"var(--warn)":"var(--muted)"}">${e==="vencido"?`Vencido hace ${-d} d`:d===0?"Vence hoy":`${d} días`}</span></td>`; }
@@ -1568,10 +1587,10 @@ function viewMovs(){
   const th=(t,c="")=>`<th class="${c}"><span>${t}</span></th>`;
   const allM=rows.length&&rows.every(m=>S.msel.has(m.id));
   const bulkM=esAdmin&&S.msel.size?`<div class="bulk"><b>${S.msel.size} seleccionado${S.msel.size===1?"":"s"}</b><button class="btn danger sm" data-mdel>Eliminar del historial</button><span class="spacer"></span><button class="link" data-mclear>Quitar selección</button></div>`:"";
-  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:900px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad","n")}${th("Stock final","n")}${th("Referencia")}</tr></thead>
+  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:900px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","n")}${th("Stock final (packs)","n")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
       return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
-      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmt(m.cantidad)}</td><td class="n">${fmt(m.stockFinal)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmtPk(movPk(m))}</td><td class="n">${fmtPk(movSf(m))}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
 async function cambiarFotoInline(id, file){
@@ -1589,7 +1608,8 @@ async function saveInline(el){
   if(k==="unidad") v=v.toUpperCase()||"UN";
   if(k==="categoria") v=v||"Sin categoría";
   if((p[k]??"")===v) return;
-  try{ await Store.putProducto({...p,[k]:v,actualizado:new Date().toISOString()}); S.saved=p.id; render(true); }
+  const extra=k==="packUn"?{ubic:reescalarUbic(p.ubic,pkn(p),v)}:{};   // al cambiar el pack se conservan los packs
+  try{ await Store.putProducto({...p,[k]:v,...extra,actualizado:new Date().toISOString()}); S.saved=p.id; render(true); }
   catch{ toast("No se pudo guardar el cambio. Revisa tu conexión."); }
 }
 
@@ -1651,12 +1671,12 @@ function viewForm(){
   const lines=f.lineas.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
     const res=lineaRes(l), bad=!R && res<0;
     return `<tr><td>${esc(p.codigo)||'<span class="muted">-</span>'}</td><td class="prod">${esc(p.nombre)}<span class="sub">${fmt(p.packUn)} un/pack</span></td><td>${esc(p.unidad)}</td>
-      <td class="n">${fmt(baseForm(p))}</td>
-      <td class="n"><input type="number" min="0" step="1" data-lq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Packs de ${esc(p.nombre)}"></td>
+      <td class="n">${fmtPk(toPk(baseForm(p),p))}</td>
+      <td class="n"><input type="number" min="0" step="any" data-lq="${i}" value="${esc(l.cantidad)}" class="${bad?"bad":""}" aria-label="Packs de ${esc(p.nombre)}"></td>
       ${R?`<td><input type="date" data-lv="${i}" value="${esc(l.venc)}" aria-label="Vencimiento de ${esc(p.nombre)}"></td>`:""}
-      <td class="n stk ${bad?"neg":""}" data-lr="${i}">${fmt(res)}</td>
+      <td class="n stk ${bad?"neg":""}" data-lr="${i}">${fmtPk(toPk(res,p))}</td>
       <td class="c"><button class="rm" data-rm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></td></tr>`; }).join("");
-  const tot=f.lineas.reduce((a,l)=>{ const p=S.productos.find(x=>x.id===l.id); return a+(+l.cantidad||0)*(p?.packUn||1); },0);
+  const tot=f.lineas.reduce((a,l)=>{ const p=S.productos.find(x=>x.id===l.id); return a+(+l.cantidad||0); },0);
   return `<div class="page-head"><h1>${f.editId?`Editar ${D.t.toLowerCase()} ${esc((S.docs.find(d=>d.id===f.editId)||{}).folio||"")}`:D.nueva}</h1><span class="spacer"></span><button class="btn ghost" data-go="${R?"recep":"desp"}">Cancelar</button></div>
   <div class="card" style="margin-bottom:14px"><div class="card-h">Datos del documento</div>
     <div class="form-grid">
@@ -1678,10 +1698,10 @@ function viewForm(){
     </div>
     ${f.lineas.length?`<div class="tbl-wrap" style="max-height:none"><table class="db lines" style="min-width:${R?820:700}px"><thead><tr>
       <th><span>Código</span></th><th><span>Producto</span></th><th><span>UND</span></th>
-      <th class="n"><span>En ${esc(nomBod)} (un)</span></th><th class="n"><span>Cantidad (packs)</span></th>
-      ${R?'<th><span>Vencimiento</span></th>':""}<th class="n"><span>Queda en ${esc(nomBod)} (un)</span></th><th></th></tr></thead>
+      <th class="n"><span>En ${esc(nomBod)} (packs)</span></th><th class="n"><span>Cantidad (packs)</span></th>
+      ${R?'<th><span>Vencimiento</span></th>':""}<th class="n"><span>Queda en ${esc(nomBod)} (packs)</span></th><th></th></tr></thead>
       <tbody>${lines}</tbody></table></div>`:`<div class="empty">Agrega productos escaneando su código de barras o buscándolos por nombre.</div>`}
-    <div class="form-foot"><span class="muted" id="ftot">${f.lineas.length} producto${f.lineas.length===1?"":"s"} · ${fmt(tot)} unidades</span><span class="spacer"></span>
+    <div class="form-foot"><span class="muted" id="ftot">${f.lineas.length} producto${f.lineas.length===1?"":"s"} · ${fmtPk(tot)} packs</span><span class="spacer"></span>
       <button class="btn brand" id="confirmBtn" data-confirm>${f.editId?"Guardar cambios":D.verbo}</button></div>
   </div>
   ${f.err?`<p class="ferr" role="alert">${esc(f.err)}</p>`:""}`;
@@ -1689,15 +1709,15 @@ function viewForm(){
 function showSugs(){
   const box=$("#sugs"); if(!box) return; const r=buscarProd(S.form.pq);
   if(!r.length){ box.classList.remove("open"); box.innerHTML = S.form.pq.trim()?'<div class="empty" style="padding:12px">Sin coincidencias.</div>':""; if(S.form.pq.trim()) box.classList.add("open"); return; }
-  box.innerHTML=r.map((p,i)=>`<button role="option" data-pick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · ${esc(bodNom(S.form.bod))} ${fmt(p.ubic[S.form.bod]||0)} un · ${fmt(p.packUn)} un/pack</span></button>`).join("");
+  box.innerHTML=r.map((p,i)=>`<button role="option" data-pick="${p.id}" class="${i===0?"hl":""}"><span>${esc(p.nombre)}</span><span class="sc">${esc(p.codigo||"")} · ${esc(bodNom(S.form.bod))} ${fmtPk(ubPk(p,S.form.bod))} packs · ${fmt(p.packUn)} un/pack</span></button>`).join("");
   box.classList.add("open");
 }
 function updLinea(i){
   const l=S.form.lineas[i], res=lineaRes(l), bad=S.form.tipo==="despacho" && res<0;
-  const td=document.querySelector(`[data-lr="${i}"]`); if(td){ td.textContent=fmt(res); td.classList.toggle("neg",bad); }
+  const td=document.querySelector(`[data-lr="${i}"]`); if(td){ const pp=S.productos.find(y=>y.id===l.id); td.textContent=fmtPk(pp?toPk(res,pp):res); td.classList.toggle("neg",bad); }
   document.querySelector(`[data-lq="${i}"]`)?.classList.toggle("bad",bad);
-  const tot=S.form.lineas.reduce((a,x)=>{ const p=S.productos.find(y=>y.id===x.id); return a+(+x.cantidad||0)*(p?.packUn||1); },0);
-  $("#ftot").textContent=`${S.form.lineas.length} producto${S.form.lineas.length===1?"":"s"} · ${fmt(tot)} unidades`;
+  const tot=S.form.lineas.reduce((a,x)=>{ const p=S.productos.find(y=>y.id===x.id); return a+(+x.cantidad||0); },0);
+  $("#ftot").textContent=`${S.form.lineas.length} producto${S.form.lineas.length===1?"":"s"} · ${fmtPk(tot)} packs`;
 }
 async function confirmarDoc(){
   const f=S.form, D=DOC[f.tipo], sg=sgDoc(f.tipo), edit=f.editId?S.docs.find(d=>d.id===f.editId):null;
@@ -1705,13 +1725,13 @@ async function confirmarDoc(){
   let err="";
   if(!lines.length) err="Agrega al menos un producto.";
   else if(lines.some(l=>!(l.q>0))) err="Todas las líneas necesitan una cantidad mayor a cero.";
-  else if(f.tipo==="despacho"){ const x=lines.find(l=>l.q*(l.p.packUn||1)>baseForm(l.p)); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(f.bod)}: disponible ${fmt(baseForm(x.p))} un (${fmt(baseForm(x.p)/(x.p.packUn||1))} packs).`; }
+  else if(f.tipo==="despacho"){ const x=lines.find(l=>Math.round(l.q*pkn(l.p))>baseForm(l.p)); if(x) err=`No hay stock suficiente de "${x.p.nombre}" en ${bodNom(f.bod)}: disponible ${fmtPk(toPk(baseForm(x.p),x.p))} packs (${fmt(baseForm(x.p))} un).`; }
   if(!err && !f.tercero.trim()) err=`Indica el ${D.tercero.toLowerCase()}.`;
   // Existencias resultantes: se deshace el efecto del documento original (si se edita) y se aplica el nuevo.
   const ob=edit?(edit.bod||primeraRepo()):null, mapa=new Map();
   const ub=id=>{ if(!mapa.has(id)){ const p=S.productos.find(x=>x.id===id); mapa.set(id,p?{...p.ubic}:null); } return mapa.get(id); };
   if(edit) (edit.lineas||[]).forEach(l=>{ const u=ub(l.productoId); if(u) u[ob]=(u[ob]||0)-sg*(+l.cantidad||0); });
-  lines.forEach(l=>{ const u=ub(l.id); u[f.bod]=(u[f.bod]||0)+sg*l.q*(l.p.packUn||1); });
+  lines.forEach(l=>{ const u=ub(l.id); u[f.bod]=(u[f.bod]||0)+sg*Math.round(l.q*pkn(l.p)); });
   if(!err){ const mal=[...mapa].find(([,u])=>u && (u[f.bod]<0 || (ob&&u[ob]<0)));
     if(mal){ const p=S.productos.find(x=>x.id===mal[0]); err=`Con este cambio "${p.nombre}" quedaría con stock negativo en ${bodNom(mal[1][f.bod]<0?f.bod:ob)}.`; } }
   if(err){ f.err=err; render(true); return; }
@@ -1729,14 +1749,14 @@ async function confirmarDoc(){
     }
     if(edit) for(const m of S.movs.filter(m=>m.folio===folio && m.tipo===D.mov)) await Store.delMov(m.id);
     for(const l of lines){
-      const p=l.p, qUn=l.q*(p.packUn||1);
+      const p=l.p, qUn=Math.round(l.q*pkn(p));
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:D.mov,cantidad:qUn,cantidadPack:l.q,stockFinal:stockFinal[p.id],
         nota:[folio, f.docNum?`${f.docTipo} ${f.docNum}`:"", f.tercero.trim(), edit?"(editado)":""].filter(Boolean).join(" · "), fecha:edit?edit.creado:now, folio}, true);
       hechas++;
     }
     await Store.addDocu({id:edit?edit.id:uid(), tipo:f.tipo, numero, folio, fecha:f.fecha, docTipo:f.docTipo, docNum:f.docNum.trim(), tercero:f.tercero.trim(),
-      solicitante:f.solicitante.trim(), nota:f.nota.trim(), bod:f.bod, creado:edit?edit.creado:now, ...(edit?{editado:now}:{}), unidades:lines.reduce((a,l)=>a+l.q*(l.p.packUn||1),0),
-      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, unidad:l.p.unidad, cantidad:l.q*(l.p.packUn||1), packs:l.q, packUn:l.p.packUn||1, vencimiento:l.venc||""}))});
+      solicitante:f.solicitante.trim(), nota:f.nota.trim(), bod:f.bod, creado:edit?edit.creado:now, ...(edit?{editado:now}:{}), unidades:lines.reduce((a,l)=>a+Math.round(l.q*pkn(l.p)),0),
+      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, unidad:l.p.unidad, cantidad:Math.round(l.q*pkn(l.p)), packs:l.q, packUn:l.p.packUn||1, vencimiento:l.venc||""}))});
     S.form=null; S.screen=f.tipo==="recepcion"?"recep":"desp"; S.page=1; render(); toast(`${D.t} ${folio} ${edit?(f.tipo==="recepcion"?"modificada":"modificado"):D.hecho}`);
   }catch(e){
     f.err = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión. Revisa Movimientos antes de reintentar para no duplicar.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
@@ -1777,9 +1797,9 @@ function viewDocs(tipo){
   if(!ds.length) return head+`<div class="card empty">${S.docs.some(d=>d.tipo===tipo)?"Sin resultados para esa búsqueda.":`Aún no hay ${D.plural.toLowerCase()} registrad${R?"a":"o"}s.`}<div class="btns"><button class="btn brand" data-new="${tipo}">${D.nueva}</button></div></div>`;
   const tot=ds.length, pag=pager(tot), rows=ds.slice((S.page-1)*S.size,S.page*S.size);
   const th=t=>`<th><span>${t}</span></th>`;
-  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Unidades</span></th><th class="c"><span>Opciones</span></th></tr></thead>
+  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Packs</span></th><th class="c"><span>Opciones</span></th></tr></thead>
     <tbody>${rows.map(d=>`<tr><td><button class="link" data-doc="${d.id}">${esc(d.folio)}</button></td><td>${fFecha(d.fecha)}</td><td>${esc(d.docTipo)}${d.docNum?" "+esc(d.docNum):""}</td><td class="prod">${esc(d.tercero)}</td>${R?"":`<td>${esc(d.solicitante)||'<span class="muted">-</span>'}</td>`}
-      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmt(d.unidades??(d.lineas||[]).reduce((a,l)=>a+l.cantidad,0))}</td>
+      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmtPk(docPacks(d))}</td>
       <td class="c"><div class="doc-acts"><button class="btn soft sm" data-docedit="${d.id}">Editar</button>${esAdmin?`<button class="btn danger sm" data-docdel="${d.id}">Eliminar</button>`:""}<button class="kebab" data-dmenu="${d.id}" aria-label="Más opciones de ${esc(d.folio)}" aria-haspopup="menu">⋮</button></div></td></tr>`).join("")}</tbody></table></div>${pag}</div>`;
 }
 function openDoc(id){
@@ -1787,8 +1807,8 @@ function openDoc(id){
   $("#docBody").innerHTML=`<h2>${D.t} ${esc(d.folio)}</h2>
     <div class="kv"><div><span>Fecha</span>${fFecha(d.fecha)}</div><div><span>Documento</span>${esc(d.docTipo)} ${esc(d.docNum)}</div><div><span>${D.tercero}</span>${esc(d.tercero)}</div>
       ${R?"":`<div><span>Solicitante</span>${esc(d.solicitante)||"-"}</div>`}<div><span>Bodega</span>${esc(bodNom(d.bod||primeraRepo()))}</div><div><span>Registrado</span>${new Date(d.creado).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})}${d.editado?` · editado ${new Date(d.editado).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})}`:""}</div>${d.nota?`<div><span>Nota</span>${esc(d.nota)}</div>`:""}</div>
-    <div class="tbl-wrap" style="max-height:50vh;border:1px solid var(--line);border-radius:6px"><table class="db" style="min-width:560px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th><th><span>UND</span></th><th class="n"><span>Cantidad</span></th>${R?'<th><span>Vencimiento</span></th>':""}</tr></thead>
-    <tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td><td>${esc(l.unidad)}</td><td class="n stk">${fmt(l.cantidad)}</td>${R?`<td>${fFecha(l.vencimiento)||"-"}</td>`:""}</tr>`).join("")}</tbody></table></div>
+    <div class="tbl-wrap" style="max-height:50vh;border:1px solid var(--line);border-radius:6px"><table class="db" style="min-width:560px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th><th><span>UND</span></th><th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th>${R?'<th><span>Vencimiento</span></th>':""}</tr></thead>
+    <tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td><td>${esc(l.unidad)}</td><td class="n stk">${fmtPk(l.packs!=null?l.packs:(+l.cantidad||0)/Math.max(1,+l.packUn||1))}</td><td class="n">${fmt(l.cantidad)}</td>${R?`<td>${fFecha(l.vencimiento)||"-"}</td>`:""}</tr>`).join("")}</tbody></table></div>
     <div class="dlg-actions" style="margin-top:14px">${esAdmin?`<button class="btn danger" data-doc-del="${d.id}">Eliminar</button>`:""}<span class="spacer"></span><button class="btn ghost" data-doc-edit="${d.id}">Editar</button><button class="btn ghost" data-close-doc>Cerrar</button></div>`;
   $("#dDoc").showModal(); $("#docBody [data-close-doc]").focus();
 }
@@ -1817,7 +1837,7 @@ const ARROW='<svg viewBox="0 0 48 24" width="48" height="24" fill="none" stroke=
 function pkBodCard(b, sel, attr, tag, color){
   const un=S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
   return `<button type="button" class="pk-bod ${sel?"on":""}" ${attr}="${esc(b.id)}" style="--c:${color}" aria-pressed="${sel}">
-    <span class="pk-tag">${tag}</span><b>${esc(b.nombre)}</b><small>${b.tipo==="cooler"?"Destino · sale del inventario":fmt(un)+" un en total"}</small></button>`;
+    <span class="pk-tag">${tag}</span><b>${esc(b.nombre)}</b><small>${b.tipo==="cooler"?"Destino · sale del inventario":fmtPk(packsBod(b))+" packs en total"}</small></button>`;
 }
 function pkTotales(){
   let un=0, packs=0;
@@ -1827,7 +1847,7 @@ function pkTotales(){
 function pkLineHtml(l,i){
   const p=S.productos.find(x=>x.id===l.id); if(!p) return "";
   const gen=pkGen(), q=+l.cantidad||0, dispO=p.ubic[S.pkOrig]||0, bad=q>dispO, pk=p.packUn||1;
-  const dChip=(gen||esCooler(S.pkUbic))?"":`<span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un</span>`;
+  const dChip=(gen||esCooler(S.pkUbic))?"":`<span>${esc(bodNom(S.pkUbic))}: <b>${fmt(p.ubic[S.pkUbic]||0)}</b> un · ${fmtPk(ubPk(p,S.pkUbic))} packs</span>`;
   const step=(dest,val,lbl)=>`<div class="pk-step ${dest?"sm":""}"><button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="-1" aria-label="Menos una unidad">−</button>
       <input type="number" min="0" step="1" inputmode="numeric" data-pkq="${i}" ${dest?`data-pkd="${dest}" placeholder="0"`:""} value="${esc(val)}" aria-label="${esc(lbl)}">
       <button type="button" data-pkstep="${i}" ${dest?`data-pkd="${dest}"`:""} data-d="1" aria-label="Más una unidad">+</button></div>`;
@@ -1840,7 +1860,7 @@ function pkLineHtml(l,i){
     <span class="pk-n">${i+1}</span>
     <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
     <div class="pk-info"><div class="nm">${esc(p.nombre)}</div>
-      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un</span>${dChip}${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
+      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un · ${fmtPk(toPk(dispO,p))} packs</span>${dChip}${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
       <div class="pk-warn" ${bad?"":"hidden"}>Solo hay ${fmt(dispO)} un disponibles en ${esc(bodNom(S.pkOrig))}</div></div>
     ${qty}
     <button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></li>`;
@@ -1854,7 +1874,7 @@ function pkTiles(){
   return ps.map(p=>{ const l=S.pkLineas.find(x=>x.id===p.id);
     return `<button type="button" class="pk-tile ${l?"in":""}" data-pkpick="${p.id}" style="--c:${catColor(p.categoria)}">
       <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
-      <span class="pk-tn">${esc(p.nombre)}</span><span class="pk-ts">${fmt(p.ubic[S.pkOrig]||0)} un en ${esc(bodNom(S.pkOrig))}</span>
+      <span class="pk-tn">${esc(p.nombre)}</span><span class="pk-ts">${fmtPk(ubPk(p,S.pkOrig))} packs · ${fmt(p.ubic[S.pkOrig]||0)} un en ${esc(bodNom(S.pkOrig))}</span>
       ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
 }
 function viewPicking(){
@@ -2086,10 +2106,10 @@ function imprimirConsolidado(){
 /* ---------- Inventario por bodega ---------- */
 const bShort = b => b.nombre.replace(/^(reposici[oó]n|tr[aá]nsito|coolers?)\s+/i,"");
 const invBods = () => bods();
-const uniBod = b => S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
+const uniBod = b => S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);   // unidades (solo para referencia/picking)
 const nProdBod = b => S.productos.filter(p=>(p.ubic[b.id]||0)>0).length;
-const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;
-const faltaBod = (p,b) => Math.max(0, minBod(p,b)-(p.ubic[b.id]||0));
+const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;   // en packs
+const faltaBod = (p,b) => Math.max(0, minBod(p,b)-ubPk(p,b.id));   // en packs
 
 function abrirInv(id){
   S.invBod=id||"comparar"; S.invQ=""; S.invAll=false; S.page=1;
@@ -2101,7 +2121,7 @@ function viewInv(){
   const head=`<div class="ph"><h1>Inventario por bodega</h1><span class="spacer"></span>
     ${esAdmin?`<button class="addlink" data-go="bodegas">Administrar bodegas</button>`:""}</div>`;
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-invbod="comparar" aria-selected="${S.invBod==="comparar"}">Comparar todas</button>
-    ${bs.map(b=>`<button role="tab" data-invbod="${esc(b.id)}" aria-selected="${S.invBod===b.id}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(b.nombre)}<span class="ct">${fmt(uniBod(b))}</span></button>`).join("")}</div>`;
+    ${bs.map(b=>`<button role="tab" data-invbod="${esc(b.id)}" aria-selected="${S.invBod===b.id}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(b.nombre)}<span class="ct" title="${fmt(uniBod(b))} unidades">${fmtPk(packsBod(b))}</span></button>`).join("")}</div>`;
   if(!S.productos.length) return head+tabs+`<div class="card empty">Aún no hay productos cargados.</div>`;
   return head+tabs+(S.invBod==="comparar"?viewInvComparar(bs):viewInvBodega(bs.find(b=>b.id===S.invBod)));
 }
@@ -2117,62 +2137,63 @@ function invFiltrados(b){
   return [...ps].sort((a,c)=>a.nombre.localeCompare(c.nombre,"es"));
 }
 function viewInvBodega(b){
-  const tot=S.productos.reduce((a,p)=>a+(p.stock||0),0), un=uniBod(b), np=nProdBod(b);
-  const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, uFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
-  const kpi=(c,v,t)=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span></div>`;
-  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmt(un),"Unidades aquí")}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(tot?Math.round(un/tot*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmt(uFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes")}</div>`;
+  const totPk=S.productos.reduce((a,p)=>a+stkPk(p),0), pkB=packsBod(b), un=uniBod(b), np=nProdBod(b);
+  const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, pFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
+  const kpi=(c,v,t,sub="")=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
+  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",`≈ ${fmt(un)} unidades`)}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes",nFalta?"packs":"")}</div>`;
   const ps=invFiltrados(b), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
-  const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)}"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmt(p.ubic[x.id])}</b></span>`).join("")||'<span class="muted">-</span>';
-  const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="1" inputmode="numeric" ${attr} value="${val||val===0?val:""}" placeholder="${ph}">`;
-  const falta=p=>{ const f=faltaBod(p,b), m=minBod(p,b); return f>0?`<span class="pill venc" style="min-width:0">Falta ${fmt(f)}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
-  const rowT=p=>{ const q=p.ubic[b.id]||0, pk=p.packUn||1, share=p.stock?q/p.stock*100:0;
-    return `<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div></div></td>
-      <td class="n">${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}<span class="sub" style="text-align:right">${pk>1?"= "+fmt(q/pk)+" packs":""}</span></td>
-      <td class="n">${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</td>
+  const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)} · ${fmt(p.ubic[x.id])} un"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmtPk(ubPk(p,x.id))}</b></span>`).join("")||'<span class="muted">-</span>';
+  const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="any" inputmode="decimal" ${attr} value="${val||val===0?val:""}" placeholder="${ph}">`;
+  const falta=p=>{ const f=faltaBod(p,b), m=minBod(p,b); return f>0?`<span class="pill venc" style="min-width:0">Falta ${fmtPk(f)}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
+  const unTxt=p=>pkn(p)>1?`= ${fmt(p.ubic[b.id]||0)} un`:"";
+  const rowT=p=>{ const q=ubPk(p,b.id), share=p.stock?(p.ubic[b.id]||0)/p.stock*100:0;
+    return `<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div></div></td>
+      <td class="n">${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,Math.round(q*100)/100)}<span class="sub" style="text-align:right">${unTxt(p)}</span></td>
+      <td class="n">${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</td>
       <td class="c">${falta(p)}</td>
       <td>${otras(p)}</td>
-      <td class="n"><b>${fmt(p.stock)}</b><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td></tr>`; };
-  const cardT=p=>{ const q=p.ubic[b.id]||0, pk=p.packUn||1;
-    return `<div class="pcard"><div class="pcard-top"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div class="pcard-info"><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div>${falta(p)}</div>
-      <div class="inv-c"><label>Aquí (un)${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}${pk>1?`<small>= ${fmt(q/pk)} packs</small>`:""}</label>
-        <label>Mínimo${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</label>
-        <label>Total general<b>${fmt(p.stock)}</b></label></div>
+      <td class="n"><b>${fmtPk(stkPk(p))}</b><span class="sub" style="text-align:right">${pkn(p)>1?fmt(p.stock)+" un":""}</span><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td></tr>`; };
+  const cardT=p=>{ const q=ubPk(p,b.id);
+    return `<div class="pcard"><div class="pcard-top"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div class="pcard-info"><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div>${falta(p)}</div>
+      <div class="inv-c"><label>Aquí (packs)${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,Math.round(q*100)/100)}${pkn(p)>1?`<small>${unTxt(p)}</small>`:""}</label>
+        <label>Mínimo (packs)${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</label>
+        <label>Total general<b>${fmtPk(stkPk(p))}</b>${pkn(p)>1?`<small>${fmt(p.stock)} un</small>`:""}</label></div>
       <div class="inv-o">${otras(p)}</div></div>`; };
-  const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmt(uFalta)} un)</button>`:""}`;
+  const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
   const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${invToolbar(extra)}
-      <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe las unidades que hay en <b>${esc(b.nombre)}</b> y el mínimo que debería tener. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
-    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:860px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí (un)</span></th><th class="n"><span>Mínimo</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas</span></th><th class="n"><span>Total general</span></th></tr></thead>
+      <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> que hay en <b>${esc(b.nombre)}</b> y el mínimo que debería tener. Las unidades que ves debajo son solo para el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:860px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí (packs)</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total general (packs)</span></th></tr></thead>
       <tbody>${rows.map(rowT).join("")}</tbody></table></div><div class="pcards icards">${rows.map(cardT).join("")}</div>${pag}`:vacio}</div>`;
 }
 function viewInvComparar(bs){
   const ps=invFiltrados(null), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
-  const totB=b=>fmt(uniBod(b)), totG=S.productos.reduce((a,p)=>a+(p.stock||0),0);
+  const totB=b=>fmtPk(packsBod(b)), totG=S.productos.reduce((a,p)=>a+stkPk(p),0);
   const st=p=>{ const s=estado(p); return `<span class="pill ${ESTADO_CLS[s]}">${ESTADO_TXT[s]}</span>`; };
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${invToolbar()}
-    <p class="muted" style="margin:0;font-size:.84rem">Dónde está cada producto. El total general suma todas las bodegas: al sacar de una bodega baja el inventario general.</p></div>
-    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap" style="max-height:none"><table class="db cmp" style="min-width:${300+bs.length*120}px"><thead><tr><th><span>Producto</span></th>${bs.map(b=>`<th class="n"><button data-invbod="${esc(b.id)}"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</button></th>`).join("")}<th class="n"><span>Total general</span></th><th class="c"><span>Estado</span></th></tr></thead>
-      <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n">${(p.ubic[b.id]||0)?fmt(p.ubic[b.id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmt(p.stock)}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
+    <p class="muted" style="margin:0;font-size:.84rem">Dónde está cada producto, en <b>packs</b>. El total general suma todas las bodegas: al sacar de una bodega baja el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap" style="max-height:none"><table class="db cmp" style="min-width:${300+bs.length*120}px"><thead><tr><th><span>Producto</span></th>${bs.map(b=>`<th class="n"><button data-invbod="${esc(b.id)}"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</button></th>`).join("")}<th class="n"><span>Total general (packs)</span></th><th class="c"><span>Estado</span></th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n" title="${fmt(p.ubic[b.id]||0)} un">${(p.ubic[b.id]||0)?fmtPk(ubPk(p,b.id)):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk" title="${fmt(p.stock)} un">${fmtPk(stkPk(p))}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
       <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
 }
 // Redibuja salvo que el usuario esté escribiendo en otra casilla de stock (no perder lo que teclea).
 function refrescarInv(){ setTimeout(()=>{ const ae=document.activeElement; if(!(ae&&ae.dataset&&(ae.dataset.ubq!==undefined||ae.dataset.ubmin!==undefined))) render(true); },220); }
 async function ajustarUbic(prodId, bodId, val){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
-  const v=Math.max(0,Math.round(+val||0)), old=p.ubic[bodId]||0;
+  const packs=Math.max(0,Math.round((parseFloat(val)||0)*100)/100), v=Math.round(packs*pkn(p)), old=p.ubic[bodId]||0;   // se guarda en unidades
   if(v===old){ refrescarInv(); return; }
   const ubic={...p.ubic,[bodId]:v}, now=new Date().toISOString();
   const np={...p, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
   try{
     await Store.putProducto(np);
-    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${fmt(old)} → ${fmt(v)}`,fecha:now});
-    toast(`${p.nombre}: ${fmt(v)} un en ${bodNom(bodId)}`);
+    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,cantidadPack:packs,stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${fmtPk(toPk(old,p))} → ${fmtPk(packs)} packs`,fecha:now});
+    toast(`${p.nombre}: ${fmtPk(packs)} packs en ${bodNom(bodId)}`);
   }catch{ toast("No se pudo guardar. Revisa tu conexión."); }
   refrescarInv();
 }
 async function fijarMinUbic(prodId, bodId, val){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
-  const v=Math.max(0,Math.round(+val||0)), minUbic={...(p.minUbic||{})};
+  const v=Math.max(0,Math.round((parseFloat(val)||0)*100)/100), minUbic={...(p.minUbic||{})};
   if(v===minBod(p,{id:bodId})){ refrescarInv(); return; }
   if(v>0) minUbic[bodId]=v; else delete minUbic[bodId];
   try{ await Store.putProducto({...p, minUbic, actualizado:new Date().toISOString()}); }
@@ -2181,7 +2202,7 @@ async function fijarMinUbic(prodId, bodId, val){
 }
 function armarPickingRellenar(bid){
   const b=S.bodegas.find(x=>x.id===bid), orig=bods("reposicion")[0]; if(!b||!orig) return;
-  const lineas=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>({id:p.id, cantidad:String(faltaBod(p,b))}));
+  const lineas=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>({id:p.id, cantidad:String(Math.ceil(faltaBod(p,b)*pkn(p)))}));   // el picking se hace en unidades
   if(!lineas.length){ toast("No hay productos por debajo del mínimo en "+b.nombre); return; }
   S.pkOrig=orig.id; S.pkUbic=bid; S.pkLineas=lineas; S.pkTab="nuevo"; S.pkErr=""; S.pkq="";
   go({go:"picking"});
@@ -2194,19 +2215,19 @@ function imprimirInv(){
   const {bs,b,ps}=invDatos(); if(!ps.length) return;
   const cab=hojaCab(b?`Inventario · ${b.nombre}`:"Inventario por bodega", `<b>${b?esc(b.nombre):"Todas las bodegas"}</b>`, `<div>${ps.length} productos</div>`);
   const cuerpo=b
-    ? `<table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Unidades</th><th class="n">Packs</th><th class="rec">Conteo</th></tr></thead>
-      <tbody>${ps.map(p=>{ const q=p.ubic[b.id]||0; return `<tr><td class="ck"><span class="box"></span></td><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td><td>${esc(p.ubicacion||"")}</td><td class="n"><b>${fmt(q)}</b></td><td class="n">${(p.packUn||1)>1?fmt(Math.round(q/p.packUn*100)/100):"-"}</td><td class="rec"></td></tr>`; }).join("")}</tbody>
-      <tfoot><tr><td colspan="4">${ps.length} productos</td><td class="n"><b>${fmt(ps.reduce((a,p)=>a+(p.ubic[b.id]||0),0))}</b></td><td colspan="2"></td></tr></tfoot></table>`
-    : `<table class="ph-t"><thead><tr><th>Código</th><th>Producto</th>${bs.map(x=>`<th class="n g">${esc(bShort(x))}</th>`).join("")}<th class="n">Total</th></tr></thead>
-      <tbody>${ps.map(p=>`<tr><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td>${bs.map(x=>`<td class="n g">${(p.ubic[x.id]||0)?fmt(p.ubic[x.id]):""}</td>`).join("")}<td class="n"><b>${fmt(p.stock)}</b></td></tr>`).join("")}</tbody></table>`;
+    ? `<table class="ph-t"><thead><tr><th class="ck"></th><th>Código</th><th>Producto</th><th>Ubic.</th><th class="n">Packs</th><th class="n">Unidades</th><th class="rec">Conteo (packs)</th></tr></thead>
+      <tbody>${ps.map(p=>{ const q=p.ubic[b.id]||0; return `<tr><td class="ck"><span class="box"></span></td><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td><td>${esc(p.ubicacion||"")}</td><td class="n"><b>${fmtPk(toPk(q,p))}</b></td><td class="n">${pkn(p)>1?fmt(q):"-"}</td><td class="rec"></td></tr>`; }).join("")}</tbody>
+      <tfoot><tr><td colspan="4">${ps.length} productos</td><td class="n"><b>${fmtPk(ps.reduce((a,p)=>a+ubPk(p,b.id),0))}</b></td><td colspan="2"></td></tr></tfoot></table>`
+    : `<table class="ph-t"><thead><tr><th>Código</th><th>Producto</th>${bs.map(x=>`<th class="n g">${esc(bShort(x))}</th>`).join("")}<th class="n">Total (packs)</th></tr></thead>
+      <tbody>${ps.map(p=>`<tr><td>${esc(p.codigo||"")}</td><td><b>${esc(p.nombre)}</b></td>${bs.map(x=>`<td class="n g">${(p.ubic[x.id]||0)?fmtPk(ubPk(p,x.id)):""}</td>`).join("")}<td class="n"><b>${fmtPk(stkPk(p))}</b></td></tr>`).join("")}</tbody></table>`;
   imprimir(`<section class="ph-doc ${b?"":"ph-wide"}">${cab}${cuerpo}<div class="ph-firmas"><div>Contó</div><div>Revisó</div><div>Observaciones</div></div></section>`);
 }
 async function exportarInv(){
   if(!Store.dl || !window.XLSX) return;
   const {bs,b,ps}=invDatos(); if(!ps.length) return;
   const data=b
-    ? ps.map(p=>({"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad,"UBICACIÓN":p.ubicacion||"","UNIDADES":p.ubic[b.id]||0,"UN/PACK":p.packUn||1,"PACKS":(p.packUn||1)>1?Math.round((p.ubic[b.id]||0)/p.packUn*100)/100:"","MÍNIMO":minBod(p,b),"FALTA":faltaBod(p,b),"TOTAL GENERAL":p.stock}))
-    : ps.map(p=>{ const r={"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad}; bs.forEach(x=>{ r[x.nombre.toUpperCase()]=p.ubic[x.id]||0; }); r["TOTAL GENERAL"]=p.stock; return r; });
+    ? ps.map(p=>({"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UBICACIÓN":p.ubicacion||"","PACKS":Math.round(ubPk(p,b.id)*100)/100,"UN/PACK":pkn(p),"UNIDADES":p.ubic[b.id]||0,"MÍNIMO (PACKS)":minBod(p,b),"FALTA (PACKS)":Math.round(faltaBod(p,b)*100)/100,"TOTAL GENERAL (PACKS)":Math.round(stkPk(p)*100)/100}))
+    : ps.map(p=>{ const r={"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad}; bs.forEach(x=>{ r[x.nombre.toUpperCase()]=Math.round(ubPk(p,x.id)*100)/100; }); r["TOTAL GENERAL (PACKS)"]=Math.round(stkPk(p)*100)/100; return r; });
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), (b?b.nombre:"Todas").slice(0,30));
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"}), hoy=new Date().toISOString().slice(0,10);
   try{ await Store.dl.save({filename:`deposito-${b?norm(b.nombre).replace(/[^a-z0-9]+/g,"-"):"por-bodega"}-${hoy}.xlsx`, data:new Blob([buf])}); }
@@ -2216,10 +2237,10 @@ async function exportarInv(){
 /* ---------- Bodegas (admin) ---------- */
 function viewBodegas(){
   if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
-  const stockDe=b=>S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);
+  const stockDe=b=>packsBod(b);
   const fila=b=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)">
       <div style="flex:1;min-width:0">${b.tipo==="cooler"?`<b>${esc(b.nombre)}</b>`:`<button class="rowlink" data-invbod="${esc(b.id)}" title="Ver el inventario de esta bodega"><b>${esc(b.nombre)}</b></button>`}</div>
-      <div class="muted">${b.tipo==="cooler"?"Solo destino de picking":nProdBod(b)+" prod. · "+fmt(stockDe(b))+" un"}</div>
+      <div class="muted">${b.tipo==="cooler"?"Solo destino de picking":nProdBod(b)+" prod. · "+fmtPk(stockDe(b))+" packs"}</div>
       <button class="link" data-editbod="${b.id}">Editar</button>
     </div>`;
   const grupo=(tipo,t)=>{
