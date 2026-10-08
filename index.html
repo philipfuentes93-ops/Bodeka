@@ -612,9 +612,10 @@ td.n .ubin{display:block;margin-left:auto}
 .cmp th:first-child{background:var(--thead)}
 .cmp th button{all:unset;cursor:pointer;font-weight:700}
 .cmp th button:hover{color:var(--accent)}
+.cmp thead tr.sub2 th{font-size:.68rem;opacity:.85}
 .cmp tfoot td{border-top:2px solid var(--line);padding:10px}
 .icards{display:none}
-.inv-c{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.inv-c{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
 .inv-c label{display:flex;flex-direction:column;gap:3px;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 .inv-c label b{font-size:1.05rem;color:var(--ink);padding-top:6px}
 .inv-c .ubin{width:100%}
@@ -1479,9 +1480,9 @@ function expDetalle(p){
   const f=(k,t,v,extra="",cls="")=>`<div class="uf ${cls}"><label for="ef-${k}">${t}</label><input id="ef-${k}" data-ef="${k}" value="${esc(v)}" ${extra}></div>`;
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
-        <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b> ${lblPk(p)}<span>${suel(p.stock,p)?sueltasTxt(p.stock,p)+" · ":""}mínimo ${fmtPk(p.minimo)} packs</span></div>
+        <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b> ${lblPk(p)}<span>${fmt(p.stock)} unidades · mínimo ${fmtPk(p.minimo)} packs</span></div>
         <div class="exp-bodh">Stock por bodega (packs) · editable</div>
-        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${ubPk(p,b.id)||0}" aria-label="Packs en ${esc(b.nombre)}"></span></li>`).join("")}</ul>
+        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${ubPk(p,b.id)||0}" data-orig="${ubPk(p,b.id)||0}" aria-label="Packs en ${esc(b.nombre)}"> <small class="muted">${fmt(p.ubic[b.id]||0)} un</small></span></li>`).join("")}</ul>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
         ${f("nombre","Producto",p.nombre,'maxlength="120"',"wide")}
@@ -1512,7 +1513,7 @@ function pcard(p){
       <span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span>
     </div>
     <div class="pcard-mid">
-      <div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)} packs${suel(p.stock,p)?` · ${sueltasTxt(p.stock,p)}`:""}</span></div>
+      <div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)} packs · ${fmt(p.stock)} un</span></div>
       <div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div>
       ${chipVenc(p)}
     </div>
@@ -1545,6 +1546,7 @@ function viewTabla(){
     showCat&&{k:"categoria",t:"Categoría",v:p=>p.categoria||""},
     {k:"bodega",t:"Dónde está (packs)",v:p=>S.bod!=="todas"?ubPk(p,S.bod):stkPk(p)},
     {k:"stock",t:S.bod!=="todas"?"Stock general / mín. (packs)":"Stock / mín. (packs)",v:p=>stkPk(p)},
+    {k:"unid",t:"Unidades",n:1,v:p=>+p.stock||0},
     {k:"status",t:"Status",c:1,v:p=>["critico","minimo","ok"].indexOf(estado(p))},
     {k:"dias",t:"Vencimiento",v:p=>diasVenc(p)??1e9},
     showPedir&&{k:"pedir",t:"Pedir",n:1,v:pedir}
@@ -1560,10 +1562,11 @@ function viewTabla(){
       case "codigo": return `<td class="muted">${esc(p.codigo)||"-"}</td>`;
       case "nombre": return `<td class="prod"><button class="rowlink" data-open="${p.id}">${esc(p.nombre)}</button><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}${p.ubicacion?` · Ubic. ${esc(p.ubicacion)}`:""}</span></td>`;
       case "categoria": return `<td><span class="catpill" style="--c:${catColor(p.categoria)}">${esc(p.categoria)}</span></td>`;
-      case "bodega": { const ch=bods().filter(b=>b.tipo!=="cooler"&&(p.ubic[b.id]||0)>0).map(b=>`<span class="bchip${b.id===S.bod?" on":""}" title="${esc(b.nombre)}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(bShort(b))} <b>${fmtPk(ubPk(p,b.id))}</b>${suel(p.ubic[b.id],p)?` <span class="muted">+${suel(p.ubic[b.id],p)}</span>`:""}</span>`).join("");
+      case "bodega": { const ch=bods().filter(b=>b.tipo!=="cooler"&&(p.ubic[b.id]||0)>0).map(b=>`<span class="bchip${b.id===S.bod?" on":""}" title="${esc(b.nombre)}"><i class="dot" style="background:${pkColor(b.id)}"></i>${esc(bShort(b))} <b>${fmtPk(ubPk(p,b.id))}</b><span class="muted">· ${fmt(p.ubic[b.id])} un</span></span>`).join("");
         return `<td style="white-space:normal;min-width:170px;max-width:240px">${ch||'<span class="muted">-</span>'}</td>`; }
       case "stock": { const pct=Math.min(100,stkPk(p)/Math.max(1,(+p.minimo||0)*2)*100);
-        return `<td><div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)}</span></div>${suel(p.stock,p)?`<div class="sub">${sueltasTxt(p.stock,p)}</div>`:""}<div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div></td>`; }
+        return `<td><div class="stkv"><b style="color:${st==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b><span>/ ${fmtPk(p.minimo)}</span></div><div class="mbar ${ESTADO_CLS[st]==="ok"?"":ESTADO_CLS[st]}"><i style="width:${st==="critico"?0:pct}%"></i></div></td>`; }
+      case "unid": return `<td class="n">${fmt(p.stock)}</td>`;
       case "status": return `<td class="c"><span class="pill ${ESTADO_CLS[st]}">${ESTADO_TXT[st]}</span></td>`;
       case "dias": { const e=estVenc(p), d=diasVenc(p); if(e==="none") return `<td class="muted">-</td>`;
         return `<td>${fFecha(p.vencimiento)}<span class="vd" style="color:${e==="vencido"?"var(--danger)":e==="pv"?"var(--warn)":"var(--muted)"}">${e==="vencido"?`Vencido hace ${-d} d`:d===0?"Vence hoy":`${d} días`}</span></td>`; }
@@ -1599,10 +1602,10 @@ function viewMovs(){
   const th=(t,c="")=>`<th class="${c}"><span>${t}</span></th>`;
   const allM=rows.length&&rows.every(m=>S.msel.has(m.id));
   const bulkM=esAdmin&&S.msel.size?`<div class="bulk"><b>${S.msel.size} seleccionado${S.msel.size===1?"":"s"}</b><button class="btn danger sm" data-mdel>Eliminar del historial</button><span class="spacer"></span><button class="link" data-mclear>Quitar selección</button></div>`:"";
-  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:900px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","n")}${th("Stock final (packs)","n")}${th("Referencia")}</tr></thead>
+  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:1020px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","n")}${th("Cantidad (un)","n")}${th("Stock final (packs)","n")}${th("Stock final (un)","n")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
       return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
-      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmtPk(movPk(m))}${movSuel(m)?` <small class="muted">+${movSuel(m)} sueltas</small>`:""}</td><td class="n">${fmtPk(movSf(m))}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmtPk(movPk(m))}</td><td class="n">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmt(m.cantidad)}</td><td class="n">${fmtPk(movSf(m))}</td><td class="n">${fmt(m.stockFinal)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
 async function cambiarFotoInline(id, file){
@@ -1809,9 +1812,9 @@ function viewDocs(tipo){
   if(!ds.length) return head+`<div class="card empty">${S.docs.some(d=>d.tipo===tipo)?"Sin resultados para esa búsqueda.":`Aún no hay ${D.plural.toLowerCase()} registrad${R?"a":"o"}s.`}<div class="btns"><button class="btn brand" data-new="${tipo}">${D.nueva}</button></div></div>`;
   const tot=ds.length, pag=pager(tot), rows=ds.slice((S.page-1)*S.size,S.page*S.size);
   const th=t=>`<th><span>${t}</span></th>`;
-  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Packs</span></th><th class="c"><span>Opciones</span></th></tr></thead>
+  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th><th class="c"><span>Opciones</span></th></tr></thead>
     <tbody>${rows.map(d=>`<tr><td><button class="link" data-doc="${d.id}">${esc(d.folio)}</button></td><td>${fFecha(d.fecha)}</td><td>${esc(d.docTipo)}${d.docNum?" "+esc(d.docNum):""}</td><td class="prod">${esc(d.tercero)}</td>${R?"":`<td>${esc(d.solicitante)||'<span class="muted">-</span>'}</td>`}
-      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmtPk(docPacks(d))}</td>
+      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmtPk(docPacks(d))}</td><td class="n">${fmt(d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0))}</td>
       <td class="c"><div class="doc-acts"><button class="btn soft sm" data-docedit="${d.id}">Editar</button>${esAdmin?`<button class="btn danger sm" data-docdel="${d.id}">Eliminar</button>`:""}<button class="kebab" data-dmenu="${d.id}" aria-label="Más opciones de ${esc(d.folio)}" aria-haspopup="menu">⋮</button></div></td></tr>`).join("")}</tbody></table></div>${pag}</div>`;
 }
 function openDoc(id){
@@ -2152,57 +2155,65 @@ function viewInvBodega(b){
   const totPk=S.productos.reduce((a,p)=>a+stkPk(p),0), pkB=packsBod(b), un=uniBod(b), np=nProdBod(b);
   const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, pFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
   const kpi=(c,v,t,sub="")=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
-  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",packsSueltas(b)?`+ ${fmt(packsSueltas(b))} unidades sueltas`:"")}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes",nFalta?"packs":"")}</div>`;
+  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",`${fmt(un)} unidades`)}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes",nFalta?"packs":"")}</div>`;
   const ps=invFiltrados(b), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
   const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)} · ${fmt(p.ubic[x.id])} un"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmtPk(ubPk(p,x.id))}</b></span>`).join("")||'<span class="muted">-</span>';
-  const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="any" inputmode="decimal" ${attr} value="${val||val===0?val:""}" placeholder="${ph}">`;
+  const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="any" inputmode="decimal" ${attr} value="${val||val===0?val:""}" data-orig="${val||val===0?val:""}" placeholder="${ph}">`;
   const falta=p=>{ const f=faltaBod(p,b), m=minBod(p,b); return f>0?`<span class="pill venc" style="min-width:0">Falta ${fmtPk(f)}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
   const rowT=p=>{ const q=ubPk(p,b.id), share=p.stock?(p.ubic[b.id]||0)/p.stock*100:0;
     return `<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div></div></td>
       <td class="n">${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}</td>
-      <td class="n">${pkn(p)>1?inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades sueltas de ${esc(p.nombre)} en ${esc(b.nombre)}"`,suel(p.ubic[b.id],p)||"","0"):'<span class="muted">-</span>'}</td>
+      <td class="n">${inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,p.ubic[b.id]||0)}</td>
       <td class="n">${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</td>
       <td class="c">${falta(p)}</td>
       <td>${otras(p)}</td>
-      <td class="n"><b>${fmtPk(stkPk(p))}</b><span class="sub" style="text-align:right">${sueltasTxt(p.stock,p)}</span><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td></tr>`; };
+      <td class="n"><b>${fmtPk(stkPk(p))}</b><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td>
+      <td class="n">${fmt(p.stock)}</td></tr>`; };
   const cardT=p=>{ const q=ubPk(p,b.id);
     return `<div class="pcard"><div class="pcard-top"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div class="pcard-info"><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div>${falta(p)}</div>
       <div class="inv-c"><label>Packs${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}</label>
-        <label>Sueltas (un)${pkn(p)>1?inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades sueltas de ${esc(p.nombre)} en ${esc(b.nombre)}"`,suel(p.ubic[b.id],p)||"","0"):'<b class="muted">-</b>'}</label>
+        <label>Unidades${inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,p.ubic[b.id]||0)}</label>
         <label>Mínimo (packs)${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</label>
-        <label>Total general<b>${fmtPk(stkPk(p))}</b>${suel(p.stock,p)?`<small>${sueltasTxt(p.stock,p)}</small>`:""}</label></div>
+        <label>Total general<b>${fmtPk(stkPk(p))} <small>packs</small></b><small>${fmt(p.stock)} un</small></label></div>
       <div class="inv-o">${otras(p)}</div></div>`; };
   const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
   const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${invToolbar(extra)}
-      <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> que hay en <b>${esc(b.nombre)}</b> y el mínimo que debería tener. Las <b>sueltas</b> son las unidades que no completan un pack; solo se usan para el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
-    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:860px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí (packs)</span></th><th class="n"><span>Sueltas (un)</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total general (packs)</span></th></tr></thead>
+      <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> o las <b>unidades</b> que hay en <b>${esc(b.nombre)}</b> (se completan solas entre sí) y el mínimo en packs. Las unidades son las que usa el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:980px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí · Packs</span></th><th class="n"><span>Aquí · Unidades</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total · Packs</span></th><th class="n"><span>Total · Unidades</span></th></tr></thead>
       <tbody>${rows.map(rowT).join("")}</tbody></table></div><div class="pcards icards">${rows.map(cardT).join("")}</div>${pag}`:vacio}</div>`;
 }
 function viewInvComparar(bs){
   const ps=invFiltrados(null), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
-  const totB=b=>fmtPk(packsBod(b)), totG=S.productos.reduce((a,p)=>a+stkPk(p),0);
+  const totB=b=>fmtPk(packsBod(b)), totG=S.productos.reduce((a,p)=>a+stkPk(p),0), totU=S.productos.reduce((a,p)=>a+(+p.stock||0),0);
   const st=p=>{ const s=estado(p); return `<span class="pill ${ESTADO_CLS[s]}">${ESTADO_TXT[s]}</span>`; };
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${invToolbar()}
-    <p class="muted" style="margin:0;font-size:.84rem">Dónde está cada producto, en <b>packs</b>. El total general suma todas las bodegas: al sacar de una bodega baja el inventario general.</p></div>
-    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap" style="max-height:none"><table class="db cmp" style="min-width:${300+bs.length*120}px"><thead><tr><th><span>Producto</span></th>${bs.map(b=>`<th class="n"><button data-invbod="${esc(b.id)}"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</button></th>`).join("")}<th class="n"><span>Total general (packs)</span></th><th class="c"><span>Estado</span></th></tr></thead>
-      <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n" title="${fmt(p.ubic[b.id]||0)} unidades">${(p.ubic[b.id]||0)?fmtPk(ubPk(p,b.id))+(suel(p.ubic[b.id],p)?` <small class="muted">+${suel(p.ubic[b.id],p)}</small>`:""):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk" title="${fmt(p.stock)} un">${fmtPk(stkPk(p))}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
-      <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
+    <p class="muted" style="margin:0;font-size:.84rem">Dónde está cada producto, en <b>packs</b> y en <b>unidades</b>. El total general suma todas las bodegas: al sacar de una bodega baja el inventario general.</p></div>
+    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap" style="max-height:none"><table class="db cmp" style="min-width:${340+bs.length*170}px"><thead><tr><th rowspan="2"><span>Producto</span></th>${bs.map(b=>`<th class="n" colspan="2"><button data-invbod="${esc(b.id)}"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</button></th>`).join("")}<th class="n" colspan="2"><span>Total general</span></th><th class="c" rowspan="2"><span>Estado</span></th></tr>
+      <tr class="sub2">${bs.map(()=>'<th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th>').join("")}<th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${esc(p.unidad)}</span></div></div></td>${bs.map(b=>`<td class="n">${(p.ubic[b.id]||0)?fmtPk(ubPk(p,b.id)):'<span class="muted">-</span>'}</td><td class="n">${(p.ubic[b.id]||0)?fmt(p.ubic[b.id]):'<span class="muted">-</span>'}</td>`).join("")}<td class="n stk">${fmtPk(stkPk(p))}</td><td class="n">${fmt(p.stock)}</td><td class="c">${st(p)}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td><td class="n"><b>${fmt(uniBod(b))}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td class="n"><b>${fmt(totU)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
 }
 // Redibuja salvo que el usuario esté escribiendo en otra casilla de stock (no perder lo que teclea).
 function refrescarInv(){ setTimeout(()=>{ const ae=document.activeElement; if(!(ae&&ae.dataset&&(ae.dataset.ubq!==undefined||ae.dataset.ubmin!==undefined||ae.dataset.ubs!==undefined))) render(true); },220); }
-async function ajustarUbic(prodId, bodId, packsVal, sueltasVal){
+async function ajustarUbic(prodId, bodId, packsVal, unidadesVal){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
-  const old=p.ubic[bodId]||0, packs=Math.max(0,Math.floor(parseFloat(packsVal)||0));
-  const sl=sueltasVal===undefined ? suel(old,p) : Math.max(0,Math.round(parseFloat(sueltasVal)||0));   // sin casilla de sueltas se conservan las que hay
-  const v=packs*pkn(p)+sl;
+  const old=p.ubic[bodId]||0;
+  let v;   // si cambió la casilla de unidades manda ésta; si cambió la de packs se conservan las sueltas que ya hay
+  if(unidadesVal!==undefined) v=Math.max(0,Math.round(parseFloat(unidadesVal)||0));
+  else if(packsVal!==undefined) v=Math.max(0,Math.floor(parseFloat(packsVal)||0))*pkn(p)+suel(old,p);
+  else { refrescarInv(); return; }
   if(v===old){ refrescarInv(); return; }
   const ubic={...p.ubic,[bodId]:v}, now=new Date().toISOString();
   const np={...p, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
   try{
     await Store.putProducto(np);
-    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,cantidadPack:toPk(v,p),sueltas:suel(v,p),stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${txtStk(old,p)} → ${txtStk(v,p)}`,fecha:now});
-    toast(`${p.nombre}: ${txtStk(v,p)} en ${bodNom(bodId)}`);
+    await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:v,cantidadPack:toPk(v,p),sueltas:suel(v,p),stockFinal:np.stock,nota:`${bodNom(bodId)} · Ajuste manual: ${fmtPk(toPk(old,p))} packs (${fmt(old)} un) → ${fmtPk(toPk(v,p))} packs (${fmt(v)} un)`,fecha:now});
+    toast(`${p.nombre}: ${fmtPk(toPk(v,p))} packs · ${fmt(v)} un en ${bodNom(bodId)}`);
+    // Las casillas de esa fila quedan al día sin redibujar (para seguir escribiendo en otras).
+    const esc2=x=>String(x).replace(/"/g,'\\"');
+    document.querySelectorAll(`[data-ubq="${esc2(prodId)}"][data-ubb="${esc2(bodId)}"]`).forEach(i=>{ i.value=toPk(v,p); i.dataset.orig=String(toPk(v,p)); });
+    document.querySelectorAll(`[data-ubs="${esc2(prodId)}"][data-ubb="${esc2(bodId)}"]`).forEach(i=>{ i.value=v; i.dataset.orig=String(v); });
   }catch{ toast("No se pudo guardar. Revisa tu conexión."); }
   refrescarInv();
 }
@@ -2446,11 +2457,12 @@ const esUb = t => t && t.dataset && (t.dataset.ubq!==undefined || t.dataset.ubmi
 C.addEventListener("focusin",e=>{ if(esUb(e.target)) S.ubBusy=true; });
 C.addEventListener("focusout",e=>{ const t=e.target; if(!esUb(t)) return;
   S.ubBusy=true; setTimeout(()=>{ S.ubBusy=esUb(document.activeElement); },150);   // si pasa a otra casilla, no se redibuja
-  const fila=t.closest("tr,.pcard"), q=fila&&fila.querySelector("[data-ubq]"), sl=fila&&fila.querySelector("[data-ubs]");
+  const fila=t.closest("li,tr,.pcard"), q=fila&&fila.querySelector("[data-ubq]"), sl=fila&&fila.querySelector("[data-ubs]");
   const rt=e.relatedTarget; if(rt && fila && fila.contains(rt) && (t.dataset.ubq!==undefined||t.dataset.ubs!==undefined) && (rt.dataset.ubq!==undefined||rt.dataset.ubs!==undefined)) return;   // de packs a sueltas: se guarda al salir de la fila
-  if(t.dataset.ubq!==undefined) ajustarUbic(t.dataset.ubq, t.dataset.ubb, t.value, sl?sl.value:undefined);
-  else if(t.dataset.ubs!==undefined) ajustarUbic(t.dataset.ubs, t.dataset.ubb, q?q.value:0, t.value);
-  else fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
+  if(t.dataset.ubq!==undefined || t.dataset.ubs!==undefined){
+    const qc=q&&q.value!==q.dataset.orig, uc=sl&&sl.value!==sl.dataset.orig;
+    ajustarUbic(t.dataset.ubq??t.dataset.ubs, t.dataset.ubb, qc?q.value:undefined, uc?sl.value:undefined);
+  } else fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
 });
 C.addEventListener("wheel",e=>{ const t=e.target; if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined||t.dataset.ubs!==undefined)) t.blur(); },{passive:true});
 let tIn;
