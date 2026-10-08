@@ -349,9 +349,17 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
 .feed{list-style:none;margin:0;padding:0}
 .feed li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .feed li:last-child{border-bottom:0}
-.mico{display:inline-flex;vertical-align:-3px;margin-right:3px}
-.mico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.feed .fi .mico{margin:0}.feed .fi .mico svg{width:18px;height:18px}
+.mico{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;margin-right:7px;vertical-align:middle;background:linear-gradient(145deg,var(--g1),var(--g2));box-shadow:0 4px 10px color-mix(in srgb,var(--g2) 45%,transparent), inset 0 1px 0 rgba(255,255,255,.35)}
+.mico svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mq{display:inline-flex;align-items:center;font-weight:800;font-size:1rem}
+.mp{border:0;color:#fff !important;letter-spacing:.03em;text-transform:uppercase;font-size:.7rem !important;box-shadow:0 3px 8px rgba(0,0,0,.14)}
+.mp-entrada{background:linear-gradient(145deg,#2EE27B,#0CA24A) !important}
+.mp-salida{background:linear-gradient(145deg,#FF6A5C,#D62A1F) !important}
+.mp-ajuste{background:linear-gradient(145deg,#38C0FF,#1664D9) !important}
+.mp-picking,.mp-traspaso{background:linear-gradient(145deg,#A97BFF,#6B3BE0) !important}
+.feed .fi{background:none !important;width:auto !important;height:auto !important}
+.feed .fi .mico{margin:0;width:36px;height:36px;border-radius:11px}
+.feed .fi .mico svg{width:20px;height:20px}
 .feed .fi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel))}
 .feed .nm{font-weight:600;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .feed .sb{font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1342,13 +1350,14 @@ const ICON = {
   next:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>'
 };
 const MOV_ICO = {
-  entrada:{c:"var(--ok)",     t:"Ingreso", svg:'<path d="M12 19V5m0 0-6 6m6-6 6 6"/>'},
-  salida: {c:"var(--danger)", t:"Salida",  svg:'<path d="M12 5v14m0 0-6-6m6 6 6-6"/>'},
-  ajuste: {c:"var(--c1)",     t:"Conteo",  svg:'<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5V3h5v1.5M9.5 13.5l2 2 3.5-4.2"/>'},
-  picking:{c:"var(--c2)",     t:"Picking", svg:'<path d="M5 8h13m0 0-3-3m3 3-3 3M19 16H6m0 0 3-3m-3 3 3 3"/>'}
+  entrada:{g:["#2EE27B","#0CA24A"], t:"Ingreso", svg:'<path d="M12 19V5m0 0-6 6m6-6 6 6"/>'},
+  salida: {g:["#FF6A5C","#D62A1F"], t:"Salida",  svg:'<path d="M12 5v14m0 0-6-6m6 6 6-6"/>'},
+  ajuste: {g:["#38C0FF","#1664D9"], t:"Conteo",  svg:'<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5V3h5v1.5M9.5 13.5l2 2 3.5-4.2"/>'},
+  picking:{g:["#A97BFF","#6B3BE0"], t:"Picking", svg:'<path d="M5 8h13m0 0-3-3m3 3-3 3M19 16H6m0 0 3-3m-3 3 3 3"/>'}
 };
 MOV_ICO.traspaso={...MOV_ICO.picking, t:"Traspaso"};
-const movIco = t => { const i=MOV_ICO[t]||MOV_ICO.ajuste; return `<span class="mico" style="color:${i.c}" title="${i.t}"><svg viewBox="0 0 24 24" aria-label="${i.t}">${i.svg}</svg></span>`; };
+const movIco = t => { const i=MOV_ICO[t]||MOV_ICO.ajuste; return `<span class="mico" style="--g1:${i.g[0]};--g2:${i.g[1]}" title="${i.t}"><svg viewBox="0 0 24 24" aria-label="${i.t}">${i.svg}</svg></span>`; };
+const movCant = (m,txt) => `<span class="mq" style="color:${(MOV_ICO[m.tipo]||MOV_ICO.ajuste).g[1]}">${movIco(m.tipo)}${txt}</span>`;
 const TABS=[["todos","Todos"],["ok","Suficiente"],["reponer","Por reponer"],["critico","Sin stock"],["pv","Por vencer"],["vencido","Vencidos"]];
 const TABF={todos:()=>true, ok:p=>estado(p)==="ok", reponer:critico, critico:p=>estado(p)==="critico", pv:p=>estVenc(p)==="pv", vencido:p=>estVenc(p)==="vencido"};
 function baseList(){
@@ -1452,7 +1461,7 @@ function viewHome(){
         <div class="tbox" style="--c:var(--danger)"><span>Despachos</span><b>${cntD("despacho")}</b><small>${fmtPk(sumU("despacho"))} packs</small></div></div>
       <h3 style="margin:18px 0 6px">Últimos movimientos</h3>
       ${feed.length?`<ul class="feed">${feed.map(m=>{const t=TP[m.tipo]||TP.ajuste, d=new Date(m.fecha);
-        return `<li><span class="fi" style="--c:${t[1]}">${movIco(m.tipo)}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${movIco(m.tipo)}${fmtPk(movPk(m))}<small>queda ${fmtPk(movSf(m))}</small></div></li>`;}).join("")}</ul>
+        return `<li><span class="fi" style="--c:${t[1]}">${movIco(m.tipo)}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${fmtPk(movPk(m))}<small>queda ${fmtPk(movSf(m))}</small></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="movs">Ver todos</button>`:'<p class="mini-empty">Aún no hay movimientos.</p>'}</section>`;
   const donut = ps.length ? `<div class="span-4">${donutCard()}</div>` : "";
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
@@ -1616,7 +1625,7 @@ function viewMovs(){
   return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:860px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","n")}${th("Cantidad (un)","n")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
       return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
-      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${movIco(m.tipo)}${fmtPk(movPk(m))}</td><td class="n">${movIco(m.tipo)}${fmt(m.cantidad)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><span class="pill ${t[1]} mp mp-${m.tipo}">${t[0]}</span></td><td class="n stk">${movCant(m,fmtPk(movPk(m)))}</td><td class="n">${movCant(m,fmt(m.cantidad))}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
 async function cambiarFotoInline(id, file){
