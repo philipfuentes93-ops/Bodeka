@@ -349,6 +349,9 @@ tr.exp > td{padding:0 12px 14px !important;background:var(--panel) !important}
 .feed{list-style:none;margin:0;padding:0}
 .feed li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .feed li:last-child{border-bottom:0}
+.mico{display:inline-flex;vertical-align:-3px;margin-right:3px}
+.mico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.feed .fi .mico{margin:0}.feed .fi .mico svg{width:18px;height:18px}
 .feed .fi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel))}
 .feed .nm{font-weight:600;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .feed .sb{font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1338,6 +1341,14 @@ const ICON = {
   prev:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>',
   next:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>'
 };
+const MOV_ICO = {
+  entrada:{c:"var(--ok)",     t:"Ingreso", svg:'<path d="M12 19V5m0 0-6 6m6-6 6 6"/>'},
+  salida: {c:"var(--danger)", t:"Salida",  svg:'<path d="M12 5v14m0 0-6-6m6 6 6-6"/>'},
+  ajuste: {c:"var(--c1)",     t:"Conteo",  svg:'<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5V3h5v1.5M9.5 13.5l2 2 3.5-4.2"/>'},
+  picking:{c:"var(--c2)",     t:"Picking", svg:'<path d="M5 8h13m0 0-3-3m3 3-3 3M19 16H6m0 0 3-3m-3 3 3 3"/>'}
+};
+MOV_ICO.traspaso={...MOV_ICO.picking, t:"Traspaso"};
+const movIco = t => { const i=MOV_ICO[t]||MOV_ICO.ajuste; return `<span class="mico" style="color:${i.c}" title="${i.t}"><svg viewBox="0 0 24 24" aria-label="${i.t}">${i.svg}</svg></span>`; };
 const TABS=[["todos","Todos"],["ok","Suficiente"],["reponer","Por reponer"],["critico","Sin stock"],["pv","Por vencer"],["vencido","Vencidos"]];
 const TABF={todos:()=>true, ok:p=>estado(p)==="ok", reponer:critico, critico:p=>estado(p)==="critico", pv:p=>estVenc(p)==="pv", vencido:p=>estVenc(p)==="vencido"};
 function baseList(){
@@ -1434,14 +1445,14 @@ function viewHome(){
       <button class="link more" data-go="tabla" data-cat="todas" data-tab="vencido">Ver vencidos</button>`:'<p class="mini-empty">Sin productos vencidos ni próximos a vencer.</p>'}</section>`;
   const hoy=hoyISO(), dh=S.docs.filter(d=>d.fecha===hoy);
   const sumU=t=>dh.filter(d=>d.tipo===t).reduce((a,d)=>a+docPacks(d),0), cntD=t=>dh.filter(d=>d.tipo===t).length;
-  const TP={entrada:["+","var(--ok)"],salida:["−","var(--danger)"],ajuste:["=","var(--accent)"],picking:["↔","var(--c2)"]};
+  const TP={entrada:["+","var(--ok)"],salida:["−","var(--danger)"],ajuste:["=","var(--accent)"],picking:["↔","var(--c2)"],traspaso:["↔","var(--c2)"]};
   const feed=S.movs.slice(0,6);
   const actCard=`<section class="card dcard span-4"><h3>Actividad de hoy</h3>
       <div class="today"><div class="tbox" style="--c:var(--ok)"><span>Recepciones</span><b>${cntD("recepcion")}</b><small>${fmtPk(sumU("recepcion"))} packs</small></div>
         <div class="tbox" style="--c:var(--danger)"><span>Despachos</span><b>${cntD("despacho")}</b><small>${fmtPk(sumU("despacho"))} packs</small></div></div>
       <h3 style="margin:18px 0 6px">Últimos movimientos</h3>
       ${feed.length?`<ul class="feed">${feed.map(m=>{const t=TP[m.tipo]||TP.ajuste, d=new Date(m.fecha);
-        return `<li><span class="fi" style="--c:${t[1]}">${t[0]}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${t[0]}${fmtPk(movPk(m))}<small>queda ${fmtPk(movSf(m))}</small></div></li>`;}).join("")}</ul>
+        return `<li><span class="fi" style="--c:${t[1]}">${movIco(m.tipo)}</span><div style="min-width:0"><div class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</div><div class="sb">${esc(m.folio||(m.tipo==="ajuste"?"Conteo":""))}${m.folio||m.tipo==="ajuste"?" · ":""}${d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})}</div></div><div class="q" style="color:${t[1]}">${movIco(m.tipo)}${fmtPk(movPk(m))}<small>queda ${fmtPk(movSf(m))}</small></div></li>`;}).join("")}</ul>
       <button class="link more" data-go="movs">Ver todos</button>`:'<p class="mini-empty">Aún no hay movimientos.</p>'}</section>`;
   const donut = ps.length ? `<div class="span-4">${donutCard()}</div>` : "";
   const bodGrupo=(tipo,t)=>{ const bs=bods(tipo);
@@ -1470,7 +1481,7 @@ function overview(){
     <button class="ov-i" data-tab="vencido"><span>Vencidos</span><b class="r">${n(p=>estVenc(p)==="vencido")}</b></button>
     <button class="ov-i" data-tab="pv"><span>Por vencer (${DIAS_AVISO} días)</span><b class="w">${n(p=>estVenc(p)==="pv")}</b></button>
     <hr><p class="ov-t">Movimientos recientes</p>
-    ${S.movs.length?`<ul class="ov-m">${S.movs.slice(0,6).map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</span><span class="q">${t[2]}${fmtPk(movPk(m))}</span></li>`;}).join("")}</ul><button class="link" data-go="movs">Ver todos</button>`:'<p class="muted" style="margin:0;font-size:.84rem">Aún no hay movimientos.</p>'}
+    ${S.movs.length?`<ul class="ov-m">${S.movs.slice(0,6).map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span class="nm" title="${esc(m.nombre)}">${esc(m.nombre)}</span><span class="q">${movIco(m.tipo)}${fmtPk(movPk(m))}</span></li>`;}).join("")}</ul><button class="link" data-go="movs">Ver todos</button>`:'<p class="muted" style="margin:0;font-size:.84rem">Aún no hay movimientos.</p>'}
   </aside>`;
 }
 
@@ -1494,7 +1505,7 @@ function expDetalle(p){
         ${f("ubicacion","Ubicación",p.ubicacion||"",'maxlength="20"')}
         ${f("vencimiento","Vencimiento",p.vencimiento||"",'type="date"')}
       </div>
-      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${t[2]}${fmtPk(movPk(m))}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
+      <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${movIco(m.tipo)}${fmtPk(movPk(m))}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
     </div>
     <div class="exp-foot"><button class="link danger" data-delp="${p.id}">Eliminar producto</button><span class="spacer"></span>
       <span class="saved ${S.saved===p.id?"ok":""}">${S.saved===p.id?"✓ Guardado automáticamente":"Los cambios se guardan automáticamente"}</span></div>`;
@@ -1605,7 +1616,7 @@ function viewMovs(){
   return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:860px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","n")}${th("Cantidad (un)","n")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
       return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
-      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmtPk(movPk(m))}</td><td class="n">${m.tipo==="salida"?"−":m.tipo==="entrada"?"+":""}${fmt(m.cantidad)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><span class="pill ${t[1]}">${t[0]}</span></td><td class="n stk">${movIco(m.tipo)}${fmtPk(movPk(m))}</td><td class="n">${movIco(m.tipo)}${fmt(m.cantidad)}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
 async function cambiarFotoInline(id, file){
