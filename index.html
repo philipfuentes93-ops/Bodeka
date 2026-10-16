@@ -802,6 +802,7 @@ td.n .ubin{display:block;margin-left:auto}
   .mz-items li.mz-rp{grid-template-columns:minmax(0,1fr) auto}
   .mz-items li.mz-rp .btn,.mz-items li.mz-rp .mz-pill{grid-column:1/-1;justify-self:start}
 }
+.mz-first{background:var(--accent-soft);color:var(--ink);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:.88rem}
 </style>
 </head>
 <body>
@@ -2540,10 +2541,10 @@ function viewInvMapa(b,M){
 /* ---------- Tomar inventario físico (toda la bodega) ---------- */
 const mzDif = (txt,sys) => { if(txt===undefined||txt==="") return {t:"–",c:"zero"}; const d=Math.round(((parseFloat(txt)||0)-sys)*100)/100; return {t:(d>0?"+":"")+fmtPk(d), c:d<0?"neg":d>0?"pos":"zero"}; };
 function mzInvN(){ return Object.keys(S.mzInv).filter(k=>S.mzInv[k]!=="").length + Object.keys(S.mzAsig).filter(k=>S.mzAsig[k]).length; }
-function mzInvCalc(b,M){
+function mzInvCalc(b,M,only){
   const V=S.mzInv, por=new Map(), cambios=[], errs=[], zonasContadas=new Set();
   const get=p=>{ if(!por.has(p.id)){ const ef=zonasEf(p,b,M); por.set(p.id,{p,ef,zonas:{...ef.z}, zmin:{...(p.zmin||{})}, zmax:{...(p.zmax||{})}, ubic:(p.ubic||{})[b.id]||0, notas:[]}); } return por.get(p.id); };
-  M.zonas.forEach(z=>{ mzItems(b,M,z).forEach(({p,ef})=>{
+  (only ? M.zonas.filter(z=>z.id===only) : M.zonas).forEach(z=>{ mzItems(b,M,z).forEach(({p,ef})=>{
     const key=p.id+"|"+z.id, old=ef.z[z.id]||0, sysV=mzVal(old,p,z), u=mzUn(z), cv=V[key], mv=V[key+"|m"], xv=V[key+"|x"];
     const R=get(p);
     if(cv!==undefined && cv!==""){
@@ -2558,6 +2559,7 @@ function mzInvCalc(b,M){
     if(nm>0 && nx>0 && nx<nm) errs.push(`${p.nombre} · ${z.n}: el máximo (${nx}) no puede ser menor que el mínimo (${nm}).`);
   }); });
   S.productos.forEach(p=>{
+    if(only && only!=="libre") return;
     const ef=zonasEf(p,b,M); if(ef.libre<=0) return;
     const cv=V[p.id+"|libre"], zid=S.mzAsig[p.id], z=zid&&M.zonas.find(x=>x.id===zid);
     if((cv===undefined||cv==="") && !z) return;
@@ -2583,7 +2585,7 @@ function viewInvInventario(b,M){
           <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzi="${esc(key)}" data-sys="${sysV}" value="${esc(V[key]??"")}" placeholder="${sysV}" aria-label="Contado de ${esc(p.nombre)} en ${esc(z.n)}">
           <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
           ${mm?`<input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzim="${esc(key)}" value="${esc(V[key+"|m"]??(mzMin(p,z)||""))}" placeholder="—" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(z.n)}"><input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzix="${esc(key)}" value="${esc(V[key+"|x"]??(mzMax(p,z)||""))}" placeholder="—" aria-label="Máximo de ${esc(p.nombre)} en ${esc(z.n)}">`:""}</li>`; }).join("")}</ul>
-        <div class="mz-acts"><button class="btn ghost sm" type="button" data-mzok="${z.id}">Todo coincide</button></div>`
+        <div class="mz-acts">${its.some(({p,ef})=>(ef.z[z.id]||0)>0)?`<button class="btn ghost sm" type="button" data-mzok="${z.id}" title="Pone en Contado lo que dice el sistema. Úsalo solo si la zona está tal cual.">Todo coincide</button>`:""}<button class="btn brand sm" type="button" data-mzsz="${z.id}">Guardar esta zona</button></div>`
       :`<div class="mz-empty" style="padding:12px 8px">Aún no hay productos en esta zona. Agrégalos aquí abajo.</div>`}${addBox(z)}</div>`; };
   const libres=S.productos.map(p=>({p,ef:zonasEf(p,b,M)})).filter(x=>x.ef.libre>0).sort((a,c)=>a.p.nombre.localeCompare(c.p.nombre,"es"));
   const opts=`<option value="">Sin asignar</option>`+M.zonas.map(z=>`<option value="${z.id}">${z.corto} · ${esc(z.n)}</option>`).join("");
@@ -2592,10 +2594,11 @@ function viewInvInventario(b,M){
       return `<li class="mz-ir mz-il"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${suel(ef.libre,p)>0?` · + ${suel(ef.libre,p)} sueltas`:""}</span></span><span class="mz-sys">${fmtPk(sysV)}</span>
         <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzi="${esc(key)}" data-sys="${sysV}" value="${esc(V[key]??"")}" placeholder="${sysV}" aria-label="Contado de ${esc(p.nombre)} sin zona">
         <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
-        <select class="mz-sel" data-mzia="${esc(p.id)}" aria-label="Asignar ${esc(p.nombre)} a una zona">${opts.replace(`value="${S.mzAsig[p.id]}"`,`value="${S.mzAsig[p.id]}" selected`)}</select></li>`; }).join("")}</ul></div>`:"";
+        <select class="mz-sel" data-mzia="${esc(p.id)}" aria-label="Asignar ${esc(p.nombre)} a una zona">${opts.replace(`value="${S.mzAsig[p.id]}"`,`value="${S.mzAsig[p.id]}" selected`)}</select></li>`; }).join("")}</ul><div class="mz-acts"><button class="btn brand sm" type="button" data-mzsz="libre">Guardar esta sección</button></div></div>`:"";
   return `<div class="card mz-wrap" style="margin-top:14px;padding:18px"><div class="mz-ch"><div><h2>Tomar inventario físico · ${esc(b.nombre)}</h2><span class="mz-hint">Cuenta zona por zona. Si falta un producto, agrégalo con el buscador de esa zona (si no existe, créalo). Lo que dejes en blanco no cambia y antes de guardar ves las diferencias.</span></div></div>
     <div class="mz-bar" style="margin-top:12px"><label class="chk"><input type="checkbox" data-mzmm ${mm?"checked":""}> Definir mínimo y máximo de cada ubicación</label><span class="spacer"></span>
       <button class="btn ghost sm" type="button" data-mzexit>Cancelar</button><button class="btn brand sm" type="button" data-mzrev ${n?"":"disabled"}>Revisar y guardar${n?` (${n})`:""}</button></div>
+    ${S.productos.some(p=>(p.ubic[b.id]||0)>0)?"":`<div class="mz-first"><b>Primera carga:</b> en cada zona busca el producto (nombre o código) y toca Enter, escribe cuántos hay y Enter para pasar al siguiente. Cuando termines una zona toca <b>Guardar esta zona</b>: queda guardada y puedes seguir después.</div>`}
     <p class="mz-hint" style="margin:10px 0 0"><b>Reposición</b>: se cuentan packs cerrados. <b>Picking</b>: unidades abiertas. <b>Mínimo</b>: cuándo avisar que hay que reponer. <b>Máximo</b>: hasta dónde reponer.</p></div>
     ${M.zonas.map(sec).join("")}${secL}
     <div class="card" style="margin-top:14px;padding:14px 18px"><div class="mz-bar"><span class="mz-hint" data-mzn>${n?`${n} dato${n===1?"":"s"} ingresado${n===1?"":"s"}`:"Aún no ingresas datos."}</span><span class="spacer"></span><button class="btn brand" type="button" data-mzrev ${n?"":"disabled"}>Revisar y guardar${n?` (${n})`:""}</button></div></div>`;
@@ -2610,9 +2613,11 @@ function mzInvRevision(b,M){
     ${otros.length?`<h3 style="margin:14px 0 4px;font-size:.95rem">Otros cambios</h3><ul class="mz-items">${otros.map(fila).join("")}</ul>`:""}
     <div class="mz-acts"><button class="btn brand" type="button" data-mzapply ${errs.length||!cambios.length&&!mzInvN()?"disabled":""}>Confirmar y actualizar stock</button><button class="btn ghost" type="button" data-mzback>Volver a editar</button></div></div>`;
 }
-async function mzInvAplicar(){
+async function mzInvAplicar(only){
   const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b); if(!M) return;
-  const {por,errs,zonasContadas}=mzInvCalc(b,M); if(errs.length) return;
+  const {por,errs,zonasContadas}=mzInvCalc(b,M,only); if(errs.length){ if(only) toast(errs[0]); return; }
+  const zN=only==="libre"?"Sin zona":((M.zonas.find(z=>z.id===only)||{}).n||"");
+  if(only && !Object.keys(S.mzInv).some(k=>k.split("|")[1]===only && S.mzInv[k]!=="") && !(only==="libre" && Object.values(S.mzAsig).some(Boolean))){ toast(`${zN}: aún no ingresas datos para guardar.`); return; }
   let nProd=0, nMov=0;
   for(const R of por.values()){
     const {p}=R, ubic0=(p.ubic||{})[b.id]||0, now=new Date().toISOString();
@@ -2624,6 +2629,11 @@ async function mzInvAplicar(){
       nota:`${b.nombre} · Inventario físico · ${R.notas.join(" · ")}`,fecha:now}); nMov++; }
   }
   zonasContadas.forEach(id=>S.mpDone.add(id));
+  if(only){   // se guarda solo esa zona; lo escrito en las demás sigue ahí
+    Object.keys(S.mzInv).forEach(k=>{ if(k.split("|")[1]===only) delete S.mzInv[k]; });
+    if(only==="libre") S.mzAsig={};
+    S.mzRev=false; toast(`${zN}: guardado${nProd?` · ${nProd} producto${nProd===1?"":"s"} actualizado${nProd===1?"":"s"}`:""}`); render(true); return;
+  }
   S.mzInv={}; S.mzAsig={}; S.mzRev=false; S.invVista="mapa";
   toast(nProd?`Inventario guardado: ${nProd} producto${nProd===1?"":"s"} actualizado${nProd===1?"":"s"}${nMov?` · ${nMov} ajuste${nMov===1?"":"s"} de stock`:""}`:"Inventario guardado: sin diferencias"); render(true); window.scrollTo?.(0,0);
 }
@@ -2680,9 +2690,11 @@ function viewInvBodegaMapa(b,M){ return S.invVista==="inventario"?viewInvInventa
 function mzCtx(){ const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b), z=M&&M.zonas.find(x=>x.id===S.mpSel); return {b,M,z}; }
 async function mzAgregar(prodId, zid){
   const {b,M}=mzCtx(), z=M&&M.zonas.find(x=>x.id===(zid||S.mpSel)), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
+  clearTimeout(tIn);   // si había una búsqueda pendiente de dibujarse, no debe pisar esta pantalla
   const ef=zonasEf(p,b,M); S.mpAddQ=""; S.mzAddZ=null;
   await Store.putProducto({...p, zonas:{...ef.z,[z.id]:ef.z[z.id]??0}, actualizado:new Date().toISOString()});
   toast(`${p.nombre} agregado a ${z.n}`); render(true);
+  if(S.invVista==="inventario") document.querySelector(`[data-mzi="${p.id}|${z.id}"]`)?.focus();
 }
 async function mzQuitar(prodId){
   const {b,M,z}=mzCtx(), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
@@ -2740,6 +2752,7 @@ function mzClick(t){
   if(t.closest("[data-mzrev]")){ S.mzRev=true; render(true); window.scrollTo?.(0,0); return true; }
   if(t.closest("[data-mzback]")){ S.mzRev=false; render(true); return true; }
   if(t.closest("[data-mzapply]")){ mzInvAplicar(); return true; }
+  const sz=t.closest("[data-mzsz]"); if(sz){ mzInvAplicar(sz.dataset.mzsz); return true; }
   if(t.closest("[data-mzexit]")){ if(mzInvN() && !confirm("¿Descartar las cantidades ingresadas?")) return true; S.mzInv={}; S.mzAsig={}; S.mzRev=false; S.invVista="mapa"; render(true); return true; }
   const lc=t.closest("[data-mzloc]"); if(lc){ mzReponerLocal(lc.dataset.mzloc); return true; }
   if(t.closest("[data-mztras]")){ mzArmarTraspaso(); return true; }
@@ -3115,7 +3128,11 @@ C.addEventListener("input",e=>{
 C.addEventListener("keydown",e=>{
   const t=e.target;
   const zg=t.closest&&t.closest(".mz-z"); if(zg && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); zg.dispatchEvent(new MouseEvent("click",{bubbles:true})); return; }
-  if(t.dataset && ["mzq","mzm","mzx","mzi","mzim","mzix"].some(k=>t.dataset[k]!==undefined) && e.key==="Enter"){ e.preventDefault(); const ins=[...C.querySelectorAll("[data-mzq],[data-mzm],[data-mzx],[data-mzi],[data-mzim],[data-mzix]")], i=ins.indexOf(t); (ins[i+1]||C.querySelector("[data-mzsave],[data-mzrev]"))?.focus(); return; }
+  if(t.id && (t.id==="mpadd"||t.id.startsWith("mpadd-")) && e.key==="Enter"){ e.preventDefault();
+    const zid=t.dataset.mzaddz||S.mpSel, q=norm(t.value), p=q&&S.productos.find(x=>!(x.zonas&&x.zonas[zid]!==undefined) && norm(x.nombre+" "+(x.codigo||"")).includes(q));
+    if(p) mzAgregar(p.id,zid); else if(q) toast("No hay un producto con ese nombre en esta zona. Puedes crearlo con «Crear un producto nuevo».");
+    return; }
+  if(t.dataset && ["mzq","mzm","mzx","mzi","mzim","mzix"].some(k=>t.dataset[k]!==undefined) && e.key==="Enter"){ e.preventDefault(); const ins=[...C.querySelectorAll("[data-mzq],[data-mzm],[data-mzx],[data-mzi],[data-mzim],[data-mzix],[id^=\"mpadd-\"]")], i=ins.indexOf(t); (ins[i+1]||C.querySelector("[data-mzsave],[data-mzrev]"))?.focus(); return; }
   if(t.id==="pick"){
     const box=$("#sugs"), items=box?[...box.querySelectorAll("[data-pick]")]:[], hi=items.findIndex(x=>x.classList.contains("hl"));
     if(e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value); const sel=items[hi]?.dataset.pick || (r[0]&&r[0].id);
