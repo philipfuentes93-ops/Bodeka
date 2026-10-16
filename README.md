@@ -40,6 +40,15 @@ Cada vez que agregues a alguien, edita la lista de correos y vuelve a publicar.
 
 Desde ahí, cada cambio que subas a la rama `main` se publica solo.
 
+## Mapa 3D de bodega (Tránsito Piso 11)
+
+En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega dibujada y sus zonas:
+
+- **Reposición** (azul): packs cerrados. **Picking** (naranja): unidades abiertas para cargar el cooler.
+- Tocar una zona muestra sus productos, su mínimo y su estado. **Contar zona** guarda el conteo de una vez y deja un movimiento de ajuste por cada producto que cambió.
+- Los productos se asignan a zonas (`zonas` y `zmin` en cada producto). El stock de la bodega sigue siendo el de siempre; lo que no está en una zona aparece en **Sin zona** para asignarlo.
+- Solo existe para el Piso 11. El Piso 14 tiene otra distribución y se configura después.
+
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
 En iPhone: Safari > Compartir > **Agregar a pantalla de inicio**.

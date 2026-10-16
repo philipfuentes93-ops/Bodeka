@@ -24,6 +24,8 @@
   --accent:#0E7C70; --accent-soft:#E0F1EE; --tab:#DCEEEA;
   --ok:#17935F; --ok-soft:#E3F5EC; --warn:#C98200; --warn-soft:#FFF2D6; --danger:#DD4236; --danger-soft:#FDE8E6;
   --c1:#2A8CA3; --c2:#7358C9; --c3:#D07A22; --c4:#3E8E47; --c5:#C24D79; --c6:#4A67C8;
+  --mz-rep:#2A67D6; --mz-rep-soft:#E3ECFC; --mz-pick:#E07A0B; --mz-pick-soft:#FDEBD5; --mz-sc1:#EAF3F1; --mz-sc2:#D9E9E6; --mz-floor:#DDD6C8; --mz-floorline:#CBC3B3;
+  --mz-wl:#E3ECEA; --mz-wr:#F3F7F6; --mz-base:#C8D3D1; --mz-sht:#FFFFFF; --mz-shl:#D3DBDA; --mz-shr:#E4EAE9;
   --brand:var(--accent); --link:var(--accent);
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -35,6 +37,8 @@
     --accent:#3CC2AE; --accent-soft:#16332F; --tab:#173230;
     --ok:#3DC48A; --ok-soft:#173327; --warn:#F0B43C; --warn-soft:#3A2E14; --danger:#F06B61; --danger-soft:#3D1D1B;
     --c1:#4DB3C9; --c2:#9C85EC; --c3:#EA9C52; --c4:#6CC076; --c5:#E27BA2; --c6:#7F98EA;
+  --mz-rep:#6F9DF5; --mz-rep-soft:#1B2B4A; --mz-pick:#F5A04A; --mz-pick-soft:#46300F; --mz-sc1:#112B2D; --mz-sc2:#0D2123; --mz-floor:#2B3C3C; --mz-floorline:#364949;
+  --mz-wl:#1E3436; --mz-wr:#26403F; --mz-base:#18292A; --mz-sht:#4A6567; --mz-shl:#334B4D; --mz-shr:#3D5658;
   }
 }
 :root[data-theme="dark"]{
@@ -43,6 +47,8 @@
   --accent:#3CC2AE; --accent-soft:#16332F; --tab:#173230;
   --ok:#3DC48A; --ok-soft:#173327; --warn:#F0B43C; --warn-soft:#3A2E14; --danger:#F06B61; --danger-soft:#3D1D1B;
   --c1:#4DB3C9; --c2:#9C85EC; --c3:#EA9C52; --c4:#6CC076; --c5:#E27BA2; --c6:#7F98EA;
+  --mz-rep:#6F9DF5; --mz-rep-soft:#1B2B4A; --mz-pick:#F5A04A; --mz-pick-soft:#46300F; --mz-sc1:#112B2D; --mz-sc2:#0D2123; --mz-floor:#2B3C3C; --mz-floorline:#364949;
+  --mz-wl:#1E3436; --mz-wr:#26403F; --mz-base:#18292A; --mz-sht:#4A6567; --mz-shl:#334B4D; --mz-shr:#3D5658;
 }
 html,body{height:100%}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -693,6 +699,75 @@ td.n .ubin{display:block;margin-left:auto}
   .ph-firmas{display:flex;gap:28px;margin-top:38px;page-break-inside:avoid}
   .ph-firmas div{flex:1;padding-top:6px;border-top:1px solid #000;text-align:center;font-size:11px}
 }
+/* Mapa 3D de bodega (Tránsito Piso 11) */
+.mz-sw{margin-top:14px}
+.mz-seg{display:inline-flex;gap:2px;background:var(--field);border-radius:10px;padding:3px;max-width:100%}
+.mz-seg button{border:0;background:none;padding:7px 13px;border-radius:8px;font-weight:700;font-size:.82rem;color:var(--muted)}
+.mz-seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.mz-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.mz-bar .spacer{flex:1}
+.mz-prog{display:flex;align-items:center;gap:10px;font-size:.8rem;font-weight:600;color:var(--muted)}
+.mz-prog i{display:block;width:120px;height:7px;border-radius:99px;background:var(--field);overflow:hidden}
+.mz-prog b{display:block;height:100%;background:var(--accent);border-radius:99px}
+.mz-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0;font-size:.82rem;color:var(--muted)}
+.mz-legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+.mz-split{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.mz-split{grid-template-columns:minmax(0,1fr)}}
+.mz-t-rep{--zc:var(--mz-rep)} .mz-t-pick{--zc:var(--mz-pick)}
+.mz-s-ok{--zc:var(--ok)} .mz-s-warn{--zc:var(--warn)} .mz-s-bad{--zc:var(--danger)} .mz-s-none{--zc:var(--muted)}
+.mz-scene{position:relative;width:100%;max-width:520px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,var(--mz-sc1),var(--mz-sc2));box-shadow:0 1px 2px rgba(16,41,44,.08),0 8px 24px rgba(16,41,44,.08)}
+.mz-scene svg{display:block;width:100%;height:auto}
+.mz-scene .mz-st polygon,.mz-scene .mz-st path,.mz-scene .mz-st ellipse,.mz-scene .mz-st rect{stroke:rgba(10,30,32,.2);stroke-width:.7;stroke-linejoin:round}
+.mz-scene .mz-st .mz-fl{fill:none;stroke:var(--mz-floorline);stroke-width:1}
+.mz-scene .mz-st .mz-shd{fill:rgba(0,0,0,.18);stroke:none}
+.mz-scene .mz-st .mz-fcbg{fill:var(--ink);opacity:.85;stroke:none}
+.mz-scene .mz-st .mz-fcbg.soft{opacity:.5}
+.mz-scene .mz-fctx{font:700 11px "Plus Jakarta Sans",system-ui,sans-serif;fill:var(--panel);text-anchor:middle;letter-spacing:.02em}
+.mz-scene .mz-z{cursor:pointer;outline:none}
+.mz-scene .mz-z polygon{fill:color-mix(in srgb,var(--zc) 13%,transparent);stroke:var(--zc);stroke-width:1.8;stroke-linejoin:round;transition:fill .15s}
+.mz-scene .mz-z:hover polygon{fill:color-mix(in srgb,var(--zc) 28%,transparent)}
+.mz-scene .mz-z[aria-pressed="true"] polygon,.mz-scene .mz-hit polygon{fill:color-mix(in srgb,var(--zc) 40%,transparent);stroke-width:3.2}
+.mz-scene .mz-z[aria-pressed="true"],.mz-scene .mz-hit{filter:drop-shadow(0 0 5px var(--zc))}
+.mz-scene .mz-z:focus-visible polygon{stroke-width:3.5;stroke-dasharray:5 3}
+.mz-scene .mz-dim{opacity:.18}
+.mz-scene .mz-pinbg{fill:var(--zc)}
+.mz-scene .mz-pintx{font:700 12px "Plus Jakarta Sans",system-ui,sans-serif;fill:#fff;text-anchor:middle}
+.mz-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.mz-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.mz-ch h2{margin:0;font-size:1.1rem}
+.mz-hint{font-size:.82rem;color:var(--muted)}
+.mz-desc{margin:8px 0 10px;font-size:.88rem;color:var(--muted)}
+.mz-pill{display:inline-flex;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.mz-pill.rep{background:var(--mz-rep-soft);color:var(--mz-rep)} .mz-pill.pick{background:var(--mz-pick-soft);color:var(--mz-pick)}
+.mz-pill.ok{background:var(--ok-soft);color:var(--ok)} .mz-pill.warn{background:var(--warn-soft);color:var(--warn)} .mz-pill.bad{background:var(--danger-soft);color:var(--danger)} .mz-pill.none{background:var(--field);color:var(--muted)}
+.mz-items{list-style:none;margin:0;padding:0}
+.mz-items li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 14px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.mz-items li:first-child{border-top:0}
+.mz-nm{font-weight:700;min-width:0}
+.mz-sub{display:block;font-weight:500;font-size:.78rem;color:var(--muted)}
+.mz-num{font-weight:800;font-size:1.05rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mz-num small{font-weight:600;font-size:.74rem;color:var(--muted)}
+.mz-num .mz-sl{display:block;font-size:.72rem}
+.mz-ci-h,.mz-items li.mz-ci{display:grid;grid-template-columns:minmax(0,1fr) 84px 72px 26px;gap:6px 12px;align-items:center}
+.mz-ci-h{font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.mz-ci-h span:nth-child(n+2){text-align:right}
+.mz-in{width:100%;min-width:0;text-align:right;border:1px solid var(--line);background:var(--field);border-radius:8px;padding:7px 8px;font-weight:700;font-variant-numeric:tabular-nums}
+.mz-in:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.mz-x{border:0;background:none;color:var(--muted);font-size:1.25rem;line-height:1;padding:2px 4px;border-radius:6px}
+.mz-x:hover{color:var(--danger);background:var(--danger-soft)}
+.mz-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mz-add{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.mz-res{list-style:none;margin:6px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mz-res li{border-top:1px solid var(--line)} .mz-res li:first-child{border-top:0}
+.mz-res button{display:block;width:100%;text-align:left;border:0;background:var(--panel);padding:9px 12px;font-weight:600}
+.mz-res button:hover,.mz-res button:focus-visible{background:var(--accent-soft)}
+.mz-res b{color:var(--accent);margin-right:4px}
+.mz-empty{color:var(--muted);padding:26px 8px;text-align:center}
+.mz-lib h3{margin:0;font-size:1rem}
+.mz-lib{padding:16px 18px}
+.mz-items li.mz-lb{grid-template-columns:minmax(0,1fr) auto minmax(0,190px)}
+.mz-sel{width:100%;min-width:0;border:1px solid var(--line);background:var(--field);border-radius:8px;padding:7px 8px}
+@media (max-width:600px){.mz-items li.mz-lb{grid-template-columns:minmax(0,1fr) auto}.mz-items li.mz-lb .mz-sel{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -897,6 +972,7 @@ const esCooler = id => (S.bodegas.find(b=>b.id===id)||{}).tipo==="cooler";
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
 const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkModo:"picking", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, msel:new Set(), bfNombre:"", bfTipo:"picking", bfErr:""};
+Object.assign(S,{invVista:"mapa", mpSel:null, mpModo:"tipo", mpQ:"", mpAddQ:"", mpCnt:false, mpDone:new Set()});   // mapa 3D de bodega
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -922,6 +998,8 @@ function fixProd(p){
   Object.keys(q.ubic).forEach(k=>{ q.ubic[k]=+q.ubic[k]||0; });
   S.bodegas.forEach(b=>{ if(b.tipo==="cooler") delete q.ubic[b.id]; });   // los coolers no llevan inventario
   q.minUbic = Object.fromEntries(Object.entries(q.minUbic||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
+  q.zonas = Object.fromEntries(Object.entries(q.zonas||{}).map(([k,v])=>[k,Math.max(0,Math.round(+v||0))]));   // unidades por zona del mapa de bodega
+  q.zmin = Object.fromEntries(Object.entries(q.zmin||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.stock = Object.values(q.ubic).reduce((a,n)=>a+n,0);
   return q;
 }
@@ -1145,13 +1223,13 @@ $("#fProd").addEventListener("submit", async e=>{
   if(!prev && codigo && S.productos.some(x=>x.codigo===codigo)){ $("#pErr").textContent="Ya existe un producto con ese código."; return; }
   const p={ id: prev?prev.id:(codigo?idFromCode(codigo):uid()), codigo, nombre,
     unidad:$("#pUnd").value.trim().toUpperCase()||"UN", categoria:$("#pCat").value.trim()||"Sin categoría",
-    bodega:prev?.bodega||"", ubicacion:$("#pUbic").value.trim(), minUbic:prev?.minUbic||{},
+    bodega:prev?.bodega||"", ubicacion:$("#pUbic").value.trim(), minUbic:prev?.minUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{},
     minimo:Math.max(0,+$("#pMin").value||0),
     packUn:Math.max(1,+$("#pPack").value||1),
     vencimiento:$("#pVenc").value||"",
     foto: fotoPend!==undefined ? (fotoPend||"") : (prev?.foto||""),
     ubic: prev ? prev.ubic : {[$("#pBodIni").value||(bods("reposicion")[0]||{}).id||"repo"]:Math.floor(Math.max(0,+$("#pStock").value||0))*Math.max(1,+$("#pPack").value||1)} };
-  if(prev && pkn(prev)!==p.packUn) p.ubic=reescalarUbic(prev.ubic,pkn(prev),p.packUn);   // se conservan los packs
+  if(prev && pkn(prev)!==p.packUn){ p.ubic=reescalarUbic(prev.ubic,pkn(prev),p.packUn); p.zonas=reescalarUbic(prev.zonas||{},pkn(prev),p.packUn); }   // se conservan los packs
   p.stock = Object.values(p.ubic).reduce((a,n)=>a+n,0);
   p.actualizado = new Date().toISOString();
   try{
@@ -1317,7 +1395,7 @@ $("#iGo").addEventListener("click", async ()=>{
       const ubic={...(prev?.ubic||{})};
       const pkI=prev?pkn(prev):1;   // el Excel trae packs; se guardan en unidades
       if(Object.keys(setB||{}).length) Object.entries(setB).forEach(([k,v])=>{ ubic[k]=Math.round(v*pkI); }); else ubic[bodImp]=Math.round((+row.stock||0)*pkI);
-      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, packUn:prev?.packUn||1,
+      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{}, packUn:prev?.packUn||1,
         stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString() };
       await Store.putProducto(p);
       if(!prev || prev.stock!==p.stock)
@@ -2173,8 +2251,283 @@ const nProdBod = b => S.productos.filter(p=>(p.ubic[b.id]||0)>0).length;
 const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;   // en packs
 const faltaBod = (p,b) => Math.max(0, minBod(p,b)-ubPk(p,b.id));   // en packs
 
+/* ---------- Mapa 3D de bodega (por ahora solo Tránsito Piso 11) ----------
+   Cada zona es un volumen sobre el dibujo con un tipo: Reposición (packs cerrados) o Picking (unidades abiertas).
+   Los productos se asignan a zonas: p.zonas = {idZona: unidades}. El stock de la bodega sigue siendo p.ubic[bodega];
+   lo que no está asignado a ninguna zona queda como "Sin zona". p.zmin = {idZona: mínimo} (en packs si es Reposición, en unidades si es Picking). */
+const MZ_TIPO = {rep:"Reposición · packs cerrados", pick:"Picking · unidades abiertas"};
+const MAPA_P11 = {id:"p11", zonas:[
+  {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 1 · Saborizadas y jugos", t:"pick", d:"Aguas saborizadas y jugos abiertos, para cargar el cooler.",
+    vol:{x:[.05,1.15],y:[1.75,8.65],z:[8.6,9.75],pin:"fx"}},
+  {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 2 · Reposición", t:"rep", d:"Bebidas en reposición: packs cerrados de botella y lata.",
+    vol:{x:[.05,1.15],y:[1.75,8.65],z:[6.85,8.15],pin:"fx"}},
+  {id:"p11.i3",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 3 · Reposición", t:"rep", d:"Bebidas en lata en reposición: packs cerrados.",
+    vol:{x:[.05,1.15],y:[1.75,8.65],z:[5.1,6.4],pin:"fx"}},
+  {id:"p11.agua",  corto:"C1",   cara:"Cara 1 (izquierda)", n:"Reposición de agua", t:"rep", d:"Packs de agua cerrados, en el espacio libre bajo el nivel 3.",
+    vol:{x:[.05,1.35],y:[1.7,8.95],z:[0,4.9],pin:"fx"}},
+  {id:"p11.f3",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 3 · Reposición", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+    vol:{x:[1.15,8.35],y:[.05,1.15],z:[5.1,6.2],pin:"fy"}},
+  {id:"p11.f4",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 4 · Reposición", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+    vol:{x:[1.15,8.35],y:[.05,1.15],z:[3.35,4.45],pin:"fy"}},
+  {id:"p11.f5",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 5 · Picking", t:"pick", d:"Bebidas energéticas e hidratantes abiertas, para cargar el cooler.",
+    vol:{x:[.55,8.4],y:[.05,1.15],z:[1.6,2.75],pin:"fy"}},
+  {id:"p11.f6",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Bajo nivel 5 · Reposición", t:"rep", d:"Aguas saborizadas, energéticas e hidratantes en reposición, bajo el nivel 5.",
+    vol:{x:[1.15,8.35],y:[.05,1.15],z:[0,1.45],pin:"fy"}},
+  {id:"p11.bidon", corto:"Piso", cara:"Piso", n:"Bidón", t:"rep", d:"Bidones de agua.",
+    vol:{x:[2.7,3.7],y:[3.7,4.7],z:[0,1.6],pin:"top"}},
+  {id:"p11.jabas", corto:"Piso", cara:"Piso", n:"Jabas de botellín", t:"rep", d:"Bebidas en botellín, en jabas apiladas a la orilla derecha.",
+    vol:{x:[7.6,8.9],y:[4.8,6.4],z:[0,2.4],pin:"top"}}
+]};
+// El mapa existe solo para Tránsito Piso 11 (el Piso 14 tiene otra distribución y se configura después).
+const mapaDe = b => (b && (b.id==="p11" || (b.tipo==="picking" && /piso\s*11\b/i.test(b.nombre)))) ? MAPA_P11 : null;
+
+const MAPA3D = (()=>{
+  const SCALE = 36, OX = 320, OY = 389, WH = 10.2;
+  const LV1 = [5.1,6.85,8.6];             // cara 1 (pared izquierda): 3 niveles = los 3 primeros de arriba de la cara 2, unidos en la esquina
+  const LV2 = [1.6,3.35,5.1,6.85,8.6];      // cara 2 (fondo, pared derecha): 5 niveles
+  const PJ = (x,y,z) => [OX + (x-y)*.866*SCALE, OY + (x+y)*.5*SCALE - z*SCALE];
+  const r1 = n => Math.round(n*10)/10;
+  const pts = a => a.map(p => r1(p[0])+","+r1(p[1])).join(" ");
+  const pg = (a,fill) => `<polygon points="${pts(a)}"${fill?` style="fill:${fill}"`:""}/>`;
+  function bx(x,y,z,dx,dy,dz,c){
+    const T=[PJ(x,y,z+dz),PJ(x+dx,y,z+dz),PJ(x+dx,y+dy,z+dz),PJ(x,y+dy,z+dz)];
+    const L=[PJ(x,y+dy,z),PJ(x+dx,y+dy,z),PJ(x+dx,y+dy,z+dz),PJ(x,y+dy,z+dz)];
+    const R=[PJ(x+dx,y,z),PJ(x+dx,y+dy,z),PJ(x+dx,y+dy,z+dz),PJ(x+dx,y,z+dz)];
+    return pg(L,c[1])+pg(R,c[2])+pg(T,c[0]);
+  }
+  function cyl(x,y,z,r,h,c){
+    const [cx,cy]=PJ(x,y,z), rx=1.2247*SCALE*r, ry=.7071*SCALE*r, hh=h*SCALE;
+    return `<path d="M${r1(cx-rx)},${r1(cy-hh)}v${r1(hh)}a${r1(rx)},${r1(ry)} 0 0 0 ${r1(2*rx)},0v${r1(-hh)}z" style="fill:${c[0]}"/><ellipse cx="${r1(cx)}" cy="${r1(cy-hh)}" rx="${r1(rx)}" ry="${r1(ry)}" style="fill:${c[1]}"/>`;
+  }
+  function bottle(x,y,z,r,h,c){            // c: [líquido, tapa, etiqueta]
+    const [cx,cy]=PJ(x,y,z), rx=1.2247*SCALE*r;
+    return cyl(x,y,z,r,h*.62,[c[0],lighten(c[0])])
+      + `<rect x="${r1(cx-rx)}" y="${r1(cy-h*.5*SCALE)}" width="${r1(2*rx)}" height="${r1(h*.2*SCALE)}" style="fill:${c[2]}"/>`
+      + cyl(x,y,z+h*.62,r*.42,h*.3,[c[0],lighten(c[0])]) + cyl(x,y,z+h*.92,r*.48,h*.08,[c[1],c[1]]);
+  }
+  function can(x,y,z,r,h,c){ return cyl(x,y,z,r,h,[c[0],"#CBD2D8"]) + (()=>{ const [cx,cy]=PJ(x,y,z), rx=1.2247*SCALE*r; return `<rect x="${r1(cx-rx)}" y="${r1(cy-h*.62*SCALE)}" width="${r1(2*rx)}" height="${r1(h*.2*SCALE)}" style="fill:${c[1]}"/>`; })(); }
+  function lighten(h){ const n=parseInt(h.slice(1),16), f=v=>Math.min(255,Math.round(v+(255-v)*.35)); return "#"+[n>>16,(n>>8)&255,n&255].map(f).map(v=>v.toString(16).padStart(2,"0")).join(""); }
+
+  const CAR=["#E8D0A4","#BF9A64","#D3B07C"], POST=["#C9D2D1","#AEB9B8","#BDC8C7"];
+  const SHELF=["var(--mz-sht)","var(--mz-shl)","var(--mz-shr)"], ROLL=["#F7F7F5","#D9DBD8"];
+  const WAT=["#CDEAF7","#2F7DD1","#FFFFFF"], AGU=[["#FFD66B","#2E8B57","#FFFFFF"],["#CFE9A8","#2E8B57","#FFFFFF"],["#FFB074","#2E8B57","#FFFFFF"],["#F8A9B5","#2E8B57","#FFFFFF"]], CANS=[["#2F6FE0","#FFFFFF"],["#7B4BD6","#FFFFFF"],["#18A9A0","#FFFFFF"]];
+  const BAGS=[["#F0594B","#C93F34","#DC4A3E"],["#F7D04C","#D9B134","#E9C13F"],["#F59B3A","#CF7C24","#E48B2E"],["#5BB0E8","#3F8FC6","#4D9FD8"]];
+  const GUAL=[["#F59A3B","#2E8B57","#FFFFFF"],["#F6CB4B","#2E8B57","#FFFFFF"],["#E85D6A","#2E8B57","#FFFFFF"],["#9AD05A","#2E8B57","#FFFFFF"]];
+
+  let SCENE_STATIC = null;
+  function sceneStatic(){
+    if(SCENE_STATIC) return SCENE_STATIC;
+    const srt = l => l.sort((a,b)=>a.k-b.k).map(i=>i.s).join("");
+    const add = (l,x,y,s) => l.push({k:x+y,s});
+    let s = pg([PJ(0,0,0),PJ(9,0,0),PJ(9,9,0),PJ(0,9,0)],"var(--mz-floor)");
+    for(let i=1.8;i<9;i+=1.8){ s += `<polyline points="${pts([PJ(i,0,0),PJ(i,9,0)])}" class="mz-fl"/><polyline points="${pts([PJ(0,i,0),PJ(9,i,0)])}" class="mz-fl"/>`; }
+    s += pg([PJ(0,0,0),PJ(0,9,0),PJ(0,9,WH),PJ(0,0,WH)],"var(--mz-wl)") + pg([PJ(0,0,0),PJ(9,0,0),PJ(9,0,WH),PJ(0,0,WH)],"var(--mz-wr)")
+       + pg([PJ(0,0,0),PJ(0,9,0),PJ(0,9,.28),PJ(0,0,.28)],"var(--mz-base)") + pg([PJ(0,0,0),PJ(9,0,0),PJ(9,0,.28),PJ(0,0,.28)],"var(--mz-base)");
+
+    /* --- estante en L: cara 1 (izquierda, 3 niveles) y cara 2 (fondo, 5 niveles) comparten los 3 primeros niveles de arriba --- */
+    const lboard = lv => {   // una sola pieza en L, sin costura en la esquina
+      const z0=lv-.14, z1=lv, W=8.7, E=1.25;
+      const face = (p,q) => pg([PJ(p[0],p[1],z0),PJ(q[0],q[1],z0),PJ(q[0],q[1],z1),PJ(p[0],p[1],z1)],"var(--mz-shl)");
+      const faceR = (p,q) => pg([PJ(p[0],p[1],z0),PJ(q[0],q[1],z0),PJ(q[0],q[1],z1),PJ(p[0],p[1],z1)],"var(--mz-shr)");
+      const top = pg([[0,0],[W,0],[W,E],[E,E],[E,W],[0,W]].map(p => PJ(p[0],p[1],z1)),"var(--mz-sht)");
+      return faceR([W,0],[W,E]) + face([E,E],[W,E]) + faceR([E,E],[E,W]) + face([0,W],[E,W]) + top;
+    };
+    const SODA=[["#3A2218","#D83A2E","#D83A2E"],["#26201E","#2B2B2B","#C0392B"],["#DFF3D0","#2FA84F","#2FA84F"],["#F28C1E","#F28C1E","#F28C1E"]];   // cola, zero, sprite, fanta
+    const ENER=[["#1E3A8A","#7DD3FC"],["#161616","#22C55E"],["#B91C1C","#FCD34D"],["#2563EB","#FFFFFF"]];
+    const ISO=[["#F59E0B","#F59E0B","#FFFFFF"],["#2D8CF0","#2D8CF0","#FFFFFF"],["#A3E635","#65A30D","#FFFFFF"],["#EF4444","#EF4444","#FFFFFF"]];
+    const CANC=[["#D83A2E","#FFFFFF"],["#2B2B2B","#E03A3A"],["#F28C1E","#FFFFFF"],["#2FA84F","#D8F0A0"]];
+    const FILM=["rgba(255,255,255,.3)","rgba(255,255,255,.18)","rgba(255,255,255,.24)"];
+    const grid = (y,make) => { const cs=[]; for(let r=0;r<2;r++) for(let q=0;q<3;q++){ const x=.34+r*.44, yy=y+.22+q*.33; cs.push({k:x+yy,s:make(x,yy,r,q)}); } return cs.sort((a,b)=>a.k-b.k).map(i=>i.s).join(""); };
+    const packCans = (y,lv,c,layers) => { let k=""; for(let j=0;j<layers;j++){ const z=lv+j*.64; k+=bx(.1,y,z,1.0,1.1,.07,CAR)+grid(y,(x,yy)=>can(x,yy,z+.07,.16,.5,c))+bx(.1,y,z+.07,1.0,1.1,.5,FILM); } return k; };
+    const gridR = (x,make) => { const cs=[]; for(let r=0;r<2;r++) for(let q=0;q<3;q++){ const xx=x+.22+q*.33, y=.34+r*.44; cs.push({k:xx+y,s:make(xx,y,r,q)}); } return cs.sort((a,b)=>a.k-b.k).map(i=>i.s).join(""); };
+    const packBottlesR = (x,lv,cs) => bx(x,.1,lv,1.1,1.0,.07,CAR)+gridR(x,(xx,y,r,q)=>bottle(xx,y,lv+.07,.15,.95,cs[(r+q)%cs.length]))+bx(x,.1,lv+.07,1.1,1.0,.95,FILM);
+    const packCansR = (x,lv,c,layers) => { let k=""; for(let j=0;j<layers;j++){ const z=lv+j*.64; k+=bx(x,.1,z,1.1,1.0,.07,CAR)+gridR(x,(xx,y)=>can(xx,y,z+.07,.16,.5,c))+bx(x,.1,z+.07,1.1,1.0,.5,FILM); } return k; };
+    const itemsUnder = () => { const it=[];   // bajo el nivel 5: reposición de saborizadas, energéticas e hidratantes (packs cerrados en el piso)
+      [1.2,2.4,3.6,4.8,6.0,7.2].forEach((x,j) => add(it,x,.1, j%3===0 ? packBottlesR(x,0,[AGU[j%4]]) : j%3===1 ? packCansR(x,0,ENER[j%4],2) : packBottlesR(x,0,[ISO[j%4]])));
+      return it; };
+    const packBottles = (y,lv,cs) => bx(.1,y,lv,1.0,1.1,.07,CAR)+grid(y,(x,yy,r,q)=>bottle(x,yy,lv+.07,.15,.95,cs[(r+q)%cs.length]))+bx(.1,y,lv+.07,1.0,1.1,.95,FILM);
+    const itemsL = i => { const lv=LV1[i], it=[];
+      if(i===0){ [1.8,3.0,4.2,5.4,6.6,7.8].forEach((y,j) => add(it,.1,y,packCans(y,lv,CANC[j%4],2))); }                    // nivel 3 (abajo): reposición, packs de latas
+      if(i===1){ [1.8,3.0,4.2,5.4,6.6,7.8].forEach((y,j) => add(it,.1,y,j%3===2 ? packCans(y,lv,CANC[(j+1)%4],1) : packBottles(y,lv,[SODA[j%4]]))); }  // nivel 2: reposición, solo gaseosas (botellas y latas)
+      if(i===2){ let n=0; for(let y=2.0;y<5.0;y+=.58) [.33,.8].forEach(x => add(it,x,y,bottle(x,y,lv,.21,1.0,AGU[n++%4])));   // nivel 3: aguas saborizadas y jugos
+                 for(let y=5.2;y<8.5;y+=.58) [.33,.8].forEach(x => add(it,x,y,bottle(x,y,lv,.22,1.05,GUAL[n++%4]))); }
+      return it; };
+    const itemsR = i => { const lv=LV2[i], it=[];
+      if(i===0){ let n=0; for(let x=.75;x<4.9;x+=.38) [.3,.8].forEach(y => add(it,x,y,can(x,y,lv,.17,.75,ENER[n++%4])));      // nivel 5: picking, energéticas
+                 n=0; for(let x=5.15;x<8.4;x+=.55) [.33,.85].forEach(y => add(it,x,y,bottle(x,y,lv,.21,1.0,ISO[n++%4]))); }       // e hidratantes (isotónicas)
+      if(i===1){ [1.2,2.4,3.6,4.8,6.0,7.2].forEach((x,j) => add(it,x,.1,packBottlesR(x,lv,[(j%2?AGU:GUAL)[(j+1)%4]]))); }   // nivel 4 del fondo: reposición, packs de jugos y aguas saborizadas
+      if(i===2){ [1.2,2.4,3.6,4.8,6.0,7.2].forEach((x,j) => add(it,x,.1,packBottlesR(x,lv,[(j%2?GUAL:AGU)[j%4]]))); }   // nivel 3 del fondo: reposición, packs de aguas saborizadas y jugos
+      // niveles 1 y 2 de arriba (i = 4 y 3): libres por ahora, quedan para snacks más adelante
+      return it; };
+    LV2.forEach((lv,k) => {
+      if(k===0) s += srt(itemsUnder());
+      s += k>=2 ? lboard(lv) : bx(0,0,lv-.14,8.7,1.25,.14,SHELF);
+      s += srt([...itemsR(k), ...(k>=2 ? itemsL(k-2) : [])]);
+    });
+    /* postes al frente: las maderas se apoyan en ellos */
+    s += bx(1.08,1.08,0,.17,.17,9.8,POST) + bx(8.56,1.08,0,.14,.14,9.8,POST) + bx(1.08,8.56,0,.14,.14,9.8,POST);
+
+    /* --- piso --- */
+    const fl=[];
+    [5,5,4,3,2].forEach((layers,j) => { const y=1.8+j*1.4; for(let k=0;k<layers;k++){ const z=k*.85; let g=bx(.1,y,z,1.2,1.35,.85,["#D5EAF8","#A9D1EC","#BEDDF2"]);
+        if(k===layers-1) for(let a=0;a<2;a++) for(let b=0;b<3;b++) g+=cyl(.35+a*.5,y+.25+b*.4,z+.85,.12,.06,["#FFFFFF","#FFFFFF"]);
+        add(fl,.1,y+k*.01+.001,g); } });
+    { const [cx,cy]=PJ(3.2,4.2,0); fl.push({k:7.4,s:`<ellipse cx="${r1(cx)}" cy="${r1(cy+3)}" rx="26" ry="11" class="mz-shd"/>`+cyl(3.2,4.2,0,.5,1.05,["#4C9BE8","#7DB9F0"])+cyl(3.2,4.2,1.05,.28,.35,["#3C86D4","#6FAFEF"])+cyl(3.2,4.2,1.4,.3,.1,["#FFFFFF","#FFFFFF"])}); }
+    const cajones = (x,y,layers) => { let g=""; for(let l=0;l<layers;l++) g+=bx(x,y,l*.8,1.3,1.6,.8,["#E0483C","#BC3329","#D13C31"]);
+      for(let a=0;a<4;a++) for(let b=0;b<5;b++) g+=cyl(x+.22+a*.29,y+.22+b*.29,layers*.8,.1,.1,["#1F7A46","#2FA361"]);   // chapas de los botellines
+      return g; };
+    fl.push({k:13.4,s:cajones(7.6,4.8,3)});    // 3 jabas de botellín apiladas, a la orilla derecha
+    s += srt(fl);
+    const pill=(x,y,txt,soft)=>{ const w=txt.length*6.4+20; return `<rect class="mz-fcbg${soft?' soft':''}" x="${r1(x-w/2)}" y="${r1(y-11)}" width="${r1(w)}" height="22" rx="11"/><text class="mz-fctx" x="${r1(x)}" y="${r1(y+4)}">${txt}</text>`; };
+    const q1=PJ(0,4.5,WH), q2=PJ(4.5,0,WH);
+    const q3=PJ(4.4,.7,7.75);
+    s += pill(q3[0],q3[1],"Niveles 1 y 2 libres · snacks después",true) + pill(q1[0]-34,q1[1]-26,"CARA 1 · 3 niveles") + pill(q2[0]+34,q2[1]-26,"CARA 2 (fondo) · 5 niveles");
+    return SCENE_STATIC = `<g class="mz-st">${s}</g>`;
+  }
+
+  function sceneSvg(zonas,o){
+    const zs=[], pins=[], dep=z=>{ const v=z.vol; return v.x[0]+v.x[1]+v.y[0]+v.y[1]; };
+    [...zonas].sort((a,b)=>dep(a)-dep(b)).forEach(z => {
+      const b=z.vol, [x0,x1]=b.x, [y0,y1]=b.y, [z0,z1]=b.z;
+      const L=[PJ(x0,y1,z0),PJ(x1,y1,z0),PJ(x1,y1,z1),PJ(x0,y1,z1)], R=[PJ(x1,y0,z0),PJ(x1,y1,z0),PJ(x1,y1,z1),PJ(x1,y0,z1)], T=[PJ(x0,y0,z1),PJ(x1,y0,z1),PJ(x1,y1,z1),PJ(x0,y1,z1)];
+      const a = b.pin==="top" ? PJ((x0+x1)/2,(y0+y1)/2,z1) : b.pin==="fy" ? PJ((x0+x1)/2,y1,(z0+z1)/2) : PJ(x1,(y0+y1)/2,(z0+z1)/2);
+      const txt = z.n, w = txt.length*6.6+18;
+      const cls = [o.color(z), o.cls ? o.cls(z) : ""].filter(Boolean).join(" ");
+      zs.push(`<g class="mz-z ${cls}" data-mzz="${z.id}" tabindex="0" role="button" aria-pressed="${o.sel===z.id}" aria-label="${esc(z.n)}, ${MZ_TIPO[z.t]}">${pg(L)}${pg(R)}${pg(T)}</g>`);
+      const dn = o.done && o.done(z);
+      pins.push(`<g class="${cls}" style="pointer-events:none"><rect class="mz-pinbg" x="${r1(a[0]-w/2)}" y="${r1(a[1]-11)}" width="${r1(w)}" height="22" rx="7"/><text class="mz-pintx" x="${r1(a[0])}" y="${r1(a[1]+4.3)}">${esc(txt)}</text>${dn?`<circle cx="${r1(a[0]+w/2)}" cy="${r1(a[1]-11)}" r="10" style="fill:var(--ok);stroke:#fff;stroke-width:2"/><text class="mz-pintx" x="${r1(a[0]+w/2)}" y="${r1(a[1]-6.8)}">✓</text>`:""}</g>`);
+    });
+    return `<svg viewBox="0 0 640 720" role="img" aria-label="Ilustración 3D de la bodega con sus zonas">${sceneStatic()}${zs.join("")}${pins.join("")}</svg>`;
+  }
+
+  return {svg:sceneSvg};
+})();
+
+/* Unidades de cada producto por zona. Si las zonas suman más que el stock de la bodega (salió mercadería por picking,
+   despacho o conteo), se descuenta primero de Picking y luego de Reposición. Lo que sobra queda "sin zona". */
+function zonasEf(p,b,M){
+  const out={}, stock=(p.ubic||{})[b.id]||0;
+  M.zonas.forEach(z=>{ if(p.zonas && p.zonas[z.id]!==undefined) out[z.id]=Math.max(0,Math.round(+p.zonas[z.id]||0)); });
+  let ex=Object.values(out).reduce((a,n)=>a+n,0)-stock;
+  if(ex>0) for(const tipo of ["pick","rep"]) for(const z of M.zonas.filter(z=>z.t===tipo && out[z.id]>0)){ const q=Math.min(out[z.id],ex); out[z.id]-=q; ex-=q; }
+  return {z:out, libre:Math.max(0, stock-Object.values(out).reduce((a,n)=>a+n,0))};
+}
+const mzVal = (u,p,z) => z.t==="rep" ? toPk(u,p) : u;                 // lo que se ve y se cuenta: packs en Reposición, unidades en Picking
+const mzUn = z => z.t==="rep" ? "packs" : "un";
+const mzMin = (p,z) => +((p.zmin||{})[z.id])||0;
+const mzSt = (p,z,ef) => { const v=mzVal(ef.z[z.id]||0,p,z), m=mzMin(p,z); return m>0 ? (v<=0?"bad":v<m?"warn":"ok") : "none"; };
+const MZ_STTXT = {ok:"OK", warn:"Bajo mínimo", bad:"Sin stock", none:"Sin mínimo"};
+function mzItems(b,M,z){ return S.productos.filter(p=>p.zonas && p.zonas[z.id]!==undefined).map(p=>({p,ef:zonasEf(p,b,M)})).sort((a,c)=>a.p.nombre.localeCompare(c.p.nombre,"es")); }
+function mzZonaSt(b,M,z){ const ss=mzItems(b,M,z).map(({p,ef})=>mzSt(p,z,ef)); return ss.includes("bad")?"bad":ss.includes("warn")?"warn":ss.includes("ok")?"ok":"none"; }
+const mzSub = p => `${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}`;
+
+function mzSwitch(){
+  return `<div class="mz-sw"><div class="mz-seg" role="group" aria-label="Vista de la bodega"><button type="button" data-mzvista="mapa" aria-pressed="${S.invVista!=="lista"}">Mapa 3D</button><button type="button" data-mzvista="lista" aria-pressed="${S.invVista==="lista"}">Lista</button></div></div>`;
+}
+function mzCard(b,M,z){
+  const its=mzItems(b,M,z), cnt=S.mpCnt, u=mzUn(z), q=norm(S.mpAddQ);
+  const tot=its.reduce((a,{p,ef})=>a+mzVal(ef.z[z.id]||0,p,z),0);
+  const head=`<div class="mz-ch"><div><h2>${esc(z.n)}</h2><span class="mz-hint">${esc(z.cara)} · ${its.length} producto${its.length===1?"":"s"}${its.length?` · ${fmtPk(tot)} ${u}`:""}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div><p class="mz-desc">${esc(z.d)}</p>`;
+  if(cnt) return head+`<p class="mz-hint" style="margin:0 0 6px">Cuenta lo que ves en la zona${z.t==="rep"?" (solo packs cerrados)":" (unidades abiertas)"}. Si pones un mínimo, la zona avisa cuando baje de él. Nada cambia hasta que guardes.</p>
+    ${its.length?`<div class="mz-ci-h"><span>Producto</span><span>Contado (${u})</span><span>Mínimo</span><span></span></div><ul class="mz-items">${its.map(({p,ef})=>`<li class="mz-ci"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)} · sistema: ${fmtPk(mzVal(ef.z[z.id]||0,p,z))} ${u}</span></span>
+      <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzq="${esc(p.id)}" value="${mzVal(ef.z[z.id]||0,p,z)}" aria-label="Contado de ${esc(p.nombre)} en ${esc(z.n)}">
+      <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzm="${esc(p.id)}" value="${mzMin(p,z)||""}" placeholder="—" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(z.n)}">
+      <button class="mz-x" type="button" data-mzrm="${esc(p.id)}" title="Quitar de esta zona" aria-label="Quitar ${esc(p.nombre)} de esta zona">×</button></li>`).join("")}</ul>`:`<div class="mz-empty">Esta zona no tiene productos. Cancela y agrégalos primero.</div>`}
+    <div class="mz-acts"><button class="btn brand sm" type="button" data-mzsave>Guardar conteo</button><button class="btn ghost sm" type="button" data-mzcancel>Cancelar</button></div>`;
+  const res=q?S.productos.filter(p=>!(p.zonas&&p.zonas[z.id]!==undefined) && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
+  return head+(its.length?`<ul class="mz-items">${its.map(({p,ef})=>{ const un=ef.z[z.id]||0, v=mzVal(un,p,z), st=mzSt(p,z,ef), m=mzMin(p,z);
+      return `<li><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${m?` · mínimo ${fmtPk(m)} ${u}`:""}</span></span>
+        <span class="mz-num">${fmtPk(v)} <small>${u}</small>${z.t==="rep"&&suel(un,p)>0?`<small class="mz-sl">+ ${suel(un,p)} sueltas</small>`:z.t==="pick"&&pkn(p)>1?`<small class="mz-sl">${fmtPk(toPk(un,p))} packs</small>`:""}</span>
+        <span class="mz-pill ${st}">${MZ_STTXT[st]}</span></li>`; }).join("")}</ul>`
+    :`<div class="mz-empty">Esta zona aún no tiene productos. Agrega los que van aquí.</div>`)
+    +`<div class="mz-acts">${its.length?`<button class="btn brand sm" type="button" data-mzcnt>Contar zona</button>`:""}</div>
+    <div class="mz-add"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mpadd" type="search" value="${esc(S.mpAddQ)}" placeholder="Agregar un producto a esta zona" aria-label="Buscar un producto para agregar a ${esc(z.n)}" autocomplete="off"></label>
+      ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></button></li>`).join("")}</ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias.</div>`):""}</div>`;
+}
+function mzLibres(b,M){
+  const q=norm(S.mpQ), all=S.productos.map(p=>({p,ef:zonasEf(p,b,M)})).filter(x=>x.ef.libre>0).sort((a,c)=>a.p.nombre.localeCompare(c.p.nombre,"es"));
+  const ls=q?all.filter(({p})=>norm(p.nombre+" "+(p.codigo||"")).includes(q)):all;
+  if(!all.length) return S.productos.some(p=>(p.ubic[b.id]||0)>0)?`<div class="card mz-lib" style="margin-top:14px"><p class="mz-hint" style="margin:0">Todo el stock de ${esc(b.nombre)} está asignado a una zona.</p></div>`:"";
+  const opts=`<option value="">Asignar a…</option>`+M.zonas.map(z=>`<option value="${z.id}">${z.corto} · ${esc(z.n)}</option>`).join("");
+  return `<div class="card mz-lib" style="margin-top:14px"><h3>Sin zona · ${all.length} producto${all.length===1?"":"s"}</h3>
+    <p class="mz-hint" style="margin:2px 0 10px">Este stock está en ${esc(b.nombre)} pero no en una zona del mapa. Asígnalo a la zona donde está; el stock no cambia.</p>
+    <ul class="mz-items">${ls.slice(0,40).map(({p,ef})=>`<li class="mz-lb"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></span><span class="mz-num">${fmtPk(toPk(ef.libre,p))} <small>packs</small>${suel(ef.libre,p)>0?`<small class="mz-sl">+ ${suel(ef.libre,p)} sueltas</small>`:""}</span>
+      <select class="mz-sel" data-mzasel="${esc(p.id)}" aria-label="Asignar ${esc(p.nombre)} a una zona">${opts}</select></li>`).join("")}</ul>${ls.length>40?`<p class="mz-hint">Y ${ls.length-40} más. Usa el buscador para encontrarlos.</p>`:""}${!ls.length?`<p class="mz-hint">Sin coincidencias.</p>`:""}</div>`;
+}
+function viewInvMapa(b,M){
+  const sel=M.zonas.find(z=>z.id===S.mpSel), q=norm(S.mpQ), est=S.mpModo==="estado";
+  const hit=z=>q && mzItems(b,M,z).some(({p})=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
+  const nd=S.mpDone.size, nz=M.zonas.length;
+  const svg=MAPA3D.svg(M.zonas,{sel:S.mpSel, color:z=>est?"mz-s-"+mzZonaSt(b,M,z):"mz-t-"+z.t, cls:z=>q?(hit(z)?"mz-hit":"mz-dim"):"", done:z=>S.mpDone.has(z.id)});
+  const legend=est?`<span><i style="background:var(--ok)"></i>Sobre el mínimo</span><span><i style="background:var(--warn)"></i>Algo bajo el mínimo</span><span><i style="background:var(--danger)"></i>Algo sin stock</span><span><i style="background:var(--muted)"></i>Sin mínimo o sin productos</span>`
+    :`<span><i style="background:var(--mz-rep)"></i>Reposición · packs cerrados</span><span><i style="background:var(--mz-pick)"></i>Picking · abierto, unidad por unidad</span>`;
+  return `<div class="card mz-wrap" style="margin-top:14px;padding:18px">
+    <div class="mz-bar"><div class="mz-seg" role="group" aria-label="Colorear por"><button type="button" data-mzmodo="tipo" aria-pressed="${!est}">Colorear por tipo</button><button type="button" data-mzmodo="estado" aria-pressed="${est}">Colorear por estado</button></div>
+      <label class="qsearch">${ICON.search}<input id="mpq" type="search" value="${esc(S.mpQ)}" placeholder="Buscar en el mapa" aria-label="Buscar un producto en el mapa" autocomplete="off"></label><span class="spacer"></span>
+      <div class="mz-prog" title="Zonas contadas en esta sesión"><span>${nd} de ${nz} zonas contadas</span><i><b style="width:${nd/nz*100}%"></b></i></div></div>
+    <div class="mz-legend">${legend}</div>
+    <div class="mz-split"><div class="mz-scene" role="group" aria-label="Ilustración 3D de ${esc(b.nombre)} con sus zonas">${svg}</div>
+      <div class="mz-card">${sel?mzCard(b,M,sel):`<div class="mz-empty">Toca una zona del dibujo para ver qué hay y contarla.</div>`}</div></div>
+    <p class="mz-hint" style="margin:12px 0 0">El dibujo es una referencia de cómo está ordenada la bodega: los productos dibujados no cambian con el stock. Lo que vale es la lista de cada zona. Los niveles 1 y 2 del fondo están libres para snacks.</p></div>${mzLibres(b,M)}`;
+}
+
+function mzCtx(){ const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b), z=M&&M.zonas.find(x=>x.id===S.mpSel); return {b,M,z}; }
+async function mzAgregar(prodId){
+  const {b,M,z}=mzCtx(), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
+  const ef=zonasEf(p,b,M); S.mpAddQ="";
+  await Store.putProducto({...p, zonas:{...ef.z,[z.id]:ef.z[z.id]??0}, actualizado:new Date().toISOString()});
+  toast(`${p.nombre} agregado a ${z.n}`); render(true);
+}
+async function mzQuitar(prodId){
+  const {b,M,z}=mzCtx(), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
+  const ef=zonasEf(p,b,M), un=ef.z[z.id]||0;
+  if(un>0 && !confirm(`¿Quitar "${p.nombre}" de ${z.n}?\nSus ${fmtPk(mzVal(un,p,z))} ${mzUn(z)} pasan a "Sin zona". El stock de la bodega no cambia.`)) return;
+  const zonas={...ef.z}, zmin={...(p.zmin||{})}; delete zonas[z.id]; delete zmin[z.id];
+  await Store.putProducto({...p, zonas, zmin, actualizado:new Date().toISOString()});
+  toast(`${p.nombre} quitado de ${z.n}`); render(true);
+}
+async function mzAsignar(prodId, zid){
+  const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b), z=M&&M.zonas.find(x=>x.id===zid), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
+  const ef=zonasEf(p,b,M); if(ef.libre<=0) return;
+  await Store.putProducto({...p, zonas:{...ef.z,[z.id]:(ef.z[z.id]||0)+ef.libre}, actualizado:new Date().toISOString()});
+  toast(`${p.nombre}: ${fmtPk(toPk(ef.libre,p))} packs asignados a ${z.n}`); render(true);
+}
+async function mzGuardar(){
+  const {b,M,z}=mzCtx(); if(!z) return;
+  const mins=new Map([...document.querySelectorAll("[data-mzm]")].map(i=>[i.dataset.mzm,i.value]));
+  let n=0;
+  for(const inp of [...document.querySelectorAll("[data-mzq]")]){
+    const p=S.productos.find(x=>x.id===inp.dataset.mzq); if(!p) continue;
+    const ef=zonasEf(p,b,M), old=ef.z[z.id]||0, num=Math.max(0,parseFloat(inp.value)||0);
+    const nu=z.t==="rep" ? Math.floor(num+1e-9)*pkn(p)+suel(old,p) : Math.round(num);   // en Reposición se cuentan packs cerrados; las sueltas que ya había se conservan
+    const mv=Math.max(0,parseFloat(mins.get(p.id))||0), omin=mzMin(p,z);
+    if(nu===old && mv===omin) continue;
+    const zmin={...(p.zmin||{})}; if(mv>0) zmin[z.id]=mv; else delete zmin[z.id];
+    const bodU=Math.max(0,(p.ubic[b.id]||0)+nu-old), ubic={...p.ubic,[b.id]:bodU}, now=new Date().toISOString();   // las demás zonas y lo "sin zona" no cambian
+    const np={...p, zonas:{...ef.z,[z.id]:nu}, zmin, ubic, stock:Object.values(ubic).reduce((a,x)=>a+x,0), actualizado:now};
+    await Store.putProducto(np);
+    if(nu!==old) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:bodU,cantidadPack:toPk(bodU,p),sueltas:suel(bodU,p),stockFinal:np.stock,
+      nota:`${b.nombre} · ${z.n} · Conteo de zona: ${fmtPk(mzVal(old,p,z))} → ${fmtPk(mzVal(nu,p,z))} ${mzUn(z)}`,fecha:now});
+    n++;
+  }
+  S.mpCnt=false; S.mpDone.add(z.id);
+  toast(n?`${z.n}: ${n} producto${n===1?"":"s"} actualizado${n===1?"":"s"}`:`${z.n}: sin cambios`); render(true);
+}
+// Clics del mapa (devuelve true si el clic era suyo)
+function mzClick(t){
+  const v=t.closest("[data-mzvista]"); if(v){ S.invVista=v.dataset.mzvista; S.mpCnt=false; render(true); return true; }
+  const m=t.closest("[data-mzmodo]"); if(m){ S.mpModo=m.dataset.mzmodo; render(true); return true; }
+  const z=t.closest("[data-mzz]"); if(z){ S.mpSel=S.mpSel===z.dataset.mzz?null:z.dataset.mzz; S.mpCnt=false; S.mpAddQ=""; render(true); return true; }
+  if(t.closest("[data-mzcnt]")){ S.mpCnt=true; render(true); document.querySelector("[data-mzq]")?.focus(); return true; }
+  if(t.closest("[data-mzcancel]")){ S.mpCnt=false; render(true); return true; }
+  if(t.closest("[data-mzsave]")){ mzGuardar(); return true; }
+  const a=t.closest("[data-mzaddp]"); if(a){ mzAgregar(a.dataset.mzaddp); return true; }
+  const r=t.closest("[data-mzrm]"); if(r){ mzQuitar(r.dataset.mzrm); return true; }
+  return false;
+}
+
 function abrirInv(id){
-  S.invBod=id||"comparar"; S.invQ=""; S.invAll=false; S.page=1;
+  S.invBod=id||"comparar"; S.invQ=""; S.invAll=false; S.page=1; S.mpSel=null; S.mpCnt=false; S.mpAddQ=""; S.mpQ="";
   if(S.screen!=="inv") go({go:"inv"}); else { render(true); window.scrollTo?.(0,0); }
 }
 function viewInv(){
@@ -2199,10 +2552,12 @@ function invFiltrados(b){
   return [...ps].sort((a,c)=>a.nombre.localeCompare(c.nombre,"es"));
 }
 function viewInvBodega(b){
+  const M=mapaDe(b);
   const totPk=S.productos.reduce((a,p)=>a+stkPk(p),0), pkB=packsBod(b), un=uniBod(b), np=nProdBod(b);
   const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, pFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
   const kpi=(c,v,t,sub="")=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
   const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",`${fmt(un)} unidades`)}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes",nFalta?"packs":"")}</div>`;
+  if(M && S.invVista!=="lista") return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${mzSwitch()}</div>`+viewInvMapa(b,M);
   const ps=invFiltrados(b), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
   const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)} · ${fmt(p.ubic[x.id])} un"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmtPk(ubPk(p,x.id))}</b></span>`).join("")||'<span class="muted">-</span>';
   const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="any" inputmode="decimal" ${attr} value="${val||val===0?val:""}" data-orig="${val||val===0?val:""}" placeholder="${ph}">`;
@@ -2225,7 +2580,7 @@ function viewInvBodega(b){
       <div class="inv-o">${otras(p)}</div></div>`; };
   const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
   const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
-  return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${invToolbar(extra)}
+  return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${M?mzSwitch():""}${invToolbar(extra)}
       <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> o las <b>unidades</b> que hay en <b>${esc(b.nombre)}</b> (se completan solas entre sí) y el mínimo en packs. Las unidades son las que usa el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
     <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:980px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí · Packs</span></th><th class="n"><span>Aquí · Unidades</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total · Packs</span></th><th class="n"><span>Total · Unidades</span></th></tr></thead>
       <tbody>${rows.map(rowT).join("")}</tbody></table></div><div class="pcards icards">${rows.map(cardT).join("")}</div>${pag}`:vacio}</div>`;
@@ -2360,9 +2715,10 @@ function render(force=true){   // live data updates call render(false)
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
   if((S.screen==="form"||(S.screen==="picking"&&S.pkTab==="nuevo")) && !force) return;   // don't wipe a document being typed when live data arrives
   if(!force && S.ubBusy) return;   // escribiendo en una casilla de stock: no redibujar
+  if(!force && S.mpCnt && S.screen==="inv") return;   // contando una zona del mapa: no perder lo que se teclea
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
-  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
+  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd"].includes(aid) || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
   if(d.go==="traspaso"||d.go==="picking"){
@@ -2447,6 +2803,7 @@ $("#gq").addEventListener("keydown",e=>{ if(e.key==="Enter"){ go({go:"tabla",cat
 const C=$("#content");
 C.addEventListener("click",e=>{
   const t=e.target;
+  if(mzClick(t)) return;
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
   const g=t.closest("[data-go]"); if(g) return go(g.dataset);
   const nw=t.closest("[data-new]"); if(nw) return nuevoForm(nw.dataset.new);
@@ -2525,11 +2882,13 @@ C.addEventListener("input",e=>{
     if(t.dataset.pkd){ l.por=l.por||{}; l.por[t.dataset.pkd]=v; pkSetGen(l); } else l.cantidad=v;
     updPkLinea(+t.dataset.pkq); return; }
   if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
-  if(!["fq","mq","dq","iq"].includes(id)) return;
-  clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; if(id==="iq") S.invQ=v; S.page=1; render(); },200);
+  if(!["fq","mq","dq","iq","mpq","mpadd"].includes(id)) return;
+  clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; if(id==="iq") S.invQ=v; if(id==="mpq") S.mpQ=v; if(id==="mpadd") S.mpAddQ=v; S.page=1; render(); },200);
 });
 C.addEventListener("keydown",e=>{
   const t=e.target;
+  const zg=t.closest&&t.closest(".mz-z"); if(zg && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); zg.dispatchEvent(new MouseEvent("click",{bubbles:true})); return; }
+  if(t.dataset && (t.dataset.mzq!==undefined||t.dataset.mzm!==undefined) && e.key==="Enter"){ e.preventDefault(); const ins=[...C.querySelectorAll("[data-mzq],[data-mzm]")], i=ins.indexOf(t); (ins[i+1]||C.querySelector("[data-mzsave]"))?.focus(); return; }
   if(t.id==="pick"){
     const box=$("#sugs"), items=box?[...box.querySelectorAll("[data-pick]")]:[], hi=items.findIndex(x=>x.classList.contains("hl"));
     if(e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value); const sel=items[hi]?.dataset.pick || (r[0]&&r[0].id);
@@ -2546,6 +2905,7 @@ C.addEventListener("keydown",e=>{
 });
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
+  if(t.dataset.mzasel!==undefined){ if(v) mzAsignar(t.dataset.mzasel, v); return; }
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
   if(t.dataset.msel!==undefined){ t.checked?S.msel.add(t.dataset.msel):S.msel.delete(t.dataset.msel); render(true); return; }
   if(t.hasAttribute("data-mselall")){ [...C.querySelectorAll("[data-msel]")].forEach(x=>{ t.checked?S.msel.add(x.dataset.msel):S.msel.delete(x.dataset.msel); }); render(true); return; }
