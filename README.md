@@ -47,6 +47,9 @@ En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega 
 - **Reposición** (azul): packs cerrados. **Picking** (naranja): unidades abiertas para cargar el cooler.
 - Tocar una zona muestra sus productos, su mínimo y su estado. **Contar zona** guarda el conteo de una vez y deja un movimiento de ajuste por cada producto que cambió.
 - Los productos se asignan a zonas (`zonas` y `zmin` en cada producto). El stock de la bodega sigue siendo el de siempre; lo que no está en una zona aparece en **Sin zona** para asignarlo.
+- **Tomar inventario** (en esa misma pantalla): cuentas zona por zona, ves las diferencias antes de guardar y al confirmar se actualiza el stock de la bodega. Cada producto con diferencia deja un movimiento de ajuste.
+- **Mínimo y máximo por ubicación** (`zmin` y `zmax`): el mínimo avisa cuándo reponer y el máximo dice hasta dónde. Se fijan al contar una zona o al tomar inventario.
+- **Reponer**: lista las ubicaciones bajo su mínimo. En Picking se pueden pasar packs desde las zonas de Reposición de la misma bodega, y lo que no alcanza se trae de Reposición con un traspaso interno ya armado. Las zonas por reponer también aparecen marcadas en rojo en el mapa.
 - Solo existe para el Piso 11. El Piso 14 tiene otra distribución y se configura después.
 
 ## Instalarla como aplicación
