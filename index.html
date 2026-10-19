@@ -803,6 +803,9 @@ td.n .ubin{display:block;margin-left:auto}
   .mz-items li.mz-rp .btn,.mz-items li.mz-rp .mz-pill{grid-column:1/-1;justify-self:start}
 }
 .mz-first{background:var(--accent-soft);color:var(--ink);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:.88rem}
+.inst-pasos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:.95rem}
+.inst-pasos li::marker{font-weight:800;color:var(--accent)}
+.login .link#btnInstLogin{display:block;margin-top:6px}
 </style>
 </head>
 <body>
@@ -819,7 +822,7 @@ td.n .ubin{display:block;margin-left:auto}
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
     <div class="side-foot">
-      <button class="inst" id="instBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg>Instalar la app</button>
+      <button class="inst" id="instBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg>Descargar la app</button>
       <div class="acct" id="acct" hidden>
         <span class="av" id="acctAv"></span>
         <div><b id="acctName"></b><span id="acctEmail"></span></div>
@@ -858,7 +861,7 @@ td.n .ubin{display:block;margin-left:auto}
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilBod" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Bodegas</span></button>
-    <button class="movil-sheet-item" type="button" id="movilInstalarBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg><span>Instalar la app</span></button>
+    <button class="movil-sheet-item" type="button" id="movilInstalarBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7m0 0-3-3m3 3 3-3M10 18h4"/></svg><span>Descargar la app</span></button>
     <p class="sync" id="movilSync" style="padding:4px 8px;margin:2px 0 0"></p>
     <button class="movil-sheet-item salir" type="button" id="movilSalir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></svg><span>Cerrar sesión</span></button>
   </div>
@@ -871,6 +874,7 @@ td.n .ubin{display:block;margin-left:auto}
   <div class="login-btns">
     <button type="button" class="btn brand" id="btnLogin">Entrar</button>
     <button type="button" class="link" id="btnReset">Olvidé mi clave</button>
+    <button type="button" class="link" id="btnInstLogin">Descargar la app</button>
   </div>
   <p class="err" id="lErr"></p>
 </div></div>
@@ -961,6 +965,14 @@ td.n .ubin{display:block;margin-left:auto}
     <button type="submit" class="btn">Guardar bodega</button>
   </div>
 </form></dialog>
+<dialog id="dInst"><div class="dlg">
+  <h2>Descargar la app</h2>
+  <p class="sub" id="instSub"></p>
+  <ol class="inst-pasos" id="instPasos"></ol>
+  <p class="muted" style="font-size:.84rem;margin:12px 0 0">Queda con su propio ícono, se abre como cualquier otra app y se actualiza sola. Necesita internet para mostrar el inventario. Si el equipo es de la empresa, TI puede haber bloqueado la instalación: igual puedes entrar desde el enlace.</p>
+  <p class="err" id="instMsg" style="color:var(--ok)"></p>
+  <div class="dlg-actions"><button type="button" class="btn ghost" id="instCopiar">Copiar enlace de la app</button><span class="spacer"></span><button type="button" class="btn" data-close>Cerrar</button></div>
+</div></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div id="printArea" aria-hidden="true"></div>
@@ -2996,8 +3008,34 @@ $("#movilBod").addEventListener("click",()=>{ closeSide(); go({go:"bodegas"}); }
 $("#movilInstalarBtn").addEventListener("click",()=>{ closeSide(); $("#instBtn").click(); });
 $("#movilSalir").addEventListener("click",()=>{ closeSide(); $("#outBtn").click(); });
 let deferredInstall=null;
-window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstall=e; $("#instBtn").hidden=false; });
-$("#instBtn").addEventListener("click",async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch{} deferredInstall=null; $("#instBtn").hidden=true; });
+const yaInstalada=()=>matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+function actualizarInst(){ const oc=yaInstalada(); ["#instBtn","#movilInstalarBtn","#btnInstLogin"].forEach(s=>{ const el=$(s); if(el) el.hidden=oc; }); }
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstall=e; });
+window.addEventListener("appinstalled",()=>{ deferredInstall=null; actualizarInst(); toast("App instalada"); });
+function instPlataforma(){
+  const ua=navigator.userAgent, ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios) return "ios"; if(/android/i.test(ua)) return "android"; if(/firefox/i.test(ua)) return "firefox"; if(/edg\//i.test(ua)) return "edge"; if(/chrome|chromium/i.test(ua)) return "chrome"; return "otro";
+}
+const INST_PASOS={
+  ios:["En iPhone o iPad se instala desde Safari.",["Abre este enlace en <b>Safari</b> (no desde otra app).","Toca el botón <b>Compartir</b> (el cuadrado con una flecha hacia arriba).","Elige <b>Agregar a pantalla de inicio</b> y toca <b>Agregar</b>."]],
+  android:["En Android se instala desde Chrome.",["Toca el menú <b>⋮</b> (arriba a la derecha).","Elige <b>Instalar app</b> (o <b>Agregar a la pantalla principal</b>).","Confirma con <b>Instalar</b>."]],
+  chrome:["En el computador se instala desde Chrome.",["Busca el ícono de <b>instalar</b> al final de la barra de direcciones (una pantalla con una flecha).","Si no aparece: menú <b>⋮ → Transmitir, guardar y compartir → Instalar Depósito…</b>","Confirma con <b>Instalar</b>."]],
+  edge:["En el computador se instala desde Edge.",["Toca el menú <b>⋯</b> (arriba a la derecha).","Elige <b>Aplicaciones → Instalar este sitio como una aplicación</b>.","Confirma con <b>Instalar</b>."]],
+  firefox:["Firefox no permite instalar la app en el computador.",["Copia el enlace con el botón de abajo.","Pégalo en <b>Chrome</b> o <b>Edge</b>.","Sigue allí las instrucciones de instalar."]],
+  otro:["Este navegador no ofrece instalar la app.",["Copia el enlace con el botón de abajo.","Ábrelo en <b>Chrome</b> o <b>Edge</b> (computador o Android) o en <b>Safari</b> (iPhone).","Sigue allí las instrucciones de instalar."]]
+};
+async function abrirInstalar(){
+  if(deferredInstall){ const ev=deferredInstall; deferredInstall=null; ev.prompt(); try{ const r=await ev.userChoice; if(r.outcome==="accepted") toast("Instalando la app…"); }catch{} return; }
+  const [sub,pasos]=INST_PASOS[instPlataforma()];
+  $("#instSub").textContent=sub; $("#instPasos").innerHTML=pasos.map(p=>`<li>${p}</li>`).join(""); $("#instMsg").textContent="";
+  $("#dInst").showModal();
+}
+$("#instBtn").addEventListener("click",abrirInstalar);
+$("#btnInstLogin").addEventListener("click",abrirInstalar);
+$("#instCopiar").addEventListener("click",async()=>{ const url=location.origin+location.pathname;
+  try{ await navigator.clipboard.writeText(url); $("#instMsg").textContent="Enlace copiado: "+url; }catch{ $("#instMsg").textContent="Copia este enlace: "+url; } });
+actualizarInst(); matchMedia("(display-mode: standalone)").addEventListener?.("change",actualizarInst);
+if("serviceWorker" in navigator && /^https:|^http:\/\/localhost/.test(location.href)) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 /* ---------- Row menu ---------- */
 const pop=$("#pop");

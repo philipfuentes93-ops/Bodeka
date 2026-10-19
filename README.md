@@ -56,3 +56,5 @@ En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega 
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
 En iPhone: Safari > Compartir > **Agregar a pantalla de inicio**.
+
+En la app hay un botón **Descargar la app** (en el menú lateral, en **Más** del celular y en la pantalla de ingreso). Si el navegador permite instalar, la instala con un toque; si no, muestra los pasos para Chrome, Edge, Android o iPhone y deja copiar el enlace. Se oculta solo cuando la app ya está instalada. `sw.js` es un service worker mínimo (no guarda copias): permite instalarla y avisa si se abre sin internet.
