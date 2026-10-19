@@ -2680,9 +2680,9 @@ const MZ_TIPO = {rep:"Reposición", pick:"Picking"};
 const MAPA_P11 = {id:"p11", zonas:[
   {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 1 · Saborizadas y jugos", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[8.6,9.75],pin:"fx"}},
-  {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 2 · Reposición", t:"rep", d:"Bebidas en reposición: packs cerrados de botella y lata.",
+  {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 2 · Picking", t:"pick", d:"Bebidas abiertas de botella y lata, para cargar el cooler.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[6.85,8.15],pin:"fx"}},
-  {id:"p11.i3",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 3 · Reposición", t:"rep", d:"Bebidas en lata en reposición: packs cerrados.",
+  {id:"p11.i3",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 3 · Picking", t:"pick", d:"Bebidas en lata abiertas, para cargar el cooler.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[5.1,6.4],pin:"fx"}},
   {id:"p11.agua",  corto:"C1",   cara:"Cara 1 (izquierda)", n:"Reposición de agua", t:"rep", d:"Packs de agua cerrados, en el espacio libre bajo el nivel 3.",
     vol:{x:[.05,1.35],y:[1.7,8.95],z:[0,4.9],pin:"fx"}},
@@ -3660,7 +3660,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "60", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "61", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
