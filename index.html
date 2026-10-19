@@ -942,6 +942,7 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .sm-pk-r{display:block;margin:6px 0 4px;font-size:1.4rem;font-weight:800;line-height:1.2}
 .sm-pk-r i{font-style:normal;color:var(--accent-strong)}
 .sm-pk-n{font-size:1.1rem;font-weight:700;color:var(--accent-strong)}
+.mz-also{display:block;margin-top:3px;font-size:.74rem;font-weight:600;color:var(--accent-strong)}
 .mz-par{display:flex;gap:6px;justify-content:flex-end}
 .mz-pi{display:grid;gap:2px;min-width:0;width:100%;max-width:74px}
 .mz-pi small{text-align:center;font-size:.64rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
@@ -2844,6 +2845,12 @@ function mzItems(b,M,z){ return S.productos.filter(p=>p.zonas && p.zonas[z.id]!=
 function mzZonaSt(b,M,z){ const ss=mzItems(b,M,z).map(({p,ef})=>mzSt(p,z,ef)); return ss.includes("bad")?"bad":ss.includes("warn")?"warn":ss.includes("ok")?"ok":"none"; }
 const mzSub = p => `${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}`;
 const mzMM = (m,x) => [m?`mín ${fmtPk(m)}`:"", x?`máx ${fmtPk(x)}`:""].filter(Boolean).join(" · ");
+// Dónde más está el mismo producto en esta bodega (otras zonas y lo que aún no tiene zona)
+function mzOtras(p,b,M,zid){
+  const ef=zonasEf(p,b,M), r=M.zonas.filter(z=>z.id!==zid && (ef.z[z.id]||0)>0).map(z=>`${esc(z.n)}: <b>${mzTxt(ef.z[z.id],p)}</b>`);
+  if(ef.libre>0) r.push(`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`);
+  return r.length?`<span class="mz-also">También está en ${r.join(" · ")}</span>`:"";
+}
 const mzTmp = (k,id,d) => (S.mzTmp[k+"|"+id]!==undefined ? S.mzTmp[k+"|"+id] : d);
 
 /* Cuándo reponer: una ubicación con mínimo definido que baja de él. Se repone hasta el máximo (o hasta el mínimo si no hay máximo).
@@ -2882,7 +2889,7 @@ function mzCard(b,M,z,nec){
       ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`;
   if(cnt) return head+`<p class="mz-hint" style="margin:0 0 6px">Cuenta lo que ves: <b>packs</b> cerrados y <b>unidades sueltas</b>. <b>Mínimo</b>: cuándo avisar que hay que reponer. <b>Máximo</b>: hasta dónde reponer. Nada cambia hasta que guardes.</p>
     ${its.length?`<div class="mz-ci-h"><span>Producto</span><span>Contado</span><span>Mínimo (${u})</span><span>Máximo (${u})</span><span></span></div><ul class="mz-items">${its.map(({p,ef})=>{
-      return `<li class="mz-ci"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)} · sistema: ${mzTxt(ef.z[z.id]||0,p)}</span></span>
+      return `<li class="mz-ci"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)} · sistema: ${mzTxt(ef.z[z.id]||0,p)}</span>${mzOtras(p,b,M,z.id)}</span>
       ${mzPar(p,["data-mzq","data-mzqs"],esc(p.id),mzTmp("q",p.id,pkn(p)>1?toPk(ef.z[z.id]||0,p):(ef.z[z.id]||0)),mzTmp("qs",p.id,suel(ef.z[z.id]||0,p)),"","",p.nombre)}
       <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzm="${esc(p.id)}" value="${esc(mzTmp("m",p.id,mzMin(p,z)||""))}" placeholder="mín" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(z.n)}">
       <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzx="${esc(p.id)}" value="${esc(mzTmp("x",p.id,mzMax(p,z)||""))}" placeholder="máx" aria-label="Máximo de ${esc(p.nombre)} en ${esc(z.n)}">
@@ -2927,13 +2934,14 @@ function viewInvMapa(b,M){
 function mzInvN(){ return new Set(Object.keys(S.mzInv).filter(k=>S.mzInv[k]!=="").map(k=>k.replace(/\|s$/,""))).size + Object.keys(S.mzAsig).filter(k=>S.mzAsig[k]).length; }   // packs y sueltas de un mismo producto cuentan como un dato
 function mzInvCalc(b,M,only){
   const V=S.mzInv, por=new Map(), cambios=[], errs=[], zonasContadas=new Set();
-  const get=p=>{ if(!por.has(p.id)){ const ef=zonasEf(p,b,M); por.set(p.id,{p,ef,zonas:{...ef.z}, zmin:{...(p.zmin||{})}, zmax:{...(p.zmax||{})}, ubic:(p.ubic||{})[b.id]||0, notas:[]}); } return por.get(p.id); };
+  const get=p=>{ if(!por.has(p.id)){ const ef=zonasEf(p,b,M); por.set(p.id,{p,ef,zonas:{...ef.z}, zmin:{...(p.zmin||{})}, zmax:{...(p.zmax||{})}, ubic:(p.ubic||{})[b.id]||0, libre:ef.libre, notas:[]}); } return por.get(p.id); };
   (only ? M.zonas.filter(z=>z.id===only) : M.zonas).forEach(z=>{ mzItems(b,M,z).forEach(({p,ef})=>{
     const key=p.id+"|"+z.id, old=ef.z[z.id]||0, sysV=mzVal(old,p,z), u=mzUn(z), cv=V[key], sv=V[key+"|s"], mv=V[key+"|m"], xv=V[key+"|x"];
     const R=get(p), nu=mzTotal(pkn(p),old,cv,sv);   // packs + sueltas contados
     if(nu!==null){
       zonasContadas.add(z.id);
-      if(nu!==old){ R.zonas[z.id]=nu; R.ubic+=nu-old; R.notas.push(`${z.n}: ${mzTxt(old,p)} → ${mzTxt(nu,p)}`); cambios.push({p,z,tipo:"conteo",old:old,nuevo:nu,oldT:mzTxt(old,p),nuevoT:mzTxt(nu,p),u}); }
+      if(nu!==old){ const d=nu-old, c=d>0?Math.min(d,R.libre):0;   // lo que aparece en esta zona sale primero de "Sin zona": ya estaba en el stock de la bodega
+        R.libre-=c; R.zonas[z.id]=nu; R.ubic+=d-c; R.notas.push(`${z.n}: ${mzTxt(old,p)} → ${mzTxt(nu,p)}${c?` (${mzTxt(c,p)} salen de Sin zona)`:""}`); cambios.push({p,z,tipo:"conteo",old:old,nuevo:nu,oldT:mzTxt(old,p),nuevoT:mzTxt(nu,p),sz:c,u}); }
     }
     const cm=mzMin(p,z), cx=mzMax(p,z); let nm=cm, nx=cx;
     if(mv!==undefined && mv!=="") nm=Math.max(0,parseFloat(mv)||0); if(xv!==undefined && xv!=="") nx=Math.max(0,parseFloat(xv)||0);
@@ -2943,13 +2951,13 @@ function mzInvCalc(b,M,only){
   }); });
   S.productos.forEach(p=>{
     if(only && only!=="libre") return;
-    const ef=zonasEf(p,b,M); if(ef.libre<=0) return;
-    const cv=V[p.id+"|libre"], sv=V[p.id+"|libre|s"], zid=S.mzAsig[p.id], z=zid&&M.zonas.find(x=>x.id===zid), cn=mzTotal(pkn(p),ef.libre,cv,sv);
+    const ef=zonasEf(p,b,M), lib=por.has(p.id)?por.get(p.id).libre:ef.libre; if(lib<=0) return;   // lo que queda sin zona, después de lo contado en las zonas
+    const cv=V[p.id+"|libre"], sv=V[p.id+"|libre|s"], zid=S.mzAsig[p.id], z=zid&&M.zonas.find(x=>x.id===zid), cn=mzTotal(pkn(p),lib,cv,sv);
     if(cn===null && !z) return;
-    const R=get(p); let nl=ef.libre;
+    const R=get(p); let nl=lib;
     if(cn!==null){ nl=cn;
-      if(nl!==ef.libre){ R.ubic+=nl-ef.libre; R.notas.push(`Sin zona: ${mzTxt(ef.libre,p)} → ${mzTxt(nl,p)}`); cambios.push({p,z:null,tipo:"libre",old:ef.libre,nuevo:nl,oldT:mzTxt(ef.libre,p),nuevoT:mzTxt(nl,p),u:""}); } }
-    if(z){ R.zonas[z.id]=(R.zonas[z.id]||0)+nl; R.notas.push(`asignado a ${z.n}`); cambios.push({p,z,tipo:"asig",old:0,nuevo:mzVal(nl,p,z),u:mzUn(z)}); }
+      if(nl!==lib){ R.ubic+=nl-lib; R.libre=nl; R.notas.push(`Sin zona: ${mzTxt(lib,p)} → ${mzTxt(nl,p)}`); cambios.push({p,z:null,tipo:"libre",old:lib,nuevo:nl,oldT:mzTxt(lib,p),nuevoT:mzTxt(nl,p),u:""}); } }
+    if(z){ R.zonas[z.id]=(R.zonas[z.id]||0)+nl; R.libre=0; R.notas.push(`asignado a ${z.n}`); cambios.push({p,z,tipo:"asig",old:0,nuevo:mzVal(nl,p,z),u:mzUn(z)}); }
   });
   return {por,cambios,errs,zonasContadas};
 }
@@ -2963,7 +2971,7 @@ function viewInvInventario(b,M){
   const sec=z=>{ const its=mzItems(b,M,z), u=mzUn(z);
     return `<div class="card mz-isec" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(z.n)}</h3><span class="mz-hint">${esc(z.cara)} · ${esc(z.d)}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div>
       ${its.length?`<ul class="mz-items"><li class="mz-ir mz-irh${mm?" mm":""}"><span>Producto</span><span>Sistema</span><span>Contado</span><span>Dif.</span>${mm?`<span>Mínimo (${u})</span><span>Máximo (${u})</span>`:""}</li>${its.map(({p,ef})=>{ const key=p.id+"|"+z.id, un0=ef.z[z.id]||0, d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
-        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></span>
+        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}</span>
           <span class="mz-sys">${mzTxt(un0,p)}</span>
           ${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}
           <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
@@ -2989,7 +2997,7 @@ function viewInvInventario(b,M){
 function mzInvRevision(b,M){
   const {cambios,errs}=mzInvCalc(b,M), cont=cambios.filter(c=>c.tipo==="conteo"||c.tipo==="libre"), otros=cambios.filter(c=>!(c.tipo==="conteo"||c.tipo==="libre"));
   const TXT={min:"Mínimo",max:"Máximo",asig:"Asignado a la zona"};
-  const fila=c=>`<li class="mz-rv"><span class="mz-nm">${esc(c.p.nombre)}<span class="mz-sub">${c.z?esc(c.z.n):"Sin zona"}</span></span><span class="mz-num">${c.oldT?`${esc(c.oldT)} → <b>${esc(c.nuevoT)}</b>`:`${c.tipo==="asig"?"":`${fmtPk(c.old)} → `}<b>${fmtPk(c.nuevo)}</b> <small>${c.u}</small>`}</span>${c.tipo==="conteo"||c.tipo==="libre"?`<span class="mz-dif ${c.nuevo<c.old?"neg":"pos"}">${c.nuevo>c.old?"+":"−"}${mzTxtU(Math.abs(c.nuevo-c.old),pkn(c.p))}</span>`:`<span class="mz-pill none">${TXT[c.tipo]}</span>`}</li>`;
+  const fila=c=>`<li class="mz-rv"><span class="mz-nm">${esc(c.p.nombre)}<span class="mz-sub">${c.z?esc(c.z.n):"Sin zona"}${c.sz?` · ${mzTxt(c.sz,c.p)} salen de «Sin zona» (ya estaban en el stock)`:""}</span></span><span class="mz-num">${c.oldT?`${esc(c.oldT)} → <b>${esc(c.nuevoT)}</b>`:`${c.tipo==="asig"?"":`${fmtPk(c.old)} → `}<b>${fmtPk(c.nuevo)}</b> <small>${c.u}</small>`}</span>${c.tipo==="conteo"||c.tipo==="libre"?`<span class="mz-dif ${c.nuevo<c.old?"neg":"pos"}">${c.nuevo>c.old?"+":"−"}${mzTxtU(Math.abs(c.nuevo-c.old),pkn(c.p))}</span>`:`<span class="mz-pill none">${TXT[c.tipo]}</span>`}</li>`;
   return `<div class="card mz-wrap" style="margin-top:14px;padding:18px"><div class="mz-ch"><div><h2>Revisar antes de guardar</h2><span class="mz-hint">${esc(b.nombre)} · ${cambios.length} cambio${cambios.length===1?"":"s"}</span></div></div>
     ${errs.length?`<div class="mz-err">${errs.map(e=>`<div>${esc(e)}</div>`).join("")}</div>`:""}
     ${cont.length?`<h3 style="margin:14px 0 4px;font-size:.95rem">Diferencias de stock</h3><ul class="mz-items">${cont.map(fila).join("")}</ul>`:`<p class="mz-hint" style="margin:12px 0 0">Lo contado coincide con el sistema: el stock no cambia.</p>`}
@@ -3078,7 +3086,8 @@ async function mzAgregar(prodId, zid){
   clearTimeout(tIn);   // si había una búsqueda pendiente de dibujarse, no debe pisar esta pantalla
   const ef=zonasEf(p,b,M); S.mpAddQ=""; S.mzAddZ=null;
   await Store.putProducto({...p, zonas:{...ef.z,[z.id]:ef.z[z.id]??0}, actualizado:new Date().toISOString()});
-  toast(`${p.nombre} agregado a ${z.n}`); render(true);
+  const otras=M.zonas.filter(x=>x.id!==z.id && (ef.z[x.id]||0)>0).map(x=>x.n); if(ef.libre>0) otras.push("Sin zona");
+  toast(`${p.nombre} agregado a ${z.n}.${otras.length?` Ya está también en ${otras.join(" y ")}: cuenta aquí solo lo que hay en este lugar.`:""}`); render(true);
   if(S.invVista==="inventario") document.querySelector(`[data-mzi="${p.id}|${z.id}"]`)?.focus();
 }
 async function mzQuitar(prodId){
@@ -3110,11 +3119,12 @@ async function mzGuardar(){
     const mv=Math.max(0,parseFloat(mins.get(p.id))||0), xv=Math.max(0,parseFloat(maxs.get(p.id))||0), omin=mzMin(p,z), omax=mzMax(p,z);
     if(nu===old && mv===omin && xv===omax) continue;
     const zmin={...(p.zmin||{})}, zmax={...(p.zmax||{})}; if(mv>0) zmin[z.id]=mv; else delete zmin[z.id]; if(xv>0) zmax[z.id]=xv; else delete zmax[z.id];
-    const bodU=Math.max(0,(p.ubic[b.id]||0)+nu-old), ubic={...p.ubic,[b.id]:bodU}, now=new Date().toISOString();   // las demás zonas y lo "sin zona" no cambian
+    const dz=nu-old, cz=dz>0?Math.min(dz,ef.libre):0;   // lo que aparece en esta zona sale primero de "Sin zona"; las demás zonas no cambian
+    const bodU=Math.max(0,(p.ubic[b.id]||0)+dz-cz), ubic={...p.ubic,[b.id]:bodU}, now=new Date().toISOString();
     const np={...p, zonas:{...ef.z,[z.id]:nu}, zmin, zmax, ubic, stock:Object.values(ubic).reduce((a,x)=>a+x,0), actualizado:now};
     await Store.putProducto(np);
     if(nu!==old) await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:bodU,cantidadPack:toPk(bodU,p),sueltas:suel(bodU,p),stockFinal:np.stock,
-      nota:`${b.nombre} · ${z.n} · Conteo de zona: ${mzTxt(old,p)} → ${mzTxt(nu,p)}`,fecha:now});
+      nota:`${b.nombre} · ${z.n} · Conteo de zona: ${mzTxt(old,p)} → ${mzTxt(nu,p)}${cz?` (${mzTxt(cz,p)} salen de Sin zona)`:""}`,fecha:now});
     n++;
   }
   S.mpCnt=false; S.mzTmp={}; S.mpDone.add(z.id);
@@ -3598,7 +3608,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "56", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "57", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
