@@ -962,6 +962,18 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
   .mz-ir > .mz-par .mz-pi{max-width:110px}
   .mz-ir > .mz-sys{text-align:left}
 }
+.mz-caraH{margin:22px 0 -4px;font-size:1rem}
+.mz-cb{display:inline-block;padding:3px 11px;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em;border:2px solid transparent;margin-right:8px;background:var(--field);color:var(--ink)}
+.mz-cb.i{background:#e0ecff;color:#1d4ed8;border-color:#bcd3ff}
+.mz-cb.f{background:#ffeedd;color:#b45309;border-color:#ffd6ad}
+.mz-cb.sz{background:#eee;color:#555;border-color:#ddd}
+.mz-jump{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;font-size:.85rem;font-weight:700;color:var(--muted)}
+.mz-jump button{all:unset;cursor:pointer;padding:5px 12px;border-radius:999px;font-size:.8rem;font-weight:800}
+.mz-jump button.i{background:#e0ecff;color:#1d4ed8} .mz-jump button.f{background:#ffeedd;color:#b45309} .mz-jump button.sz{background:#eee;color:#555}
+.mz-jump button:focus-visible{outline:3px solid var(--accent)}
+.mz-pcard .mz-nm{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.mz-pcard .mz-nm .mz-cb{margin-right:4px}
+.mz-pcard .mz-acts select{max-width:100%}
 </style>
 </head>
 <body>
@@ -2847,7 +2859,7 @@ const mzSub = p => `${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt
 const mzMM = (m,x) => [m?`mín ${fmtPk(m)}`:"", x?`máx ${fmtPk(x)}`:""].filter(Boolean).join(" · ");
 // Dónde más está el mismo producto en esta bodega (otras zonas y lo que aún no tiene zona)
 function mzOtras(p,b,M,zid){
-  const ef=zonasEf(p,b,M), r=M.zonas.filter(z=>z.id!==zid && (ef.z[z.id]||0)>0).map(z=>`${esc(z.n)}: <b>${mzTxt(ef.z[z.id],p)}</b>`);
+  const ef=zonasEf(p,b,M), r=M.zonas.filter(z=>z.id!==zid && (ef.z[z.id]||0)>0).map(z=>`${esc(mzUbi(z))}: <b>${mzTxt(ef.z[z.id],p)}</b>`);
   if(ef.libre>0) r.push(`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`);
   return r.length?`<span class="mz-also">También está en ${r.join(" · ")}</span>`:"";
 }
@@ -2935,7 +2947,8 @@ function mzInvN(){ return new Set(Object.keys(S.mzInv).filter(k=>S.mzInv[k]!==""
 function mzInvCalc(b,M,only){
   const V=S.mzInv, por=new Map(), cambios=[], errs=[], zonasContadas=new Set();
   const get=p=>{ if(!por.has(p.id)){ const ef=zonasEf(p,b,M); por.set(p.id,{p,ef,zonas:{...ef.z}, zmin:{...(p.zmin||{})}, zmax:{...(p.zmax||{})}, ubic:(p.ubic||{})[b.id]||0, libre:ef.libre, notas:[]}); } return por.get(p.id); };
-  (only ? M.zonas.filter(z=>z.id===only) : M.zonas).forEach(z=>{ mzItems(b,M,z).forEach(({p,ef})=>{
+  const onlyP=only&&only.startsWith("p:")?only.slice(2):null, onlyZ=only&&!onlyP?only:null;   // guardar una zona o un solo producto (en todas sus zonas)
+  (onlyZ ? M.zonas.filter(z=>z.id===onlyZ) : M.zonas).forEach(z=>{ mzItems(b,M,z).filter(({p})=>!onlyP||p.id===onlyP).forEach(({p,ef})=>{
     const key=p.id+"|"+z.id, old=ef.z[z.id]||0, sysV=mzVal(old,p,z), u=mzUn(z), cv=V[key], sv=V[key+"|s"], mv=V[key+"|m"], xv=V[key+"|x"];
     const R=get(p), nu=mzTotal(pkn(p),old,cv,sv);   // packs + sueltas contados
     if(nu!==null){
@@ -2950,7 +2963,7 @@ function mzInvCalc(b,M,only){
     if(nm>0 && nx>0 && nx<nm) errs.push(`${p.nombre} · ${z.n}: el máximo (${nx}) no puede ser menor que el mínimo (${nm}).`);
   }); });
   S.productos.forEach(p=>{
-    if(only && only!=="libre") return;
+    if(onlyZ && onlyZ!=="libre") return; if(onlyP && p.id!==onlyP) return;
     const ef=zonasEf(p,b,M), lib=por.has(p.id)?por.get(p.id).libre:ef.libre; if(lib<=0) return;   // lo que queda sin zona, después de lo contado en las zonas
     const cv=V[p.id+"|libre"], sv=V[p.id+"|libre|s"], zid=S.mzAsig[p.id], z=zid&&M.zonas.find(x=>x.id===zid), cn=mzTotal(pkn(p),lib,cv,sv);
     if(cn===null && !z) return;
@@ -2960,6 +2973,29 @@ function mzInvCalc(b,M,only){
     if(z){ R.zonas[z.id]=(R.zonas[z.id]||0)+nl; R.libre=0; R.notas.push(`asignado a ${z.n}`); cambios.push({p,z,tipo:"asig",old:0,nuevo:mzVal(nl,p,z),u:mzUn(z)}); }
   });
   return {por,cambios,errs,zonasContadas};
+}
+const mzCaraNom = c => { const m=/\(([^)]+)\)/.exec(c); const t=m?m[1]:c; return t.charAt(0).toUpperCase()+t.slice(1); };   // "Cara 1 (izquierda)" → "Izquierda"
+const mzUbi = z => `${mzCaraNom(z.cara)} · ${z.n.replace(/^Fondo · /,"")}`;
+const mzCaraCls = c => /fondo/i.test(c) ? "f" : /izq/i.test(c) ? "i" : "o";
+function viewInvPorProducto(b,M){
+  const V=S.mzInv, q=norm(S.mzPq||"");
+  const todos=S.productos.map(p=>({p,ef:zonasEf(p,b,M)}));
+  const base=todos.filter(({p,ef})=>q ? norm(p.nombre+" "+(p.codigo||"")).includes(q) : ((p.ubic||{})[b.id]||0)>0 || Object.keys(ef.z).length)
+    .sort((a,c)=>a.p.nombre.localeCompare(c.p.nombre,"es"));
+  const card=({p,ef})=>{
+    const total=(p.ubic||{})[b.id]||0, zs=M.zonas.filter(z=>p.zonas&&p.zonas[z.id]!==undefined), libres=ef.libre>0;
+    const fila=(key,un0,etq)=>{ const d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
+      return `<li class="mz-ir">${etq}<span class="mz-sys">${mzTxt(un0,p)}</span>${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}<span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span></li>`; };
+    const filas=zs.map(z=>fila(p.id+"|"+z.id,ef.z[z.id]||0,`<span class="mz-nm"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(mzCaraNom(z.cara))}</span>${esc(z.n.replace(/^Fondo · /,""))}</span>`)).join("")+(libres?fila(p.id+"|libre",ef.libre,`<span class="mz-nm"><span class="mz-cb sz">Sin zona</span>Aún no está en una zona</span>`):"");
+    const resumen=[...zs.map(z=>`${esc(mzUbi(z))}: <b>${mzTxt(ef.z[z.id]||0,p)}</b>`),libres?`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`:""].filter(Boolean);
+    const libresZ=M.zonas.filter(z=>!(p.zonas&&p.zonas[z.id]!==undefined));
+    return `<div class="card mz-isec mz-pcard" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(p.nombre)}</h3><span class="mz-hint">${mzSub(p)} · en la bodega: <b>${mzTxt(total,p)}</b></span></div><span class="mz-pill ${zs.length>1?"ok":"none"}">${zs.length} zona${zs.length===1?"":"s"}${libres?" + sin zona":""}</span></div>
+      ${resumen.length?`<p class="mz-also" style="margin:2px 0 8px">${resumen.join(" · ")}</p>`:""}
+      ${filas?`<ul class="mz-items"><li class="mz-ir mz-irh"><span>Ubicación</span><span>Sistema</span><span>Contado</span><span>Dif.</span></li>${filas}</ul>`:`<div class="mz-empty" style="padding:10px 8px">Este producto aún no está en ninguna zona. Agrégalo a una.</div>`}
+      <div class="mz-acts"><select class="mz-sel" data-mzadds="${esc(p.id)}" aria-label="Agregar ${esc(p.nombre)} a otra zona"><option value="">+ Agregar a ${zs.length?"otra":"una"} zona…</option>${libresZ.map(z=>`<option value="${z.id}">${esc(mzUbi(z))}</option>`).join("")}</select>
+        <button class="btn brand sm" type="button" data-mzsz="p:${esc(p.id)}">Guardar este producto</button></div></div>`; };
+  return `<div class="mz-add" style="margin-top:12px"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mzpq" type="search" value="${esc(S.mzPq||"")}" placeholder="Buscar un producto (nombre o código)" aria-label="Buscar un producto" autocomplete="off"></label></div>
+    ${base.length?base.slice(0,40).map(card).join("")+(base.length>40?`<p class="mz-hint" style="margin:12px 2px">Hay ${base.length-40} productos más: usa el buscador.</p>`:""):`<div class="mz-empty" style="margin-top:14px">${q?"No hay productos con ese nombre.":"Aún no hay productos con stock en esta bodega. Búscalos arriba o cárgalos en la vista Por zona."}</div>`}`;
 }
 function viewInvInventario(b,M){
   if(S.mzRev) return mzInvRevision(b,M);
@@ -2986,12 +3022,19 @@ function viewInvInventario(b,M){
         ${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}
         <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
         <select class="mz-sel" data-mzia="${esc(p.id)}" aria-label="Asignar ${esc(p.nombre)} a una zona">${opts.replace(`value="${S.mzAsig[p.id]}"`,`value="${S.mzAsig[p.id]}" selected`)}</select></li>`; }).join("")}</ul><div class="mz-acts"><button class="btn brand sm" type="button" data-mzsz="libre">Guardar esta sección</button></div></div>`:"";
+  const ord=S.mzOrden==="producto"?"producto":"zona";
+  const caras=[...new Set(M.zonas.map(z=>z.cara))];
+  const zonasHtml=M.zonas.map((z,i)=>(i===0||M.zonas[i-1].cara!==z.cara?`<h2 class="mz-caraH" data-cara="${caras.indexOf(z.cara)}"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(z.cara)}</span></h2>`:"")+sec(z)).join("");
+  const salto=`<div class="mz-jump">Ir a: ${caras.map((c,i)=>`<button type="button" class="mz-cb ${mzCaraCls(c)}" data-mzjump="${i}">${esc(c)}</button>`).join("")}${libres.length?`<button type="button" class="mz-cb sz" data-mzjump="sz">Sin zona (${libres.length})</button>`:""}</div>`;
+  const orden=`<div class="mz-sw" style="margin:12px 0 0"><div class="mz-seg" role="group" aria-label="Cómo ver el inventario"><button type="button" data-mzorden="zona" aria-pressed="${ord==="zona"}">Por zona</button><button type="button" data-mzorden="producto" aria-pressed="${ord==="producto"}">Por producto</button></div></div>
+    <p class="mz-hint" style="margin:8px 0 0">${ord==="zona"?"Recorre la bodega zona por zona. Si un producto está también en otra zona, cada fila lo avisa.":"Elige un producto y ve de una vez todo lo que tiene en cada zona (izquierda, fondo, sin zona) para contarlo junto."}</p>`;
+  const cuerpo=ord==="producto"?viewInvPorProducto(b,M):`${salto}${zonasHtml}${secL.replace('class="card mz-isec"','class="card mz-isec" data-cara="sz"')}`;
   return `<div class="card mz-wrap" style="margin-top:14px;padding:18px"><div class="mz-ch"><div><h2>Tomar inventario físico · ${esc(b.nombre)}</h2><span class="mz-hint">Cuenta zona por zona. Si falta un producto, agrégalo con el buscador de esa zona (si no existe, créalo). Lo que dejes en blanco no cambia y antes de guardar ves las diferencias.</span></div></div>
-    <div class="mz-bar" style="margin-top:12px"><label class="chk"><input type="checkbox" data-mzmm ${mm?"checked":""}> Definir mínimo y máximo de cada ubicación</label><span class="spacer"></span>
+    ${orden}<div class="mz-bar" style="margin-top:12px">${ord==="zona"?`<label class="chk"><input type="checkbox" data-mzmm ${mm?"checked":""}> Definir mínimo y máximo de cada ubicación</label>`:""}<span class="spacer"></span>
       <button class="btn ghost sm" type="button" data-mzexit>Cancelar</button><button class="btn brand sm" type="button" data-mzrev ${n?"":"disabled"}>Revisar y guardar${n?` (${n})`:""}</button></div>
     ${S.productos.some(p=>(p.ubic[b.id]||0)>0)?"":`<div class="mz-first"><b>Primera carga:</b> en cada zona busca el producto (nombre o código) y toca Enter, escribe cuántos hay y Enter para pasar al siguiente. Cuando termines una zona toca <b>Guardar esta zona</b>: queda guardada y puedes seguir después.</div>`}
     <p class="mz-hint" style="margin:10px 0 0">En cada producto cuenta <b>packs</b> cerrados y <b>unidades sueltas</b> (si no viene en pack, solo unidades). <b>Mínimo</b>: cuándo avisar que hay que reponer. <b>Máximo</b>: hasta dónde reponer.</p></div>
-    ${M.zonas.map(sec).join("")}${secL}
+    ${cuerpo}
     <div class="card" style="margin-top:14px;padding:14px 18px"><div class="mz-bar"><span class="mz-hint" data-mzn>${n?`${n} dato${n===1?"":"s"} ingresado${n===1?"":"s"}`:"Aún no ingresas datos."}</span><span class="spacer"></span><button class="btn brand" type="button" data-mzrev ${n?"":"disabled"}>Revisar y guardar${n?` (${n})`:""}</button></div></div>`;
 }
 function mzInvRevision(b,M){
@@ -3007,8 +3050,10 @@ function mzInvRevision(b,M){
 async function mzInvAplicar(only){
   const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b); if(!M) return;
   const {por,errs,zonasContadas}=mzInvCalc(b,M,only); if(errs.length){ if(only) toast(errs[0]); return; }
-  const zN=only==="libre"?"Sin zona":((M.zonas.find(z=>z.id===only)||{}).n||"");
-  if(only && !Object.keys(S.mzInv).some(k=>k.split("|")[1]===only && S.mzInv[k]!=="") && !(only==="libre" && Object.values(S.mzAsig).some(Boolean))){ toast(`${zN}: aún no ingresas datos para guardar.`); return; }
+  const onlyP=only&&only.startsWith("p:")?only.slice(2):null, pN=onlyP?((S.productos.find(x=>x.id===onlyP)||{}).nombre||""):"";
+  const zN=onlyP?pN:only==="libre"?"Sin zona":((M.zonas.find(z=>z.id===only)||{}).n||"");
+  const delta=k=>onlyP ? k.startsWith(onlyP+"|") : k.split("|")[1]===only;
+  if(only && !Object.keys(S.mzInv).some(k=>delta(k) && S.mzInv[k]!=="") && !(only==="libre" && Object.values(S.mzAsig).some(Boolean)) && !(onlyP && S.mzAsig[onlyP])){ toast(`${zN}: aún no ingresas datos para guardar.`); return; }
   let nProd=0, nMov=0;
   for(const R of por.values()){
     const {p}=R, ubic0=(p.ubic||{})[b.id]||0, now=new Date().toISOString();
@@ -3021,8 +3066,8 @@ async function mzInvAplicar(only){
   }
   zonasContadas.forEach(id=>S.mpDone.add(id));
   if(only){   // se guarda solo esa zona; lo escrito en las demás sigue ahí
-    Object.keys(S.mzInv).forEach(k=>{ if(k.split("|")[1]===only) delete S.mzInv[k]; });
-    if(only==="libre") S.mzAsig={};
+    Object.keys(S.mzInv).forEach(k=>{ if(delta(k)) delete S.mzInv[k]; });
+    if(only==="libre") S.mzAsig={}; if(onlyP) delete S.mzAsig[onlyP];
     S.mzRev=false; toast(`${zN}: guardado${nProd?` · ${nProd} producto${nProd===1?"":"s"} actualizado${nProd===1?"":"s"}`:""}`); render(true); return;
   }
   S.mzInv={}; S.mzAsig={}; S.mzRev=false; S.invVista="mapa";
@@ -3086,7 +3131,7 @@ async function mzAgregar(prodId, zid){
   clearTimeout(tIn);   // si había una búsqueda pendiente de dibujarse, no debe pisar esta pantalla
   const ef=zonasEf(p,b,M); S.mpAddQ=""; S.mzAddZ=null;
   await Store.putProducto({...p, zonas:{...ef.z,[z.id]:ef.z[z.id]??0}, actualizado:new Date().toISOString()});
-  const otras=M.zonas.filter(x=>x.id!==z.id && (ef.z[x.id]||0)>0).map(x=>x.n); if(ef.libre>0) otras.push("Sin zona");
+  const otras=M.zonas.filter(x=>x.id!==z.id && (ef.z[x.id]||0)>0).map(x=>mzUbi(x)); if(ef.libre>0) otras.push("Sin zona");
   toast(`${p.nombre} agregado a ${z.n}.${otras.length?` Ya está también en ${otras.join(" y ")}: cuenta aquí solo lo que hay en este lugar.`:""}`); render(true);
   if(S.invVista==="inventario") document.querySelector(`[data-mzi="${p.id}|${z.id}"]`)?.focus();
 }
@@ -3147,6 +3192,8 @@ function mzClick(t){
   if(t.closest("[data-mzrev]")){ S.mzRev=true; render(true); window.scrollTo?.(0,0); return true; }
   if(t.closest("[data-mzback]")){ S.mzRev=false; render(true); return true; }
   if(t.closest("[data-mzapply]")){ mzInvAplicar(); return true; }
+  const od=t.closest("[data-mzorden]"); if(od){ S.mzOrden=od.dataset.mzorden; render(true); return true; }
+  const jp=t.closest("[data-mzjump]"); if(jp){ const el=document.querySelector(`[data-cara="${CSS.escape(jp.dataset.mzjump)}"]`); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); return true; }
   const sz=t.closest("[data-mzsz]"); if(sz){ mzInvAplicar(sz.dataset.mzsz); return true; }
   if(t.closest("[data-mzexit]")){ if(mzInvN() && !confirm("¿Descartar las cantidades ingresadas?")) return true; S.mzInv={}; S.mzAsig={}; S.mzRev=false; S.invVista="mapa"; render(true); return true; }
   const lc=t.closest("[data-mzloc]"); if(lc){ mzReponerLocal(lc.dataset.mzloc); return true; }
@@ -3349,7 +3396,7 @@ function render(force=true){   // live data updates call render(false)
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   document.body.classList.toggle("simple",!!S.simple);
   $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
-  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
+  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
   if(S.simple) d={go:"simple"};   // en modo simple no hay otras pantallas
@@ -3549,6 +3596,7 @@ C.addEventListener("input",e=>{
     if(t.dataset.pkd){ l.por=l.por||{}; l.por[t.dataset.pkd]=v; pkSetGen(l); } else l.cantidad=v;
     updPkLinea(+t.dataset.pkq); return; }
   if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
+  if(id==="mzpq"){ clearTimeout(tIn); tIn=setTimeout(()=>{ S.mzPq=v; render(true); },200); return; }
   if(id==="smq" && S.smPed){ clearTimeout(tIn); tIn=setTimeout(()=>{ S.smPed.q=v; render(); },200); return; }
   if(!(["fq","mq","dq","iq","mpq","mpadd"].includes(id) || (id||"").startsWith("mpadd-"))) return;
   clearTimeout(tIn); tIn=setTimeout(()=>{ if(id==="fq"){ S.q=v; S.open=null; } if(id==="mq") S.mq=v; if(id==="dq") S.dq=v; if(id==="iq") S.invQ=v; if(id==="mpq") S.mpQ=v; if(id==="mpadd") { S.mpAddQ=v; S.mzAddZ=null; } if((id||"").startsWith("mpadd-")){ S.mpAddQ=v; S.mzAddZ=t.dataset.mzaddz||null; } S.page=1; render(); },200);
@@ -3578,6 +3626,7 @@ C.addEventListener("keydown",e=>{
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if((id==="smd"||id==="smh") && S.smSec){ S[id==="smd"?"smDesde":"smHasta"]=v; render(true); return; }
+  if(t.dataset.mzadds!==undefined){ if(v) mzAgregar(t.dataset.mzadds, v); return; }
   if(t.dataset.mzasel!==undefined){ if(v) mzAsignar(t.dataset.mzasel, v); return; }
   if(t.dataset.mzia!==undefined){ S.mzAsig[t.dataset.mzia]=v; mzBtnN(); return; }
   if(t.hasAttribute("data-mzmm")){ S.mzMM=t.checked; render(true); return; }
@@ -3608,7 +3657,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "57", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "58", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
