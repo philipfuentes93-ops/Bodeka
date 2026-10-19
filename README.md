@@ -53,13 +53,15 @@ En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega 
 - **Reponer**: lista las ubicaciones bajo su mínimo. En Picking se pueden pasar packs desde las zonas de Reposición de la misma bodega, y lo que no alcanza se trae de Reposición con un traspaso interno ya armado. Las zonas por reponer también aparecen marcadas en rojo en el mapa.
 - Solo existe para el Piso 11. El Piso 14 tiene otra distribución y se configura después.
 
-## Modo simple (picking para quien lleva los productos)
+## Modo simple (celular de una mano)
 
-En **Picking** hay un botón **Modo simple para operarios** (y **Copiar enlace**, que termina en `#simple`, para abrirlo en otro equipo). En ese modo desaparece el menú y solo quedan:
+En **Picking** hay un botón **Modo simple para operarios** (y **Copiar enlace**, que termina en `#simple`, para abrirlo en otro equipo). En ese modo desaparece el menú y la persona ve solo:
 
-- **Para llevar**: un botón grande por cada destino con productos pendientes (sale de los pickings ya confirmados; uno por cooler o tránsito).
-- Al tocar un destino, una tarjeta por producto con **solo foto, nombre y cantidad solicitada**. Se toca la tarjeta cuando ya está; abajo, **Terminé** deja ese destino como entregado para todos.
-- Se sale con **Salir del modo simple** (abajo de la lista). Las fotos de los productos se cargan desde Productos; sin foto se muestra la categoría.
+- **Hacer un pedido**: una pregunta por pantalla. A dónde lo llevas (un botón grande por cooler o tránsito) → qué llevas (tarjetas con foto y nombre, **+ Agregar** y botones **+** / **−** de a un pack) → revisar → **Confirmar pedido**. Registra el mismo picking (a un cooler) o traspaso interno (a un tránsito) de la pantalla normal, y descuenta el stock igual. Sin imprimir, vaciar ni datos técnicos. De dónde saca se elige solo (el tránsito del mismo piso, o Reposición); se puede cambiar.
+- **Para llevar**: los pedidos confirmados, uno por destino. Cada tarjeta trae **solo foto, nombre y cantidad solicitada**; se toca cuando ya está y **Terminé** lo deja entregado para todos.
+- **Ya entregados hoy**: para ver el detalle de lo que ya se llevó.
+- Se sale con **Salir del modo simple** (abajo del inicio). Las fotos de los productos se cargan en Productos; sin foto se muestra la categoría.
+- El pedido a "Todos los coolers" (General) sigue haciéndose en la pantalla normal.
 
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
