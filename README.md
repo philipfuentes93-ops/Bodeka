@@ -44,7 +44,8 @@ Desde ahí, cada cambio que subas a la rama `main` se publica solo.
 
 En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega dibujada y sus zonas:
 
-- **Reposición** (azul): packs cerrados. **Picking** (naranja): unidades abiertas para cargar el cooler.
+- **Reposición** (azul): sobre todo packs cerrados. **Picking** (naranja): sobre todo unidades abiertas para cargar el cooler.
+- **Contar en packs y en unidades**: en cualquier zona cada producto que viene en pack se cuenta con dos casillas, **packs** y **sueltas** (por ejemplo 8 packs + 3 sueltas); si no viene en pack, una sola casilla de **unidades**. Una casilla en blanco no cambia (se conserva lo que dice el sistema). La diferencia y la revisión se muestran en packs + unidades. El mínimo y el máximo siguen en la unidad de la zona (packs en Reposición, unidades en Picking).
 - Tocar una zona muestra sus productos, su mínimo y su estado. **Contar zona** guarda el conteo de una vez y deja un movimiento de ajuste por cada producto que cambió.
 - Los productos se asignan a zonas (`zonas` y `zmin` en cada producto). El stock de la bodega sigue siendo el de siempre; lo que no está en una zona aparece en **Sin zona** para asignarlo.
 - **Tomar inventario** (en esa misma pantalla): cuentas zona por zona, ves las diferencias antes de guardar y al confirmar se actualiza el stock de la bodega. Cada producto con diferencia deja un movimiento de ajuste.
