@@ -974,6 +974,8 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .mz-pcard .mz-nm{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
 .mz-pcard .mz-nm .mz-cb{margin-right:4px}
 .mz-pcard .mz-acts select{max-width:100%}
+.mz-quitar{display:block;margin-top:3px;padding:0;font-size:.74rem;font-weight:700;color:var(--danger);text-align:left}
+.mz-pcard .mz-quitar{display:inline-block;margin:0 0 0 auto}
 </style>
 </head>
 <body>
@@ -2986,7 +2988,7 @@ function viewInvPorProducto(b,M){
     const total=(p.ubic||{})[b.id]||0, zs=M.zonas.filter(z=>p.zonas&&p.zonas[z.id]!==undefined), libres=ef.libre>0;
     const fila=(key,un0,etq)=>{ const d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
       return `<li class="mz-ir">${etq}<span class="mz-sys">${mzTxt(un0,p)}</span>${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}<span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span></li>`; };
-    const filas=zs.map(z=>fila(p.id+"|"+z.id,ef.z[z.id]||0,`<span class="mz-nm"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(mzCaraNom(z.cara))}</span>${esc(z.n.replace(/^Fondo · /,""))}</span>`)).join("")+(libres?fila(p.id+"|libre",ef.libre,`<span class="mz-nm"><span class="mz-cb sz">Sin zona</span>Aún no está en una zona</span>`):"");
+    const filas=zs.map(z=>fila(p.id+"|"+z.id,ef.z[z.id]||0,`<span class="mz-nm"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(mzCaraNom(z.cara))}</span>${esc(z.n.replace(/^Fondo · /,""))}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar</button></span>`)).join("")+(libres?fila(p.id+"|libre",ef.libre,`<span class="mz-nm"><span class="mz-cb sz">Sin zona</span>Aún no está en una zona</span>`):"");
     const resumen=[...zs.map(z=>`${esc(mzUbi(z))}: <b>${mzTxt(ef.z[z.id]||0,p)}</b>`),libres?`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`:""].filter(Boolean);
     const libresZ=M.zonas.filter(z=>!(p.zonas&&p.zonas[z.id]!==undefined));
     return `<div class="card mz-isec mz-pcard" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(p.nombre)}</h3><span class="mz-hint">${mzSub(p)} · en la bodega: <b>${mzTxt(total,p)}</b></span></div><span class="mz-pill ${zs.length>1?"ok":"none"}">${zs.length} zona${zs.length===1?"":"s"}${libres?" + sin zona":""}</span></div>
@@ -3007,7 +3009,7 @@ function viewInvInventario(b,M){
   const sec=z=>{ const its=mzItems(b,M,z), u=mzUn(z);
     return `<div class="card mz-isec" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(z.n)}</h3><span class="mz-hint">${esc(z.cara)} · ${esc(z.d)}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div>
       ${its.length?`<ul class="mz-items"><li class="mz-ir mz-irh${mm?" mm":""}"><span>Producto</span><span>Sistema</span><span>Contado</span><span>Dif.</span>${mm?`<span>Mínimo (${u})</span><span>Máximo (${u})</span>`:""}</li>${its.map(({p,ef})=>{ const key=p.id+"|"+z.id, un0=ef.z[z.id]||0, d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
-        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}</span>
+        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar de esta zona</button></span>
           <span class="mz-sys">${mzTxt(un0,p)}</span>
           ${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}
           <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
@@ -3135,12 +3137,13 @@ async function mzAgregar(prodId, zid){
   toast(`${p.nombre} agregado a ${z.n}.${otras.length?` Ya está también en ${otras.join(" y ")}: cuenta aquí solo lo que hay en este lugar.`:""}`); render(true);
   if(S.invVista==="inventario") document.querySelector(`[data-mzi="${p.id}|${z.id}"]`)?.focus();
 }
-async function mzQuitar(prodId){
-  const {b,M,z}=mzCtx(), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
+async function mzQuitar(prodId,zid){
+  const {b,M}=mzCtx(), z=M&&M.zonas.find(x=>x.id===(zid||S.mpSel)), p=S.productos.find(x=>x.id===prodId); if(!z||!p) return;
   const ef=zonasEf(p,b,M), un=ef.z[z.id]||0;
   if(un>0 && !confirm(`¿Quitar "${p.nombre}" de ${z.n}?\nSus ${fmtPk(mzVal(un,p,z))} ${mzUn(z)} pasan a "Sin zona". El stock de la bodega no cambia.`)) return;
   const zonas={...ef.z}, zmin={...(p.zmin||{})}, zmax={...(p.zmax||{})}; delete zonas[z.id]; delete zmin[z.id]; delete zmax[z.id];
   ["q","qs","m","x"].forEach(k=>delete S.mzTmp[k+"|"+p.id]);
+  ["","|s","|m","|x"].forEach(k=>delete S.mzInv[p.id+"|"+z.id+k]); mzBtnN();
   await Store.putProducto({...p, zonas, zmin, zmax, actualizado:new Date().toISOString()});
   toast(`${p.nombre} quitado de ${z.n}`); render(true);
 }
@@ -3187,7 +3190,7 @@ function mzClick(t){
   if(t.closest("[data-mzsave]")){ mzGuardar(); return true; }
   const a=t.closest("[data-mzaddp]"); if(a){ mzAgregar(a.dataset.mzaddp, a.dataset.mzaddz); return true; }
   if(t.closest("[data-mznuevo]")){ openProd(); return true; }
-  const r=t.closest("[data-mzrm]"); if(r){ mzQuitar(r.dataset.mzrm); return true; }
+  const r=t.closest("[data-mzrm]"); if(r){ mzQuitar(r.dataset.mzrm,r.dataset.mzrz); return true; }
   const ok=t.closest("[data-mzok]"); if(ok){ const {b,M}=mzCtx(), z=M&&M.zonas.find(x=>x.id===ok.dataset.mzok); if(z){ mzItems(b,M,z).forEach(({p,ef})=>{ const u0=ef.z[z.id]||0, k=p.id+"|"+z.id; S.mzInv[k]=String(pkn(p)>1?toPk(u0,p):u0); if(pkn(p)>1) S.mzInv[k+"|s"]=String(suel(u0,p)); }); render(true); } return true; }
   if(t.closest("[data-mzrev]")){ S.mzRev=true; render(true); window.scrollTo?.(0,0); return true; }
   if(t.closest("[data-mzback]")){ S.mzRev=false; render(true); return true; }
@@ -3657,7 +3660,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "58", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "59", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
