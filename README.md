@@ -63,6 +63,10 @@ En **Picking** hay un botón **Modo simple para operarios** (y **Copiar enlace**
 - Se sale con **Salir del modo simple** (abajo del inicio). Las fotos de los productos se cargan en Productos; sin foto se muestra la categoría.
 - El pedido a "Todos los coolers" (General) sigue haciéndose en la pantalla normal.
 
+## Actualizaciones
+
+La app se actualiza sola: cada vez que se abre carga la última versión publicada. Si está abierta cuando se publica un cambio, aparece arriba un aviso grande **Actualización disponible · Toca aquí para actualizar** (se revisa cada 2 minutos y cuando la app vuelve a primer plano). Al tocarlo se recarga y queda al día; los datos no se tocan.
+
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
 En iPhone: Safari > Compartir > **Agregar a pantalla de inicio**.

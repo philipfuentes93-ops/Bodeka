@@ -890,6 +890,11 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .sm-find{padding-top:10px} .sm-find input{min-height:54px;font-size:1.25rem}
 .sm-from{padding:8px 18px 10px;font-size:1.05rem}
 @media (max-width:480px){ .sm-pc{grid-template-columns:92px minmax(0,1fr)} .sm-nuevo{font-size:1.6rem;min-height:76px} .sm-step{grid-template-columns:60px minmax(0,1fr) 60px} .sm-step button{width:60px;height:60px} }
+#updBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:9999;width:min(520px,calc(100% - 24px));box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 18px;border:0;border-radius:18px;background:var(--accent-strong);color:#fff;font-size:1.05rem;cursor:pointer;box-shadow:0 8px 28px rgba(0,0,0,.35);animation:updPulse 2s ease-in-out infinite}
+#updBar b{font-size:1.25rem} #updBar span{font-weight:600;opacity:.92}
+#updBar:focus-visible{outline:4px solid var(--orange);outline-offset:3px}
+@keyframes updPulse{0%,100%{box-shadow:0 8px 28px rgba(0,0,0,.35),0 0 0 0 rgba(242,140,56,.7)}50%{box-shadow:0 8px 28px rgba(0,0,0,.35),0 0 0 10px rgba(242,140,56,0)}}
+@media (prefers-reduced-motion:reduce){#updBar{animation:none}}
 </style>
 </head>
 <body>
@@ -3501,6 +3506,25 @@ document.addEventListener("change", e=>{
     if(m && +m[1]<100){ el.value=`${2000+ +m[1]}-${m[2]}-${m[3]}`; el.dispatchEvent(new Event("input",{bubbles:true})); }
   }
 }, true);
+/* ---------- Aviso de "Actualización disponible" ----------
+   Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
+   al tocarlo se recarga y queda con lo último. Se revisa cada 2 minutos y cada vez que la app vuelve a primer plano. */
+(function(){
+  if(!/^https:|^http:\/\/localhost/.test(location.href)) return;
+  let base=null, avisado=false;
+  const hash=s=>{ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return s.length+":"+h; };
+  const leer=async()=>{ const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}); if(!r.ok) throw 0; return hash(await r.text()); };
+  function avisar(){
+    const b=document.createElement("button"); b.id="updBar"; b.type="button";
+    b.innerHTML='<b>Actualización disponible</b><span>Toca aquí para actualizar</span>';
+    b.addEventListener("click",()=>{ b.disabled=true; b.querySelector("span").textContent="Actualizando…"; location.reload(); });
+    document.body.appendChild(b);
+  }
+  async function revisar(){ if(avisado) return; try{ const h=await leer(); if(base===null) base=h; else if(h!==base){ avisado=true; avisar(); } }catch{} }
+  revisar(); setInterval(revisar,120000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") revisar(); });
+  window.addEventListener("pageshow",revisar); window.addEventListener("online",revisar);
+})();
 if(S.simple) S.screen="simple";
 Store.init();
 </script>
