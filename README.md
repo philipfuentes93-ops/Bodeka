@@ -67,6 +67,8 @@ En **Picking** hay un botón **Modo simple para operarios** (y **Copiar enlace**
 
 La app se actualiza sola: cada vez que se abre carga la última versión publicada. Si está abierta cuando se publica un cambio, aparece arriba un aviso grande **Actualización disponible · Toca aquí para actualizar** (se revisa cada 2 minutos y cuando la app vuelve a primer plano). Al tocarlo se recarga y queda al día; los datos no se tocan.
 
+Hay también un botón **Actualizar la app** siempre visible (menú lateral, **Más** del celular, pie del modo simple y pantalla de ingreso) que busca una versión nueva y recarga si la hay, y un número de **versión** en el menú para comprobar qué versión tiene cada equipo. `APP_VERSION` está en `index.html`: se sube en cada publicación.
+
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
 En iPhone: Safari > Compartir > **Agregar a pantalla de inicio**.
