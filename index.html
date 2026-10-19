@@ -898,6 +898,26 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .side-foot .ver{margin:2px 12px 8px;font-size:.72rem;color:rgba(214,236,232,.55)}
 .movil-sheet-item small{font-weight:500;font-size:.8rem}
 .login .link#btnUpdLogin{display:block;margin-top:6px}
+.sm-back{width:auto!important;min-width:112px;padding:0 16px;gap:8px;font-size:1.25rem!important;font-weight:800;display:flex!important;align-items:center;justify-content:center;white-space:nowrap}
+.sm-back span{font-size:1.7rem;line-height:1}
+.sm-bt{min-width:0}
+.sm-bt .sm-to{text-transform:none;letter-spacing:0;font-size:1rem}
+.sm-de{display:block;margin-top:6px;font-size:1.15rem;font-weight:700;color:var(--muted)}
+.sm-ruta{margin:14px 14px 0;padding:12px;border-radius:22px;background:var(--panel);border:4px solid var(--line)}
+.sm-r{display:block;padding:8px 14px;border-left:10px solid var(--c);border-radius:6px;background:var(--field)}
+.sm-r span{display:block;font-size:1rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.sm-r b{display:block;font-size:1.6rem;line-height:1.15}
+.sm-fl{text-align:center;font-size:1.8rem;font-weight:800;line-height:1.1;color:var(--muted);padding:2px 0}
+.sm-nota{margin:10px 4px 2px;font-size:1.15rem;font-weight:600;color:var(--ink)}
+.sm-rb{margin:12px 18px 0;font-size:1.1rem;color:var(--muted)}
+.sm-rb b{display:block;font-size:1.6rem;color:var(--ink);border-left:10px solid var(--c);padding-left:12px;margin-top:4px}
+.sm-rt2{display:flex;align-items:center;gap:10px;margin:12px 14px 0;padding:10px 12px;border-radius:18px;background:var(--panel);border:3px solid var(--line)}
+.sm-rt2>div{flex:1;min-width:0}
+.sm-rt2 span{display:block;font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.sm-rt2 b{display:block;font-size:1.15rem;line-height:1.15;border-left:6px solid var(--c);padding-left:8px;margin-top:2px}
+.sm-rt2 i{font-style:normal;font-size:1.6rem;font-weight:800;color:var(--muted)}
+.sm-inv{margin:12px 18px 6px;font-size:1.05rem;font-weight:700;color:var(--muted)}
+.sm-hay{display:block;margin-top:2px;font-size:1.05rem;font-weight:600;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -2300,14 +2320,15 @@ function smQty(u,pk){
 }
 const smFoto = (p,nombre) => p&&p.foto ? `<img class="sm-ph" src="${p.foto}" alt="">` : `<span class="sm-ph sm-ini" style="--c:${catColor(p?p.categoria:"")}" aria-hidden="true">${esc(ini(p?p.categoria:nombre))}</span>`;
 const smCab = () => `<header class="sm-top"><span class="sm-logo" aria-hidden="true">D<i></i></span><b>Depósito</b></header>`;
-const smBarra = (titulo,sub,color,der) => `<header class="sm-bar" style="--c:${color||"var(--accent)"}"><button type="button" class="sm-back" data-smback aria-label="Volver">←</button><div><span class="sm-to">${sub}</span><b>${titulo}</b></div>${der?`<span class="sm-prog">${der}</span>`:""}</header>`;
+const smBarra = (titulo,sub,color,der) => `<header class="sm-bar" style="--c:${color||"var(--accent)"}"><button type="button" class="sm-back" data-smback><span aria-hidden="true">←</span> Volver</button><div class="sm-bt"><span class="sm-to">${sub}</span><b>${titulo}</b></div>${der?`<span class="sm-prog">${der}</span>`:""}</header>`;
+const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style="--c:${pkColor(orig)}"><span>Sacas de</span><b>${esc(bodNom(orig))}</b></div><div class="sm-fl" aria-hidden="true">↓</div><div class="sm-r" style="--c:${pkColor(dest)}"><span>Llevas a</span><b>${esc(bodNom(dest))}</b></div>${nota?`<p class="sm-nota">${nota}</p>`:""}</div>`;
 
 /* ---------- inicio ---------- */
 function smLista(ts){
   const ent=smEntregados();
   const tareas=ts.length
     ? `<h2 class="sm-h2">Para llevar</h2><div class="sm-tiles">${ts.map(t=>{ const n=(t.lineas||[]).length;
-        return `<button type="button" class="sm-tile" style="--c:${pkColor(t.ubicDestino)}" data-smsel="${esc(smKey(t))}"><span class="sm-to">Llevar a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${n} producto${n===1?"":"s"}</span><span class="sm-go" aria-hidden="true">→</span></button>`; }).join("")}</div>`
+        return `<button type="button" class="sm-tile" style="--c:${pkColor(t.ubicDestino)}" data-smsel="${esc(smKey(t))}"><span class="sm-to">Llevar a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${n} producto${n===1?"":"s"}</span><span class="sm-de">Se sacó de: ${esc(bodNom(t.ubicOrigen))}</span><span class="sm-go" aria-hidden="true">→</span></button>`; }).join("")}</div>`
     : `<p class="sm-p" style="margin-top:20px">No hay pedidos para llevar ahora.</p>`;
   return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>`+tareas
     +(ent.length?`<div class="sm-sec"><button type="button" class="sm-sec-b" data-smhoy>Ya entregados hoy (${ent.length})</button></div>`:"")
@@ -2315,7 +2336,7 @@ function smLista(ts){
 }
 function smHoy(){
   const ent=smEntregados();
-  return smBarra("Entregados hoy","Ya listos","var(--ok)")+`<div class="sm-tiles" style="padding-top:18px">${ent.map(t=>`<button type="button" class="sm-tile sm-tile-ok" data-smver="${esc(smKey(t))}"><span class="sm-to">Se llevó a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${(t.lineas||[]).length} producto${(t.lineas||[]).length===1?"":"s"} · ${new Date(t._hecho).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span><span class="sm-go" aria-hidden="true">✓</span></button>`).join("")||`<p class="sm-p">Aún no hay entregas hoy.</p>`}</div>`;
+  return smBarra("Entregados hoy","Ya listos","var(--ok)")+`<div class="sm-tiles" style="padding-top:18px">${ent.map(t=>`<button type="button" class="sm-tile sm-tile-ok" data-smver="${esc(smKey(t))}"><span class="sm-to">Se llevó a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${(t.lineas||[]).length} producto${(t.lineas||[]).length===1?"":"s"} · ${new Date(t._hecho).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span><span class="sm-de">Se sacó de: ${esc(bodNom(t.ubicOrigen))}</span><span class="sm-go" aria-hidden="true">✓</span></button>`).join("")||`<p class="sm-p">Aún no hay entregas hoy.</p>`}</div>`;
 }
 
 /* ---------- llevar un pedido (o verlo, si ya se entregó) ---------- */
@@ -2325,54 +2346,59 @@ function smTarea(t,ro){
     return `<${ro?"div":"button type=\"button\" data-smchk=\""+i+"\" aria-pressed=\""+on+"\""} class="sm-card ${on?"on":""}" aria-label="${esc(l.nombre)}, ${esc(q.txt)}">${smFoto(p,l.nombre)}
       <span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span><span class="sm-tick" aria-hidden="true">${on?"✓":""}</span></${ro?"div":"button"}>`; }).join("");
   return smBarra(esc(bodNom(t.ubicDestino)),ro?"Se llevó a":"Llevar a",pkColor(t.ubicDestino),ro?"":`${hechas} de ${ls.length}`)
-    +(ro?"":`<p class="sm-p" style="margin:16px 18px 12px">Toca cada producto cuando ya lo tengas.</p>`)+`<div class="sm-cards" style="${ro?"padding-top:16px":""}">${cards}</div>`
+    +smRuta(t.ubicOrigen,t.ubicDestino)
+    +(ro?"":`<p class="sm-p" style="margin:14px 18px 12px">Toca cada producto cuando ya lo tengas.</p>`)+`<div class="sm-cards" style="${ro?"padding-top:16px":""}">${cards}</div>`
     +(ro?"":`<div class="sm-fin"><button type="button" class="sm-btn ${todas?"lista":""}" data-smfin>${todas?"✓ Terminé":"Terminé"}</button></div>`);
 }
 
 /* ---------- hacer un pedido ---------- */
-const smDestinos = () => [...bods("cooler"),...bods("picking")];
-const smOrigenes = dest => tipoBod(dest)==="picking" ? bods("reposicion") : [...bods("reposicion"),...bods("picking")].filter(b=>b.id!==dest);
-function smOrigDef(dest){
-  const b=S.bodegas.find(x=>x.id===dest), repo=bods("reposicion")[0];
-  if(b && b.tipo==="cooler"){ const num=(b.nombre.match(/\d+/)||[])[0], tr=num&&bods("picking").find(x=>(x.nombre.match(/\d+/)||[])[0]===num); if(tr) return tr.id; }   // el cooler del piso 14 se abastece del tránsito del piso 14
-  return (repo||{}).id;
-}
+const smOrigenesTodos = () => [...bods("reposicion"),...bods("picking")];
+const smDestinos = orig => [...bods("cooler"),...bods("picking")].filter(b=>b.id!==orig);
+const smEsTraspaso = (orig,dest) => tipoBod(orig)==="reposicion" && tipoBod(dest)==="picking";   // Reposición → tránsito es un traspaso interno; lo demás es picking
 function smStepUn(p,orig){ const st=(p.ubic||{})[orig]||0; return st>=pkn(p)?pkn(p):1; }            // se pide de a un pack (o de a una unidad si no queda un pack entero)
 const smMax = (p,orig) => { const s=smStepUn(p,orig), st=(p.ubic||{})[orig]||0; return Math.floor(st/s)*s; };
 const smNPed = () => Object.values(S.smPed.lineas).filter(u=>u>0).length;
 function smPedido(){
-  const P=S.smPed, ds=smDestinos();
-  if(P.paso==="dest"){
-    return smBarra("¿A dónde lo llevas?","Nuevo pedido")+`<div class="sm-tiles" style="padding-top:18px">${ds.map(b=>`<button type="button" class="sm-tile" style="--c:${pkColor(b.id)}" data-smdest="${esc(b.id)}"><span class="sm-to">${b.tipo==="cooler"?"Cooler":"Bodega del piso"}</span><b>${esc(b.nombre)}</b><span class="sm-go" aria-hidden="true">→</span></button>`).join("")||`<p class="sm-p">No hay destinos. Pide ayuda a quien administra.</p>`}</div>`;
-  }
+  const P=S.smPed;
   if(P.paso==="orig"){
-    return smBarra("¿De dónde sacas?","Nuevo pedido")+`<div class="sm-tiles" style="padding-top:18px">${smOrigenes(P.dest).map(b=>`<button type="button" class="sm-tile" style="--c:${pkColor(b.id)}" data-smorig="${esc(b.id)}"><span class="sm-to">${b.tipo==="reposicion"?"Reposición":"Bodega del piso"}</span><b>${esc(b.nombre)}</b><span class="sm-go" aria-hidden="true">→</span></button>`).join("")}</div>`;
+    return smBarra("¿De qué bodega sacas?","Nuevo pedido · paso 1 de 3")+`<p class="sm-p" style="margin:16px 18px 0">Los productos salen de esta bodega y se descuentan de su inventario.</p>
+      <div class="sm-tiles" style="padding-top:14px">${smOrigenesTodos().map(b=>{ const n=S.productos.filter(p=>((p.ubic||{})[b.id]||0)>0).length;
+        return `<button type="button" class="sm-tile" style="--c:${pkColor(b.id)}" data-smorig="${esc(b.id)}"><span class="sm-to">${b.tipo==="reposicion"?"Bodega de reposición":"Bodega del piso"}</span><b>${esc(b.nombre)}</b><span class="sm-cnt">${n} producto${n===1?"":"s"} con stock</span><span class="sm-go" aria-hidden="true">→</span></button>`; }).join("")||`<p class="sm-p">No hay bodegas. Pide ayuda a quien administra.</p>`}</div>
+      <div class="sm-fin" style="position:static"><button type="button" class="sm-btn2" data-smback>← Volver al inicio</button></div>`;
+  }
+  if(P.paso==="dest"){
+    return smBarra("¿A dónde lo llevas?",`Nuevo pedido · paso 2 de 3`)+`<div class="sm-rb"><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div>
+      <div class="sm-tiles" style="padding-top:6px">${smDestinos(P.orig).map(b=>`<button type="button" class="sm-tile" style="--c:${pkColor(b.id)}" data-smdest="${esc(b.id)}"><span class="sm-to">${b.tipo==="cooler"?"Cooler":"Bodega del piso"}</span><b>${esc(b.nombre)}</b><span class="sm-go" aria-hidden="true">→</span></button>`).join("")||`<p class="sm-p">No hay destinos. Pide ayuda a quien administra.</p>`}</div>
+      <div class="sm-fin" style="position:static"><button type="button" class="sm-btn2" data-smback>← Volver</button></div>`;
   }
   if(P.paso==="prod"){
     const q=norm(P.q||""), lista=S.productos.filter(p=>smMax(p,P.orig)>0 && (!q || norm(p.nombre+" "+(p.codigo||"")).includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")), n=smNPed();
-    const cards=lista.slice(0,40).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn);
+    const cards=lista.slice(0,40).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
       const ctl=u>0 ? `<span class="sm-step"><button type="button" data-smmenos="${esc(p.id)}" aria-label="Quitar uno">−</button><span class="sm-sn"><b>${q2.n}</b> ${q2.u}</span><button type="button" data-smmas="${esc(p.id)}" aria-label="Agregar uno">+</button></span>`
         : `<button type="button" class="sm-add" data-smadd="${esc(p.id)}">+ Agregar</button>`;
-      return `<div class="sm-card sm-pc ${u>0?"on":""}">${smFoto(p,p.nombre)}<span class="sm-info"><span class="sm-name">${esc(p.nombre)}</span>${ctl}</span></div>`; }).join("");
-    return smBarra("¿Qué llevas?",`Para ${esc(bodNom(P.dest))}`,pkColor(P.dest))
-      +`<div class="sm-find"><input id="smq" type="search" value="${esc(P.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
-      <div class="sm-from">Sacas de <b>${esc(bodNom(P.orig))}</b>${smOrigenes(P.dest).length>1?` <button type="button" class="link" data-smcambiar>Cambiar</button>`:""}</div>
-      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock aquí."}</p>`}${lista.length>40?`<p class="sm-p" style="margin:6px 4px">Hay más productos: usa el buscador.</p>`:""}</div>
+      return `<div class="sm-card sm-pc ${u>0?"on":""}">${smFoto(p,p.nombre)}<span class="sm-info"><span class="sm-name">${esc(p.nombre)}</span><span class="sm-hay">Hay ${hay}</span>${ctl}</span></div>`; }).join("");
+    return smBarra("¿Qué llevas?","Nuevo pedido · paso 3 de 3",pkColor(P.dest))
+      +`<div class="sm-rt2"><div><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div><i aria-hidden="true">→</i><div><span>Llevas a</span><b style="--c:${pkColor(P.dest)}">${esc(bodNom(P.dest))}</b></div></div>
+      <div class="sm-find"><input id="smq" type="search" value="${esc(P.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
+      <p class="sm-inv">Productos que hay en ${esc(bodNom(P.orig))}</p>
+      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}${lista.length>40?`<p class="sm-p" style="margin:6px 4px">Hay más productos: usa el buscador.</p>`:""}</div>
       ${n?`<div class="sm-fin"><button type="button" class="sm-btn lista" data-smver-ped>Ver mi pedido (${n})</button></div>`:""}`;
   }
   if(P.paso==="res"){
     const its=Object.entries(P.lineas).filter(([,u])=>u>0).map(([id,u])=>({p:S.productos.find(x=>x.id===id),u})).filter(x=>x.p);
-    return smBarra("Tu pedido",`Para ${esc(bodNom(P.dest))}`,pkColor(P.dest),`${its.length}`)
-      +`<div class="sm-cards" style="padding-top:16px">${its.map(({p,u})=>{ const q=smQty(u,p.packUn);
+    return smBarra("Tu pedido","Revisa antes de confirmar",pkColor(P.dest),`${its.length}`)
+      +smRuta(P.orig,P.dest,`Al confirmar, esto se <b>descuenta del inventario</b> de ${esc(bodNom(P.orig))}.`)
+      +`<div class="sm-cards" style="padding-top:14px">${its.map(({p,u})=>{ const q=smQty(u,p.packUn);
         return `<div class="sm-card on">${smFoto(p,p.nombre)}<span class="sm-info"><span class="sm-name">${esc(p.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span><span class="sm-tick" aria-hidden="true">✓</span></div>`; }).join("")}</div>
       <div class="sm-fin"><button type="button" class="sm-btn lista" data-smconf>✓ Confirmar pedido</button><button type="button" class="sm-btn2" data-smback>← Agregar o cambiar</button></div>`;
   }
   // paso "ok"
-  return smCab()+`<div class="sm-vacio"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">¡Pedido listo!</h1><p class="sm-p">Para ${esc(bodNom(P.dest))}</p></div>
+  return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">¡Pedido listo!</h1></div>
+    ${smRuta(P.orig,P.dest,`Ya se descontó del inventario de <b>${esc(bodNom(P.orig))}</b>.`)}
     <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-smllevar>Llevarlo ahora</button><button type="button" class="sm-btn2" data-smotro>Hacer otro pedido</button><button type="button" class="sm-btn2" data-smhome>Ir al inicio</button></div>`;
 }
 async function smRegistrar(){
-  const P=S.smPed, orig=P.orig, dest=P.dest, T=tipoBod(dest)==="picking";
+  const P=S.smPed, orig=P.orig, dest=P.dest, T=smEsTraspaso(orig,dest);
   const lines=Object.entries(P.lineas).filter(([,u])=>u>0).map(([id,q])=>({p:S.productos.find(x=>x.id===id),q})).filter(l=>l.p);
   if(!lines.length){ toast("Elige al menos un producto."); return; }
   const x=lines.find(l=>l.q>((l.p.ubic||{})[orig]||0)); if(x){ toast(`No alcanza "${x.p.nombre}" en ${bodNom(orig)}.`); return; }
@@ -2391,7 +2417,7 @@ async function smRegistrar(){
     const doc={id:uid(), tipo:"picking", ...(T?{modo:"traspaso"}:{}), numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
       lineas:lines.map(l=>({productoId:l.p.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||""}))};
     await Store.addDocu(doc);
-    S.smPed={paso:"ok", dest, doc:doc.id}; render(true); window.scrollTo?.(0,0);
+    S.smPed={paso:"ok", orig, dest, doc:doc.id}; render(true); window.scrollTo?.(0,0);
   }catch(e){ toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."); render(true); }
 }
 function viewSimple(){
@@ -2426,10 +2452,9 @@ const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm"
 function smClick(t){
   const P=S.smPed, go1=()=>{ render(true); window.scrollTo?.(0,0); return true; };
   // hacer un pedido
-  if(t.closest("[data-smnuevo]")){ S.smPed={paso:"dest",dest:null,orig:null,lineas:{},q:""}; return go1(); }
-  const d=t.closest("[data-smdest]"); if(d&&P){ P.dest=d.dataset.smdest; P.orig=smOrigDef(P.dest); P.lineas={}; P.q=""; P.paso="prod"; return go1(); }
-  const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig) P.lineas={}; P.orig=o.dataset.smorig; P.paso="prod"; return go1(); }
-  if(t.closest("[data-smcambiar]")&&P){ P.paso="orig"; return go1(); }
+  if(t.closest("[data-smnuevo]")){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},q:""}; return go1(); }
+  const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
+  const d=t.closest("[data-smdest]"); if(d&&P){ P.dest=d.dataset.smdest; P.q=""; P.paso="prod"; return go1(); }
   const ad=t.closest("[data-smadd]"); if(ad&&P){ const p=S.productos.find(x=>x.id===ad.dataset.smadd); if(p){ P.lineas[p.id]=smStepUn(p,P.orig); smBip(); render(true); } return true; }
   const mas=t.closest("[data-smmas]"); if(mas&&P){ const p=S.productos.find(x=>x.id===mas.dataset.smmas); if(p){ const u=(P.lineas[p.id]||0)+smStepUn(p,P.orig);
       if(u>smMax(p,P.orig)) toast("No hay más de este producto aquí."); else { P.lineas[p.id]=u; smBip(); } render(true); } return true; }
@@ -2437,14 +2462,15 @@ function smClick(t){
   if(t.closest("[data-smver-ped]")&&P){ if(smNPed()) { P.paso="res"; return go1(); } return true; }
   if(t.closest("[data-smconf]")&&P){ smRegistrar(); return true; }
   if(t.closest("[data-smllevar]")&&P){ const k=P.doc+"|"+P.dest; S.smPed=null; S.smSel=k; return go1(); }
-  if(t.closest("[data-smotro]")&&P){ S.smPed={paso:"dest",dest:null,orig:null,lineas:{},q:""}; return go1(); }
+  if(t.closest("[data-smotro]")&&P){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},q:""}; return go1(); }
   if(t.closest("[data-smhome]")&&P){ S.smPed=null; return go1(); }
   // atrás: cada pantalla vuelve a la anterior
   if(t.closest("[data-smback]")){
     if(P){
-      if(P.paso==="res"||P.paso==="orig") P.paso="prod";
-      else if(P.paso==="prod"){ if(smNPed() && !confirm("Si vuelves se pierde el pedido.\n¿Volver igual?")) return true; P.paso="dest"; P.dest=null; P.lineas={}; P.q=""; }
-      else S.smPed=null;   // estaba en la primera pantalla: vuelve al inicio
+      if(P.paso==="res") P.paso="prod";
+      else if(P.paso==="prod"){ P.paso="dest"; P.q=""; }
+      else if(P.paso==="dest"){ P.paso="orig"; P.dest=null; }
+      else S.smPed=null;   // estaba en el primer paso: vuelve al inicio
       return go1();
     }
     if(S.smVer){ S.smVer=null; return go1(); }
@@ -3515,7 +3541,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "51", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "52", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
