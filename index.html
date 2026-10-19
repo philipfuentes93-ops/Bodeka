@@ -2298,17 +2298,12 @@ S.simple = smLS("inv-simple","")==="1";
 if(/^#simple/.test(location.hash)){ S.simple=true; smSet("inv-simple","1"); }
 else if(/^#normal/.test(location.hash)){ S.simple=false; smSet("inv-simple",null); }
 try{ S.smChk = JSON.parse(smLS("inv-simple-chk","{}")) || {}; }catch{ S.smChk = {}; }
-S.smSel = null; S.smPed = null; S.smHoy = false; S.smVer = null;
+S.smSel = null; S.smPed = null;
 
 const smKey = t => t._doc+"|"+t.ubicDestino;
 const smDocs = dias => { const lim=new Date(); lim.setDate(lim.getDate()-dias); return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=pkFechaLocal(lim)); };
 function smTareas(){
   return pkParts(smDocs(5).sort((a,b)=>String(a.creado).localeCompare(String(b.creado)))).filter(t=>!(((S.docs.find(d=>d.id===t._doc)||{}).hechos||{})[t.ubicDestino]));   // los más antiguos primero
-}
-function smEntregados(){
-  const hoy=hoyISO();
-  return pkParts(S.docs.filter(d=>d.tipo==="picking" && d.hechos)).map(t=>({...t,_hecho:((S.docs.find(d=>d.id===t._doc)||{}).hechos||{})[t.ubicDestino]})).filter(t=>t._hecho && pkFechaLocal(new Date(t._hecho))===hoy)
-    .sort((a,b)=>String(b._hecho).localeCompare(String(a._hecho)));
 }
 const smUni = n => n===1?"unidad":"unidades";
 function smQty(u,pk){
@@ -2324,19 +2319,9 @@ const smBarra = (titulo,sub,color,der) => `<header class="sm-bar" style="--c:${c
 const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style="--c:${pkColor(orig)}"><span>Sacas de</span><b>${esc(bodNom(orig))}</b></div><div class="sm-fl" aria-hidden="true">↓</div><div class="sm-r" style="--c:${pkColor(dest)}"><span>Llevas a</span><b>${esc(bodNom(dest))}</b></div>${nota?`<p class="sm-nota">${nota}</p>`:""}</div>`;
 
 /* ---------- inicio ---------- */
-function smLista(ts){
-  const ent=smEntregados();
-  const tareas=ts.length
-    ? `<h2 class="sm-h2">Para llevar</h2><div class="sm-tiles">${ts.map(t=>{ const n=(t.lineas||[]).length;
-        return `<button type="button" class="sm-tile" style="--c:${pkColor(t.ubicDestino)}" data-smsel="${esc(smKey(t))}"><span class="sm-to">Llevar a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${n} producto${n===1?"":"s"}</span><span class="sm-de">Se sacó de: ${esc(bodNom(t.ubicOrigen))}</span><span class="sm-go" aria-hidden="true">→</span></button>`; }).join("")}</div>`
-    : `<p class="sm-p" style="margin-top:20px">No hay pedidos para llevar ahora.</p>`;
-  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>`+tareas
-    +(ent.length?`<div class="sm-sec"><button type="button" class="sm-sec-b" data-smhoy>Ya entregados hoy (${ent.length})</button></div>`:"")
+function smLista(){
+  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>`
     +`<footer class="sm-foot"><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
-}
-function smHoy(){
-  const ent=smEntregados();
-  return smBarra("Entregados hoy","Ya listos","var(--ok)")+`<div class="sm-tiles" style="padding-top:18px">${ent.map(t=>`<button type="button" class="sm-tile sm-tile-ok" data-smver="${esc(smKey(t))}"><span class="sm-to">Se llevó a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${(t.lineas||[]).length} producto${(t.lineas||[]).length===1?"":"s"} · ${new Date(t._hecho).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span><span class="sm-de">Se sacó de: ${esc(bodNom(t.ubicOrigen))}</span><span class="sm-go" aria-hidden="true">✓</span></button>`).join("")||`<p class="sm-p">Aún no hay entregas hoy.</p>`}</div>`;
 }
 
 /* ---------- llevar un pedido (o verlo, si ya se entregó) ---------- */
@@ -2395,7 +2380,7 @@ function smPedido(){
   // paso "ok"
   return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">¡Pedido listo!</h1></div>
     ${smRuta(P.orig,P.dest,`Ya se descontó del inventario de <b>${esc(bodNom(P.orig))}</b>.`)}
-    <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-smllevar>Llevarlo ahora</button><button type="button" class="sm-btn2" data-smotro>Hacer otro pedido</button><button type="button" class="sm-btn2" data-smhome>Ir al inicio</button></div>`;
+    <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-smllevar>Llevarlo ahora</button></div>`;
 }
 async function smRegistrar(){
   const P=S.smPed, orig=P.orig, dest=P.dest, T=smEsTraspaso(orig,dest);
@@ -2421,12 +2406,11 @@ async function smRegistrar(){
   }catch(e){ toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."); render(true); }
 }
 function viewSimple(){
+  if(S.smPed && S.smPed.paso==="ok" && S.smSel){   // último paso del pedido: llevarlo
+    const t=smTareas().find(x=>smKey(x)===S.smSel); if(t) return smTarea(t); S.smSel=null; S.smPed=null; return smLista();
+  }
   if(S.smPed) return smPedido();
-  if(S.smHoy && S.smVer){ const t=smEntregados().find(x=>smKey(x)===S.smVer); if(t) return smTarea(t,true); S.smVer=null; }
-  if(S.smHoy) return smHoy();
-  const ts=smTareas(), sel=S.smSel&&ts.find(t=>smKey(t)===S.smSel);
-  if(S.smSel && !sel) S.smSel=null;   // esa tarea ya la terminó otra persona
-  return sel?smTarea(sel):smLista(ts);
+  return smLista();
 }
 function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.AudioContext||window.webkitAudioContext; if(!A) return;
   const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
@@ -2437,9 +2421,9 @@ async function smTerminar(){
   const d=S.docs.find(x=>x.id===t._doc); if(!d) return;
   await Store.addDocu({...d, hechos:{...(d.hechos||{}), [t.ubicDestino]:new Date().toISOString()}});
   Object.keys(S.smChk).forEach(x=>{ if(x.startsWith(k+"|")) delete S.smChk[x]; }); smSet("inv-simple-chk",JSON.stringify(S.smChk));
-  S.smSel=null; render(true); window.scrollTo?.(0,0); toast("¡Muy bien! Entrega terminada");
+  S.smSel=null; S.smPed=null; render(true); window.scrollTo?.(0,0); toast("¡Muy bien! Entrega terminada");
 }
-function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSel=null; S.smPed=null; S.smHoy=false; S.smVer=null; go({go:"simple"}); }
+function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSel=null; S.smPed=null; go({go:"simple"}); }
 function smSalir(){
   if(!confirm("¿Salir del modo simple en este equipo?")) return;
   S.simple=false; smSet("inv-simple",null); S.smSel=null; S.smPed=null;
@@ -2461,25 +2445,19 @@ function smClick(t){
   const menos=t.closest("[data-smmenos]"); if(menos&&P){ const p=S.productos.find(x=>x.id===menos.dataset.smmenos); if(p){ const u=(P.lineas[p.id]||0)-smStepUn(p,P.orig); if(u>0) P.lineas[p.id]=u; else delete P.lineas[p.id]; render(true); } return true; }
   if(t.closest("[data-smver-ped]")&&P){ if(smNPed()) { P.paso="res"; return go1(); } return true; }
   if(t.closest("[data-smconf]")&&P){ smRegistrar(); return true; }
-  if(t.closest("[data-smllevar]")&&P){ const k=P.doc+"|"+P.dest; S.smPed=null; S.smSel=k; return go1(); }
-  if(t.closest("[data-smotro]")&&P){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},q:""}; return go1(); }
-  if(t.closest("[data-smhome]")&&P){ S.smPed=null; return go1(); }
-  // atrás: cada pantalla vuelve a la anterior
+  if(t.closest("[data-smllevar]")&&P){ S.smSel=P.doc+"|"+P.dest; return go1(); }
+    // atrás: cada pantalla vuelve a la anterior
   if(t.closest("[data-smback]")){
     if(P){
+      if(P.paso==="ok"){ S.smSel=null; return go1(); }   // de llevar vuelve a "pedido listo"
       if(P.paso==="res") P.paso="prod";
       else if(P.paso==="prod"){ P.paso="dest"; P.q=""; }
       else if(P.paso==="dest"){ P.paso="orig"; P.dest=null; }
       else S.smPed=null;   // estaba en el primer paso: vuelve al inicio
       return go1();
     }
-    if(S.smVer){ S.smVer=null; return go1(); }
-    if(S.smHoy){ S.smHoy=false; return go1(); }
     S.smSel=null; return go1(); }
-  // entregados y llevar
-  if(t.closest("[data-smhoy]")){ S.smHoy=true; S.smVer=null; return go1(); }
-  const v=t.closest("[data-smver]"); if(v){ S.smVer=v.dataset.smver; return go1(); }
-  const sel=t.closest("[data-smsel]"); if(sel){ S.smSel=sel.dataset.smsel; return go1(); }
+  // llevar
   const c=t.closest("[data-smchk]"); if(c){ const k=S.smSel+"|"+c.dataset.smchk; if(S.smChk[k]) delete S.smChk[k]; else { S.smChk[k]=1; smBip(); }
     smSet("inv-simple-chk",JSON.stringify(S.smChk)); render(true); return true; }
   if(t.closest("[data-smfin]")){ smTerminar(); return true; }
@@ -3541,7 +3519,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "52", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "53", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
