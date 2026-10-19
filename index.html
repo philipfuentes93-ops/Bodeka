@@ -924,6 +924,24 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .sm-seg button:focus-visible{outline:5px solid var(--orange);outline-offset:-4px}
 .sm-tot{display:block;margin-top:6px;font-size:1rem;font-weight:700;color:var(--muted,#667);text-align:center}
 .sm-sn small{display:block;font-size:.95rem;font-weight:700;color:var(--muted,#667)}
+.sm-ped{all:unset;box-sizing:border-box;display:grid;place-items:center;width:100%;min-height:68px;border-radius:22px;border:5px solid var(--accent);background:var(--panel);color:var(--accent-strong);font-size:1.6rem;font-weight:800;cursor:pointer}
+.sm-ped:focus-visible{outline:5px solid var(--orange);outline-offset:3px}
+.sm-listo{padding:22px 0 8px;border-bottom:4px solid var(--line);margin-bottom:6px}
+.sm-okc-s{width:84px;height:84px;font-size:3.2rem}
+.sm-seg3{grid-template-columns:repeat(3,1fr);margin:6px 18px 0}
+.sm-fechas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 18px 0}
+.sm-fechas label{display:grid;gap:4px;min-width:0;font-size:1.05rem;font-weight:700}
+.sm-fechas input{box-sizing:border-box;width:100%;min-width:0;min-height:54px;border-radius:14px;border:3px solid var(--line);background:var(--field);color:var(--ink);font-size:1rem;padding:0 8px}
+.sm-pks{display:grid;gap:12px;padding:6px 18px 30px}
+.sm-dia{margin:14px 0 0;font-size:1.15rem;color:var(--muted,#667)}
+.sm-dia::first-letter{text-transform:uppercase}
+.sm-pk{all:unset;box-sizing:border-box;display:block;width:100%;padding:16px 18px;border-radius:22px;background:var(--panel);border:5px solid var(--c);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.07)}
+.sm-pk:focus-visible{outline:5px solid var(--accent);outline-offset:3px}
+.sm-pk-h{display:flex;justify-content:space-between;gap:10px;font-size:1.05rem;font-weight:700;color:var(--muted,#667)}
+.sm-pk-h b{color:var(--ink)}
+.sm-pk-r{display:block;margin:6px 0 4px;font-size:1.4rem;font-weight:800;line-height:1.2}
+.sm-pk-r i{font-style:normal;color:var(--accent-strong)}
+.sm-pk-n{font-size:1.1rem;font-weight:700;color:var(--accent-strong)}
 </style>
 </head>
 <body>
@@ -2297,20 +2315,14 @@ async function confirmarPicking(){
    Pensado para pantallas chicas y manos poco ágiles: una pregunta por pantalla, letra y botones grandes, el botón principal
    siempre abajo (al alcance del pulgar). No muestra imprimir, vaciar ni datos técnicos: solo foto, nombre y cantidad.
    - "Hacer un pedido": a dónde → qué productos y cuántos → revisar → confirmar (registra el picking o traspaso de siempre).
-   - "Para llevar": los pedidos confirmados, uno por destino; "Terminé" los marca como entregados (doc.hechos[destino]). */
+   - Al confirmar el pedido queda hecho y se pasa a "Mis pedidos": el detalle fijo de lo pedido y el listado de pickings (hoy, semana o rango). */
 const smLS = (k,d) => { try{ const v=localStorage.getItem(k); return v===null?d:v; }catch{ return d; } };
 const smSet = (k,v) => { try{ v===null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} };
 S.simple = smLS("inv-simple","")==="1";
 if(/^#simple/.test(location.hash)){ S.simple=true; smSet("inv-simple","1"); }
 else if(/^#normal/.test(location.hash)){ S.simple=false; smSet("inv-simple",null); }
-try{ S.smChk = JSON.parse(smLS("inv-simple-chk","{}")) || {}; }catch{ S.smChk = {}; }
-S.smSel = null; S.smPed = null;
+S.smPed = null; S.smSec = false; S.smUlt = null; S.smVer = null; S.smRng = "hoy"; S.smDesde = ""; S.smHasta = "";
 
-const smKey = t => t._doc+"|"+t.ubicDestino;
-const smDocs = dias => { const lim=new Date(); lim.setDate(lim.getDate()-dias); return S.docs.filter(d=>d.tipo==="picking" && d.fecha>=pkFechaLocal(lim)); };
-function smTareas(){
-  return pkParts(smDocs(5).sort((a,b)=>String(a.creado).localeCompare(String(b.creado)))).filter(t=>!(((S.docs.find(d=>d.id===t._doc)||{}).hechos||{})[t.ubicDestino]));   // los más antiguos primero
-}
 const smUni = n => n===1?"unidad":"unidades";
 function smQty(u,pk){
   pk=Math.max(1,+pk||1); u=Math.round(+u||0);
@@ -2326,20 +2338,51 @@ const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style
 
 /* ---------- inicio ---------- */
 function smLista(){
-  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>`
+  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div><div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
     +`<footer class="sm-foot"><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
 }
 
-/* ---------- llevar un pedido (o verlo, si ya se entregó) ---------- */
-function smTarea(t,ro){
-  const k=smKey(t), ls=t.lineas||[], hechas=ro?ls.length:ls.filter((l,i)=>S.smChk[k+"|"+i]).length, todas=hechas===ls.length;
-  const cards=ls.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.productoId), on=ro||!!S.smChk[k+"|"+i], q=smQty(l.cantidad,l.packUn);
-    return `<${ro?"div":"button type=\"button\" data-smchk=\""+i+"\" aria-pressed=\""+on+"\""} class="sm-card ${on?"on":""}" aria-label="${esc(l.nombre)}, ${esc(q.txt)}">${smFoto(p,l.nombre)}
-      <span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span><span class="sm-tick" aria-hidden="true">${on?"✓":""}</span></${ro?"div":"button"}>`; }).join("");
-  return smBarra(esc(bodNom(t.ubicDestino)),ro?"Se llevó a":"Llevar a",pkColor(t.ubicDestino),ro?"":`${hechas} de ${ls.length}`)
-    +smRuta(t.ubicOrigen,t.ubicDestino)
-    +(ro?"":`<p class="sm-p" style="margin:14px 18px 12px">Toca cada producto cuando ya lo tengas.</p>`)+`<div class="sm-cards" style="${ro?"padding-top:16px":""}">${cards}</div>`
-    +(ro?"":`<div class="sm-fin"><button type="button" class="sm-btn ${todas?"lista":""}" data-smfin>${todas?"✓ Terminé":"Terminé"}</button></div>`);
+/* ---------- mis pedidos: detalle fijo y listado ---------- */
+const smKey = t => t._doc+"|"+t.ubicDestino;
+const smHora = iso => { try{ return new Date(iso).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hour12:false}); }catch{ return ""; } };
+const smDia = f => { const [y,m,d]=f.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"}); };
+function smPartes(){   // los pickings (y traspasos) de los últimos 400 días, uno por destino, el más nuevo primero
+  const lim=new Date(); lim.setDate(lim.getDate()-400);
+  return pkParts(S.docs.filter(d=>d.tipo==="picking" && d.fecha>=pkFechaLocal(lim)).sort((a,b)=>String(b.creado).localeCompare(String(a.creado))));
+}
+function smRangoFechas(){
+  const hoy=hoyISO();
+  if(S.smRng==="hoy") return {ini:hoy,fin:hoy};
+  if(S.smRng==="semana"){ const h=new Date(); h.setHours(12,0,0,0); const lun=new Date(h); lun.setDate(h.getDate()-((h.getDay()+6)%7)), dom=new Date(lun); dom.setDate(lun.getDate()+6); return {ini:pkFechaLocal(lun),fin:pkFechaLocal(dom)}; }
+  const d=new Date(); d.setDate(d.getDate()-6);
+  let ini=S.smDesde||pkFechaLocal(d), fin=S.smHasta||hoy; if(ini>fin) [ini,fin]=[fin,ini];
+  return {ini,fin};
+}
+function smCards(t){
+  return (t.lineas||[]).map(l=>{ const p=S.productos.find(x=>x.id===l.productoId), q=smQty(l.cantidad,l.packUn);
+    return `<div class="sm-card on">${smFoto(p,l.nombre)}<span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span></div>`; }).join("");
+}
+function smDetalle(t){
+  return smBarra(esc(t.folio||"Pedido"),`Pedido de las ${smHora(t.creado)} · ${esc(smDia(t.fecha))}`,pkColor(t.ubicDestino))
+    +smRuta(t.ubicOrigen,t.ubicDestino)+`<div class="sm-cards" style="padding-top:16px">${smCards(t)}</div>`;
+}
+function smPedidos(){
+  const todas=smPartes(), r=smRangoFechas(), ls=todas.filter(t=>t.fecha>=r.ini && t.fecha<=r.fin);
+  const ult=S.smUlt&&todas.find(t=>smKey(t)===S.smUlt);
+  const bloque=ult?`<div class="sm-listo"><div class="sm-okc sm-okc-s" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:10px 0 0;text-align:center">¡Pedido listo!</h1>
+      ${smRuta(ult.ubicOrigen,ult.ubicDestino,`Ya se descontó del inventario de <b>${esc(bodNom(ult.ubicOrigen))}</b>.`)}
+      <div class="sm-cards" style="padding-top:14px">${smCards(ult)}</div>
+      <div class="sm-nuevo-w" style="padding-top:18px"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer otro pedido</button></div></div>`:"";
+  const seg=[["hoy","Hoy"],["semana","Semana"],["rango","Rango"]].map(([k,n])=>`<button type="button" class="${S.smRng===k?"on":""}" data-smrng="${k}" aria-pressed="${S.smRng===k}">${n}</button>`).join("");
+  const fechas=S.smRng==="rango"?`<div class="sm-fechas"><label>Desde<input type="date" id="smd" value="${r.ini}" max="${hoyISO()}"></label><label>Hasta<input type="date" id="smh" value="${r.fin}" max="${hoyISO()}"></label></div>`:"";
+  let dia="", filas="";
+  ls.forEach(t=>{ if(S.smRng!=="hoy" && t.fecha!==dia){ dia=t.fecha; filas+=`<h3 class="sm-dia">${esc(smDia(dia))}</h3>`; }
+    const n=(t.lineas||[]).length;
+    filas+=`<button type="button" class="sm-pk" style="--c:${pkColor(t.ubicDestino)}" data-smver="${esc(smKey(t))}"><span class="sm-pk-h"><b>${esc(t.folio||"")}</b><span>${smHora(t.creado)}</span></span><span class="sm-pk-r">${esc(bodNom(t.ubicOrigen))} <i aria-hidden="true">→</i> ${esc(bodNom(t.ubicDestino))}</span><span class="sm-pk-n">${n} producto${n===1?"":"s"}</span></button>`; });
+  return smBarra("Mis pedidos",ult?"Pedido confirmado":"Pickings","var(--accent)")+bloque
+    +`<h2 class="sm-h2">${ult?"Todos los pedidos":"Pedidos"}</h2><div class="sm-seg sm-seg3" role="group" aria-label="Ver pedidos de">${seg}</div>${fechas}
+    <p class="sm-inv" style="margin-top:10px">${ls.length?`${ls.length} pedido${ls.length===1?"":"s"}`:""}</p>
+    <div class="sm-pks">${filas||`<p class="sm-p" style="margin:6px 4px 30px">No hay pedidos ${S.smRng==="hoy"?"hoy":S.smRng==="semana"?"esta semana":"en esas fechas"}.</p>`}</div>`;
 }
 
 /* ---------- hacer un pedido ---------- */
@@ -2387,10 +2430,7 @@ function smPedido(){
         return `<div class="sm-card on">${smFoto(p,p.nombre)}<span class="sm-info"><span class="sm-name">${esc(p.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span><span class="sm-tick" aria-hidden="true">✓</span></div>`; }).join("")}</div>
       <div class="sm-fin"><button type="button" class="sm-btn lista" data-smconf>✓ Confirmar pedido</button><button type="button" class="sm-btn2" data-smback>← Agregar o cambiar</button></div>`;
   }
-  // paso "ok"
-  return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">¡Pedido listo!</h1></div>
-    ${smRuta(P.orig,P.dest,`Ya se descontó del inventario de <b>${esc(bodNom(P.orig))}</b>.`)}
-    <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-smllevar>Llevarlo ahora</button></div>`;
+  return "";
 }
 async function smRegistrar(){
   const P=S.smPed, orig=P.orig, dest=P.dest, T=smEsTraspaso(orig,dest);
@@ -2412,31 +2452,23 @@ async function smRegistrar(){
     const doc={id:uid(), tipo:"picking", ...(T?{modo:"traspaso"}:{}), numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
       lineas:lines.map(l=>({productoId:l.p.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||""}))};
     await Store.addDocu(doc);
-    S.smPed={paso:"ok", orig, dest, doc:doc.id}; render(true); window.scrollTo?.(0,0);
+    S.smPed=null; S.smSec=true; S.smVer=null; S.smRng="hoy"; S.smUlt=doc.id+"|"+dest; render(true); window.scrollTo?.(0,0);
   }catch(e){ toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."); render(true); }
 }
 function viewSimple(){
-  if(S.smPed && S.smPed.paso==="ok" && S.smSel){   // último paso del pedido: llevarlo
-    const t=smTareas().find(x=>smKey(x)===S.smSel); if(t) return smTarea(t); S.smSel=null; S.smPed=null; return smLista();
-  }
   if(S.smPed) return smPedido();
+  if(S.smSec){
+    if(S.smVer){ const t=smPartes().find(x=>smKey(x)===S.smVer); if(t) return smDetalle(t); S.smVer=null; }
+    return smPedidos();
+  }
   return smLista();
 }
 function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.AudioContext||window.webkitAudioContext; if(!A) return;
   const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
-async function smTerminar(){
-  const t=smTareas().find(x=>smKey(x)===S.smSel); if(!t) return;
-  const k=S.smSel, falt=(t.lineas||[]).filter((l,i)=>!S.smChk[k+"|"+i]).length;
-  if(falt && !confirm(`Faltan ${falt} producto${falt===1?"":"s"} por marcar.\n¿Terminaste igual?`)) return;
-  const d=S.docs.find(x=>x.id===t._doc); if(!d) return;
-  await Store.addDocu({...d, hechos:{...(d.hechos||{}), [t.ubicDestino]:new Date().toISOString()}});
-  Object.keys(S.smChk).forEach(x=>{ if(x.startsWith(k+"|")) delete S.smChk[x]; }); smSet("inv-simple-chk",JSON.stringify(S.smChk));
-  S.smSel=null; S.smPed=null; render(true); window.scrollTo?.(0,0); toast("¡Muy bien! Entrega terminada");
-}
-function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSel=null; S.smPed=null; go({go:"simple"}); }
+function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; go({go:"simple"}); }
 function smSalir(){
   if(!confirm("¿Salir del modo simple en este equipo?")) return;
-  S.simple=false; smSet("inv-simple",null); S.smSel=null; S.smPed=null;
+  S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null;
   try{ history.replaceState(null,"",location.pathname+location.search); }catch{}
   go({go:"home"});
 }
@@ -2446,7 +2478,7 @@ const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm"
 function smClick(t){
   const P=S.smPed, go1=()=>{ render(true); window.scrollTo?.(0,0); return true; };
   // hacer un pedido
-  if(t.closest("[data-smnuevo]")){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},modo:{},q:""}; return go1(); }
+  if(t.closest("[data-smnuevo]")){ S.smUlt=null; S.smPed={paso:"orig",orig:null,dest:null,lineas:{},modo:{},q:""}; return go1(); }
   const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.modo={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
   const d=t.closest("[data-smdest]"); if(d&&P){ P.dest=d.dataset.smdest; P.q=""; P.paso="prod"; return go1(); }
   const ad=t.closest("[data-smadd]"); if(ad&&P){ const p=S.productos.find(x=>x.id===ad.dataset.smadd); if(p){ P.lineas[p.id]=Math.min(smStepUn(p,P.orig),smMax(p,P.orig)); smBip(); render(true); } return true; }
@@ -2456,22 +2488,20 @@ function smClick(t){
   const menos=t.closest("[data-smmenos]"); if(menos&&P){ const p=S.productos.find(x=>x.id===menos.dataset.smmenos); if(p){ const u=(P.lineas[p.id]||0)-smStepUn(p,P.orig); if(u>0) P.lineas[p.id]=u; else delete P.lineas[p.id]; render(true); } return true; }
   if(t.closest("[data-smver-ped]")&&P){ if(smNPed()) { P.paso="res"; return go1(); } return true; }
   if(t.closest("[data-smconf]")&&P){ smRegistrar(); return true; }
-  if(t.closest("[data-smllevar]")&&P){ S.smSel=P.doc+"|"+P.dest; return go1(); }
-    // atrás: cada pantalla vuelve a la anterior
+  if(t.closest("[data-smped]")){ S.smSec=true; S.smVer=null; S.smUlt=null; S.smRng="hoy"; return go1(); }
+  const rg=t.closest("[data-smrng]"); if(rg){ S.smRng=rg.dataset.smrng; return go1(); }
+  const v=t.closest("[data-smver]"); if(v){ S.smVer=v.dataset.smver; return go1(); }
+  // atrás: cada pantalla vuelve a la anterior
   if(t.closest("[data-smback]")){
     if(P){
-      if(P.paso==="ok"){ S.smSel=null; return go1(); }   // de llevar vuelve a "pedido listo"
       if(P.paso==="res") P.paso="prod";
       else if(P.paso==="prod"){ P.paso="dest"; P.q=""; }
       else if(P.paso==="dest"){ P.paso="orig"; P.dest=null; }
-      else S.smPed=null;   // estaba en el primer paso: vuelve al inicio
+      else S.smPed=null;   // estaba en el primer paso: vuelve a donde estaba (inicio o Mis pedidos)
       return go1();
     }
-    S.smSel=null; return go1(); }
-  // llevar
-  const c=t.closest("[data-smchk]"); if(c){ const k=S.smSel+"|"+c.dataset.smchk; if(S.smChk[k]) delete S.smChk[k]; else { S.smChk[k]=1; smBip(); }
-    smSet("inv-simple-chk",JSON.stringify(S.smChk)); render(true); return true; }
-  if(t.closest("[data-smfin]")){ smTerminar(); return true; }
+    if(S.smVer) S.smVer=null; else { S.smSec=false; S.smUlt=null; }
+    return go1(); }
   if(t.closest("[data-smupd]")){ buscarActualizacion(); return true; }
   if(t.closest("[data-smsalir]")){ smSalir(); return true; }
   if(t.closest("[data-simple-on]")){ smActivar(); return true; }
@@ -3500,6 +3530,7 @@ C.addEventListener("keydown",e=>{
 });
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
+  if((id==="smd"||id==="smh") && S.smSec){ S[id==="smd"?"smDesde":"smHasta"]=v; render(true); return; }
   if(t.dataset.mzasel!==undefined){ if(v) mzAsignar(t.dataset.mzasel, v); return; }
   if(t.dataset.mzia!==undefined){ S.mzAsig[t.dataset.mzia]=v; mzBtnN(); return; }
   if(t.hasAttribute("data-mzmm")){ S.mzMM=t.checked; render(true); return; }
@@ -3530,7 +3561,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "54", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "55", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
