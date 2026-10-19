@@ -883,7 +883,7 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .sm-pc{min-height:0;padding:10px;gap:12px}
 .sm-pc .sm-ph{width:92px;height:92px;border-radius:16px}
 .sm-pc .sm-name{font-size:1.25rem}
-.sm-pc .sm-add{min-height:56px;font-size:1.35rem;margin-top:8px}
+.sm-pc .sm-add{min-height:56px;font-size:1.2rem;margin-top:8px}
 .sm-pc .sm-step{margin-top:8px;grid-template-columns:56px minmax(0,1fr) 56px}
 .sm-pc .sm-step button{width:56px;height:56px;font-size:2.2rem}
 .sm-pc .sm-sn b{font-size:2rem}
@@ -918,6 +918,12 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .sm-rt2 i{font-style:normal;font-size:1.6rem;font-weight:800;color:var(--muted)}
 .sm-inv{margin:12px 18px 6px;font-size:1.05rem;font-weight:700;color:var(--muted)}
 .sm-hay{display:block;margin-top:2px;font-size:1.05rem;font-weight:600;color:var(--muted)}
+.sm-seg{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:8px;border:3px solid var(--line);border-radius:16px;overflow:hidden;background:var(--field)}
+.sm-seg button{all:unset;box-sizing:border-box;text-align:center;min-height:46px;display:grid;place-items:center;font-size:1.1rem;font-weight:800;color:var(--ink);cursor:pointer}
+.sm-seg button.on{background:var(--accent-strong);color:#fff}
+.sm-seg button:focus-visible{outline:5px solid var(--orange);outline-offset:-4px}
+.sm-tot{display:block;margin-top:6px;font-size:1rem;font-weight:700;color:var(--muted,#667);text-align:center}
+.sm-sn small{display:block;font-size:.95rem;font-weight:700;color:var(--muted,#667)}
 </style>
 </head>
 <body>
@@ -2340,8 +2346,10 @@ function smTarea(t,ro){
 const smOrigenesTodos = () => [...bods("reposicion"),...bods("picking")];
 const smDestinos = orig => [...bods("cooler"),...bods("picking")].filter(b=>b.id!==orig);
 const smEsTraspaso = (orig,dest) => tipoBod(orig)==="reposicion" && tipoBod(dest)==="picking";   // Reposición → tránsito es un traspaso interno; lo demás es picking
-function smStepUn(p,orig){ const st=(p.ubic||{})[orig]||0; return st>=pkn(p)?pkn(p):1; }            // se pide de a un pack (o de a una unidad si no queda un pack entero)
-const smMax = (p,orig) => { const s=smStepUn(p,orig), st=(p.ubic||{})[orig]||0; return Math.floor(st/s)*s; };
+const smStock = (p,orig) => (p.ubic||{})[orig]||0;
+const smMax = (p,orig) => smStock(p,orig);
+function smModo(p,orig){ const m=(S.smPed.modo||{})[p.id]; return pkn(p)>1 && m!=="un" && !(m==null && smStock(p,orig)<pkn(p)) ? "pk" : "un"; }   // por defecto de a pack; de a unidad si no hay un pack entero
+const smStepUn = (p,orig) => smModo(p,orig)==="pk" ? pkn(p) : 1;
 const smNPed = () => Object.values(S.smPed.lineas).filter(u=>u>0).length;
 function smPedido(){
   const P=S.smPed;
@@ -2359,8 +2367,10 @@ function smPedido(){
   if(P.paso==="prod"){
     const q=norm(P.q||""), lista=S.productos.filter(p=>smMax(p,P.orig)>0 && (!q || norm(p.nombre+" "+(p.codigo||"")).includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")), n=smNPed();
     const cards=lista.slice(0,40).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
-      const ctl=u>0 ? `<span class="sm-step"><button type="button" data-smmenos="${esc(p.id)}" aria-label="Quitar uno">−</button><span class="sm-sn"><b>${q2.n}</b> ${q2.u}</span><button type="button" data-smmas="${esc(p.id)}" aria-label="Agregar uno">+</button></span>`
-        : `<button type="button" class="sm-add" data-smadd="${esc(p.id)}">+ Agregar</button>`;
+      const md=smModo(p,P.orig), dos=pkn(p)>1;
+      const seg=dos?`<span class="sm-seg" role="group" aria-label="Medir en"><button type="button" class="${md==="pk"?"on":""}" data-smmodo="pk" data-id="${esc(p.id)}" aria-pressed="${md==="pk"}">Packs</button><button type="button" class="${md==="un"?"on":""}" data-smmodo="un" data-id="${esc(p.id)}" aria-pressed="${md==="un"}">Unidades</button></span>`:"";
+      const ctl=seg+(u>0 ? `<span class="sm-step"><button type="button" data-smmenos="${esc(p.id)}" aria-label="Quitar ${md==="pk"?"un pack":"una unidad"}">−</button><span class="sm-sn"><b>${q2.n}</b> ${q2.u}${q2.extra?`<small>${q2.extra}</small>`:""}</span><button type="button" data-smmas="${esc(p.id)}" aria-label="Agregar ${md==="pk"?"un pack":"una unidad"}">+</button></span>${dos?`<span class="sm-tot">= ${u} unidades en total</span>`:""}`
+        : `<button type="button" class="sm-add" data-smadd="${esc(p.id)}">+ Agregar ${md==="pk"?"1 pack":"1 unidad"}</button>`);
       return `<div class="sm-card sm-pc ${u>0?"on":""}">${smFoto(p,p.nombre)}<span class="sm-info"><span class="sm-name">${esc(p.nombre)}</span><span class="sm-hay">Hay ${hay}</span>${ctl}</span></div>`; }).join("");
     return smBarra("¿Qué llevas?","Nuevo pedido · paso 3 de 3",pkColor(P.dest))
       +`<div class="sm-rt2"><div><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div><i aria-hidden="true">→</i><div><span>Llevas a</span><b style="--c:${pkColor(P.dest)}">${esc(bodNom(P.dest))}</b></div></div>
@@ -2436,12 +2446,13 @@ const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm"
 function smClick(t){
   const P=S.smPed, go1=()=>{ render(true); window.scrollTo?.(0,0); return true; };
   // hacer un pedido
-  if(t.closest("[data-smnuevo]")){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},q:""}; return go1(); }
-  const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
+  if(t.closest("[data-smnuevo]")){ S.smPed={paso:"orig",orig:null,dest:null,lineas:{},modo:{},q:""}; return go1(); }
+  const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.modo={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
   const d=t.closest("[data-smdest]"); if(d&&P){ P.dest=d.dataset.smdest; P.q=""; P.paso="prod"; return go1(); }
-  const ad=t.closest("[data-smadd]"); if(ad&&P){ const p=S.productos.find(x=>x.id===ad.dataset.smadd); if(p){ P.lineas[p.id]=smStepUn(p,P.orig); smBip(); render(true); } return true; }
+  const ad=t.closest("[data-smadd]"); if(ad&&P){ const p=S.productos.find(x=>x.id===ad.dataset.smadd); if(p){ P.lineas[p.id]=Math.min(smStepUn(p,P.orig),smMax(p,P.orig)); smBip(); render(true); } return true; }
+  const mo=t.closest("[data-smmodo]"); if(mo&&P){ (P.modo=P.modo||{})[mo.dataset.id]=mo.dataset.smmodo; render(true); return true; }
   const mas=t.closest("[data-smmas]"); if(mas&&P){ const p=S.productos.find(x=>x.id===mas.dataset.smmas); if(p){ const u=(P.lineas[p.id]||0)+smStepUn(p,P.orig);
-      if(u>smMax(p,P.orig)) toast("No hay más de este producto aquí."); else { P.lineas[p.id]=u; smBip(); } render(true); } return true; }
+      if(u>smMax(p,P.orig)) toast(smModo(p,P.orig)==="pk" ? `Solo quedan ${smMax(p,P.orig)-(P.lineas[p.id]||0)} unidades sueltas: toca "Unidades".` : "No hay más de este producto aquí."); else { P.lineas[p.id]=u; smBip(); } render(true); } return true; }
   const menos=t.closest("[data-smmenos]"); if(menos&&P){ const p=S.productos.find(x=>x.id===menos.dataset.smmenos); if(p){ const u=(P.lineas[p.id]||0)-smStepUn(p,P.orig); if(u>0) P.lineas[p.id]=u; else delete P.lineas[p.id]; render(true); } return true; }
   if(t.closest("[data-smver-ped]")&&P){ if(smNPed()) { P.paso="res"; return go1(); } return true; }
   if(t.closest("[data-smconf]")&&P){ smRegistrar(); return true; }
@@ -3519,7 +3530,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "53", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "54", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
