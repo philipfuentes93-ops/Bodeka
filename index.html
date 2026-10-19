@@ -806,6 +806,53 @@ td.n .ubin{display:block;margin-left:auto}
 .inst-pasos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:.95rem}
 .inst-pasos li::marker{font-weight:800;color:var(--accent)}
 .login .link#btnInstLogin{display:block;margin-top:6px}
+/* Modo simple (picking para operarios) */
+body.simple .side,body.simple .movil-top,body.simple .movil-nav,body.simple #movilMas{display:none!important}
+body.simple .app{grid-template-columns:minmax(0,1fr)}
+body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));max-width:760px;margin:0 auto;width:100%}
+.sm-top{display:flex;align-items:center;gap:12px;padding:20px 18px 0;font-size:1.3rem}
+.sm-logo{position:relative;width:46px;height:46px;border-radius:14px;background:var(--side);color:#fff;display:grid;place-items:center;font-weight:800;font-size:1.6rem}
+.sm-logo i{position:absolute;right:7px;bottom:7px;width:9px;height:9px;border-radius:50%;background:var(--orange)}
+.sm-h{font-size:2.3rem;line-height:1.1;margin:22px 18px 6px;font-weight:800}
+.sm-p{font-size:1.3rem;color:var(--muted);margin:0 18px 14px}
+.sm-tiles{display:grid;gap:18px;padding:8px 18px}
+.sm-tile{all:unset;box-sizing:border-box;position:relative;display:block;width:100%;min-height:150px;padding:24px 90px 24px 28px;border-radius:28px;background:var(--panel);border:6px solid var(--c);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.sm-tile:focus-visible,.sm-card:focus-visible,.sm-btn:focus-visible,.sm-back:focus-visible{outline:5px solid var(--accent);outline-offset:3px}
+.sm-to{display:block;font-size:1.05rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.sm-tile b{display:block;font-size:2.4rem;line-height:1.1;margin:6px 0 8px}
+.sm-cnt{display:block;font-size:1.4rem;font-weight:700;color:var(--ink)}
+.sm-go{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:56px;height:56px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-size:2rem;font-weight:800}
+.sm-vacio{text-align:center;padding:60px 18px 20px}
+.sm-okc{width:120px;height:120px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:4.5rem;font-weight:800;margin:0 auto}
+.sm-vacio .sm-h,.sm-vacio .sm-p{margin-left:0;margin-right:0}
+.sm-foot{text-align:center;padding:36px 0 10px}
+.sm-foot .link{font-size:1rem;color:var(--muted)}
+.sm-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--panel);border-bottom:8px solid var(--c);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.sm-bar b{display:block;font-size:1.9rem;line-height:1.1}
+.sm-back{all:unset;box-sizing:border-box;width:60px;height:60px;border-radius:18px;border:3px solid var(--line);background:var(--field);display:grid;place-items:center;font-size:2.2rem;font-weight:800;cursor:pointer;flex:none}
+.sm-prog{margin-left:auto;font-size:1.5rem;font-weight:800;background:var(--field);padding:8px 14px;border-radius:14px;white-space:nowrap}
+.sm-cards{display:flex;flex-direction:column;gap:16px;padding:0 14px}
+.sm-card{all:unset;box-sizing:border-box;display:grid;grid-template-columns:132px minmax(0,1fr) 52px;gap:16px;align-items:center;width:100%;min-height:168px;padding:14px;border-radius:26px;background:var(--panel);border:5px solid var(--line);cursor:pointer}
+.sm-card.on{border-color:var(--ok);background:var(--ok-soft)}
+.sm-ph{width:132px;height:132px;border-radius:20px;object-fit:cover;background:var(--field)}
+.sm-ini{display:grid;place-items:center;font-size:2.8rem;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel))}
+.sm-info{min-width:0}
+.sm-name{display:block;font-size:1.6rem;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
+.sm-qty{display:block;margin-top:10px;font-size:1.5rem;font-weight:700}
+.sm-qty b{font-size:3.4rem;line-height:1;color:var(--accent-strong);margin-right:6px;font-variant-numeric:tabular-nums}
+.sm-qty small{display:block;font-size:1.1rem;font-weight:600;color:var(--muted);margin-top:2px}
+.sm-tick{width:50px;height:50px;border-radius:50%;border:5px solid var(--line);display:grid;place-items:center;font-size:1.9rem;font-weight:800;color:#fff;justify-self:end}
+.sm-card.on .sm-tick{background:var(--ok);border-color:var(--ok)}
+.sm-fin{position:sticky;bottom:0;padding:18px 14px calc(14px + env(safe-area-inset-bottom,0px));margin-top:8px;background:linear-gradient(rgba(0,0,0,0),var(--bg) 40%)}
+.sm-btn{all:unset;box-sizing:border-box;display:grid;place-items:center;width:100%;min-height:76px;border-radius:22px;border:5px solid var(--ok);background:var(--panel);color:var(--ok);font-size:1.8rem;font-weight:800;cursor:pointer}
+.sm-btn.lista{background:var(--ok);color:#fff}
+@media (max-width:480px){
+  .sm-card{grid-template-columns:104px minmax(0,1fr) 42px;gap:12px;min-height:140px}
+  .sm-ph{width:104px;height:104px}
+  .sm-name{font-size:1.3rem} .sm-qty b{font-size:2.8rem} .sm-qty{font-size:1.3rem}
+  .sm-tick{width:42px;height:42px;font-size:1.5rem}
+  .sm-h{font-size:2rem} .sm-tile b{font-size:2rem} .sm-bar b{font-size:1.5rem}
+}
 </style>
 </head>
 <body>
@@ -2074,7 +2121,7 @@ function viewPicking(){
   const todosDest = T ? bods("picking") : [...bods("cooler"), ...bods("picking")];
   const destinos=todosDest.filter(b=>b.id!==S.pkOrig);
   const tabs=`<div class="ftabs" role="tablist" style="margin-bottom:0"><button role="tab" data-pktab="nuevo" aria-selected="${S.pkTab==="nuevo"}">${T?"Nuevo traspaso":"Nuevo picking"}${S.pkLineas.length?`<span class="ct">${S.pkLineas.length}</span>`:""}</button><button role="tab" data-pktab="hist" aria-selected="${S.pkTab==="hist"}">Historial · día y semana</button></div>`;
-  const ph=T?`<div class="ph"><h1>Traspaso interno</h1><span class="muted">Reposición → picking de los pisos (tránsito)</span></div>`:`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → tránsito → coolers</span></div>`;
+  const ph=T?`<div class="ph"><h1>Traspaso interno</h1><span class="muted">Reposición → picking de los pisos (tránsito)</span>${smEntrada()}</div>`:`<div class="ph"><h1>Picking</h1><span class="muted">Reposición → tránsito → coolers</span>${smEntrada()}</div>`;
   if(!bods("reposicion").length || !bods("picking").length || (!T && !bods("cooler").length)) return ph+`<div class="card empty">Necesitas al menos una bodega de Reposición, una de Picking (tránsito) y un Cooler. ${esAdmin?'Créalas en <b>Bodegas</b>.':'Pide a un administrador que las cree.'}</div>`;
   const okDest = S.pkUbic===PK_GEN ? pkGenOk() : destinos.some(b=>b.id===S.pkUbic);
   if(destinos.length && !okDest){ if(S.pkUbic===PK_GEN) S.pkLineas.forEach(l=>{ delete l.por; }); S.pkUbic=destinos[0].id; }
@@ -2169,6 +2216,87 @@ async function confirmarPicking(){
     S.pkErr = hechas ? `Se guardaron ${hechas} de ${lines.length} líneas antes de perder la conexión.` : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.";
     render(true);
   }
+}
+
+/* ---------- Modo simple: picking para quien lleva los productos ----------
+   Una pantalla por vez, con letra y botones grandes. Cada tarjeta muestra solo: foto, nombre y cantidad solicitada.
+   Las tareas salen de los pickings ya confirmados (uno por destino). "Terminé" las marca en el documento (doc.hechos[destino]). */
+const smLS = (k,d) => { try{ const v=localStorage.getItem(k); return v===null?d:v; }catch{ return d; } };
+const smSet = (k,v) => { try{ v===null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} };
+S.simple = smLS("inv-simple","")==="1";
+if(/^#simple/.test(location.hash)){ S.simple=true; smSet("inv-simple","1"); }
+else if(/^#normal/.test(location.hash)){ S.simple=false; smSet("inv-simple",null); }
+try{ S.smChk = JSON.parse(smLS("inv-simple-chk","{}")) || {}; }catch{ S.smChk = {}; }
+S.smSel = null;
+
+const smKey = t => t._doc+"|"+t.ubicDestino;
+function smTareas(){
+  const lim=new Date(); lim.setDate(lim.getDate()-5);
+  const docs=S.docs.filter(d=>d.tipo==="picking" && d.fecha>=pkFechaLocal(lim)).sort((a,b)=>String(a.creado).localeCompare(String(b.creado)));   // los más antiguos primero
+  return pkParts(docs).filter(t=>!(((S.docs.find(d=>d.id===t._doc)||{}).hechos||{})[t.ubicDestino]));
+}
+function smQty(u,pk){
+  pk=Math.max(1,+pk||1); u=Math.round(+u||0);
+  const uni=n=>n===1?"unidad":"unidades";
+  if(pk<=1) return {n:u,u:uni(u),extra:"",txt:`${u} ${uni(u)}`};
+  const n=Math.floor(u/pk+1e-9), r=u-n*pk;
+  if(n<=0) return {n:r,u:uni(r),extra:"",txt:`${r} ${uni(r)}`};
+  return {n,u:n===1?"pack":"packs",extra:r>0?`y ${r} ${uni(r)} suelta${r===1?"":"s"}`:"",txt:`${n} ${n===1?"pack":"packs"}${r>0?` y ${r} ${uni(r)}`:""}`};
+}
+function smLista(ts){
+  const cab=`<header class="sm-top"><span class="sm-logo" aria-hidden="true">D<i></i></span><b>Depósito</b></header>`;
+  const cuerpo=ts.length
+    ? `<h1 class="sm-h">Para llevar</h1><p class="sm-p">Toca a dónde vas.</p><div class="sm-tiles">${ts.map(t=>{ const n=(t.lineas||[]).length;
+        return `<button type="button" class="sm-tile" style="--c:${pkColor(t.ubicDestino)}" data-smsel="${esc(smKey(t))}"><span class="sm-to">Llevar a</span><b>${esc(bodNom(t.ubicDestino))}</b><span class="sm-cnt">${n} producto${n===1?"":"s"}</span><span class="sm-go" aria-hidden="true">→</span></button>`; }).join("")}</div>`
+    : `<div class="sm-vacio"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">No hay nada para llevar</h1><p class="sm-p">Cuando haya un picking nuevo, aparece aquí.</p></div>`;
+  return cab+cuerpo+`<footer class="sm-foot"><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
+}
+function smTarea(t){
+  const k=smKey(t), ls=t.lineas||[], hechas=ls.filter((l,i)=>S.smChk[k+"|"+i]).length, todas=hechas===ls.length;
+  const cards=ls.map((l,i)=>{ const p=S.productos.find(x=>x.id===l.productoId), on=!!S.smChk[k+"|"+i], q=smQty(l.cantidad,l.packUn);
+    const foto=p&&p.foto ? `<img class="sm-ph" src="${p.foto}" alt="">` : `<span class="sm-ph sm-ini" style="--c:${catColor(p?p.categoria:"")}" aria-hidden="true">${esc(ini(p?p.categoria:l.nombre))}</span>`;
+    return `<button type="button" class="sm-card ${on?"on":""}" data-smchk="${i}" aria-pressed="${on}" aria-label="${esc(l.nombre)}, ${esc(q.txt)}">${foto}
+      <span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span><span class="sm-tick" aria-hidden="true">${on?"✓":""}</span></button>`; }).join("");
+  return `<header class="sm-bar" style="--c:${pkColor(t.ubicDestino)}"><button type="button" class="sm-back" data-smback aria-label="Volver">←</button><div><span class="sm-to">Llevar a</span><b>${esc(bodNom(t.ubicDestino))}</b></div><span class="sm-prog">${hechas} de ${ls.length}</span></header>
+    <p class="sm-p" style="margin:16px 18px 12px">Toca cada producto cuando ya lo tengas.</p><div class="sm-cards">${cards}</div>
+    <div class="sm-fin"><button type="button" class="sm-btn ${todas?"lista":""}" data-smfin>${todas?"✓ Terminé":"Terminé"}</button></div>`;
+}
+function viewSimple(){
+  const ts=smTareas(), sel=S.smSel&&ts.find(t=>smKey(t)===S.smSel);
+  if(S.smSel && !sel) S.smSel=null;   // esa tarea ya la terminó otra persona
+  return sel?smTarea(sel):smLista(ts);
+}
+function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.AudioContext||window.webkitAudioContext; if(!A) return;
+  const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
+async function smTerminar(){
+  const t=smTareas().find(x=>smKey(x)===S.smSel); if(!t) return;
+  const k=S.smSel, falt=(t.lineas||[]).filter((l,i)=>!S.smChk[k+"|"+i]).length;
+  if(falt && !confirm(`Faltan ${falt} producto${falt===1?"":"s"} por marcar.\n¿Terminaste igual?`)) return;
+  const d=S.docs.find(x=>x.id===t._doc); if(!d) return;
+  await Store.addDocu({...d, hechos:{...(d.hechos||{}), [t.ubicDestino]:new Date().toISOString()}});
+  Object.keys(S.smChk).forEach(x=>{ if(x.startsWith(k+"|")) delete S.smChk[x]; }); smSet("inv-simple-chk",JSON.stringify(S.smChk));
+  S.smSel=null; render(true); window.scrollTo?.(0,0); toast("¡Muy bien! Entrega terminada");
+}
+function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSel=null; go({go:"simple"}); }
+function smSalir(){
+  if(!confirm("¿Salir del modo simple en este equipo?")) return;
+  S.simple=false; smSet("inv-simple",null); S.smSel=null;
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch{}
+  go({go:"home"});
+}
+async function smCopiar(){ const url=location.origin+location.pathname+"#simple";
+  try{ await navigator.clipboard.writeText(url); toast("Enlace copiado. Ábrelo en el equipo de la persona."); }catch{ toast("Copia este enlace: "+url); } }
+const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm" type="button" data-simple-on title="Pantalla muy simple para quien lleva los productos: foto, nombre y cantidad.">Modo simple para operarios</button><button class="btn ghost sm" type="button" data-simple-link>Copiar enlace</button>`;
+function smClick(t){
+  const sel=t.closest("[data-smsel]"); if(sel){ S.smSel=sel.dataset.smsel; render(true); window.scrollTo?.(0,0); return true; }
+  if(t.closest("[data-smback]")){ S.smSel=null; render(true); window.scrollTo?.(0,0); return true; }
+  const c=t.closest("[data-smchk]"); if(c){ const k=S.smSel+"|"+c.dataset.smchk; if(S.smChk[k]) delete S.smChk[k]; else { S.smChk[k]=1; smBip(); }
+    smSet("inv-simple-chk",JSON.stringify(S.smChk)); render(true); return true; }
+  if(t.closest("[data-smfin]")){ smTerminar(); return true; }
+  if(t.closest("[data-smsalir]")){ smSalir(); return true; }
+  if(t.closest("[data-simple-on]")){ smActivar(); return true; }
+  if(t.closest("[data-simple-link]")){ smCopiar(); return true; }
+  return false;
 }
 
 /* ---------- Picking: historial (día / semana) ---------- */
@@ -2963,10 +3091,12 @@ function render(force=true){   // live data updates call render(false)
   if(!force && S.ubBusy) return;   // escribiendo en una casilla de stock: no redibujar
   if(!force && S.screen==="inv" && (S.mpCnt || (S.invVista==="inventario" && mapaDe(S.bodegas.find(x=>x.id===S.invBod))))) return;   // contando en el mapa: no perder lo que se teclea
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
-  $("#content").innerHTML = S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
+  document.body.classList.toggle("simple",!!S.simple);
+  $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
   if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
+  if(S.simple) d={go:"simple"};   // en modo simple no hay otras pantallas
   if(d.go==="traspaso"||d.go==="picking"){
     const m=d.go==="traspaso"?"traspaso":"picking";
     if(S.pkModo!==m){ S.pkModo=m; S.pkLineas=[]; S.pkErr=""; S.pkq=""; S.pkTab="nuevo"; }
@@ -3076,6 +3206,7 @@ const C=$("#content");
 C.addEventListener("click",e=>{
   const t=e.target;
   if(mzClick(t)) return;
+  if(smClick(t)) return;
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
   const g=t.closest("[data-go]"); if(g) return go(g.dataset);
   const nw=t.closest("[data-new]"); if(nw) return nuevoForm(nw.dataset.new);
@@ -3216,6 +3347,7 @@ document.addEventListener("change", e=>{
     if(m && +m[1]<100){ el.value=`${2000+ +m[1]}-${m[2]}-${m[3]}`; el.dispatchEvent(new Event("input",{bubbles:true})); }
   }
 }, true);
+if(S.simple) S.screen="simple";
 Store.init();
 </script>
 </body>

@@ -53,6 +53,14 @@ En **Por bodega → Tránsito Piso 11** hay una vista **Mapa 3D** con la bodega 
 - **Reponer**: lista las ubicaciones bajo su mínimo. En Picking se pueden pasar packs desde las zonas de Reposición de la misma bodega, y lo que no alcanza se trae de Reposición con un traspaso interno ya armado. Las zonas por reponer también aparecen marcadas en rojo en el mapa.
 - Solo existe para el Piso 11. El Piso 14 tiene otra distribución y se configura después.
 
+## Modo simple (picking para quien lleva los productos)
+
+En **Picking** hay un botón **Modo simple para operarios** (y **Copiar enlace**, que termina en `#simple`, para abrirlo en otro equipo). En ese modo desaparece el menú y solo quedan:
+
+- **Para llevar**: un botón grande por cada destino con productos pendientes (sale de los pickings ya confirmados; uno por cooler o tránsito).
+- Al tocar un destino, una tarjeta por producto con **solo foto, nombre y cantidad solicitada**. Se toca la tarjeta cuando ya está; abajo, **Terminé** deja ese destino como entregado para todos.
+- Se sale con **Salir del modo simple** (abajo de la lista). Las fotos de los productos se cargan desde Productos; sin foto se muestra la categoría.
+
 ## Instalarla como aplicación
 Abre el link en Chrome (computador o Android) y elige **Instalar app** en el menú.
 En iPhone: Safari > Compartir > **Agregar a pantalla de inicio**.
