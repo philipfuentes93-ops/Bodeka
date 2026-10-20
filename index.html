@@ -2871,7 +2871,7 @@ const faltaBod = (p,b) => Math.max(0, minBod(p,b)-ubPk(p,b.id));   // en packs
    lo que no está asignado a ninguna zona queda como "Sin zona". p.zmin = {idZona: mínimo} (en packs si es Reposición, en unidades si es Picking). */
 const MZ_TIPO = {rep:"Reposición", pick:"Picking"};
 const MAPA_P11 = {id:"p11", zonas:[
-  {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 1 · Saborizadas y jugos", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+  {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 1", t:"rep", d:"Bebidas en reposición: packs cerrados.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[8.6,9.75],pin:"fx"}},
   {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 2 · Picking", t:"pick", d:"Bebidas abiertas de botella y lata, para cargar el cooler.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[6.85,8.15],pin:"fx"}},
@@ -3886,7 +3886,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "68", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "69", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
