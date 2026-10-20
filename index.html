@@ -2871,13 +2871,13 @@ const faltaBod = (p,b) => Math.max(0, minBod(p,b)-ubPk(p,b.id));   // en packs
    lo que no está asignado a ninguna zona queda como "Sin zona". p.zmin = {idZona: mínimo} (en packs si es Reposición, en unidades si es Picking). */
 const MZ_TIPO = {rep:"Reposición", pick:"Picking"};
 const MAPA_P11 = {id:"p11", zonas:[
-  {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 1 · Saborizadas y jugos", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+  {id:"p11.i1",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 1 · Saborizadas y jugos", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[8.6,9.75],pin:"fx"}},
-  {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 2 · Picking", t:"pick", d:"Bebidas abiertas de botella y lata, para cargar el cooler.",
+  {id:"p11.i2",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 2 · Picking", t:"pick", d:"Bebidas abiertas de botella y lata, para cargar el cooler.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[6.85,8.15],pin:"fx"}},
-  {id:"p11.i3",    corto:"C1",   cara:"Cara 1 (izquierda)", n:"Nivel 3 · Picking", t:"pick", d:"Bebidas en lata abiertas, para cargar el cooler.",
+  {id:"p11.i3",    corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Nivel 3 · Picking", t:"pick", d:"Bebidas en lata abiertas, para cargar el cooler.",
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[5.1,6.4],pin:"fx"}},
-  {id:"p11.agua",  corto:"C1",   cara:"Cara 1 (izquierda)", n:"Reposición de agua", t:"rep", d:"Packs de agua cerrados, en el espacio libre bajo el nivel 3.",
+  {id:"p11.agua",  corto:"C1",   cara:"Cara 1 (izquierdo)", n:"Izquierdo · Reposición de agua", t:"rep", d:"Packs de agua cerrados, en el espacio libre bajo el nivel 3.",
     vol:{x:[.05,1.35],y:[1.7,8.95],z:[0,4.9],pin:"fx"}},
   {id:"p11.f3",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 3 · Picking", t:"pick", d:"Aguas saborizadas y jugos abiertos, para cargar el cooler.",
     vol:{x:[1.15,8.35],y:[.05,1.15],z:[5.1,6.2],pin:"fy"}},
@@ -3169,8 +3169,8 @@ function mzInvCalc(b,M,only){
   });
   return {por,cambios,errs,zonasContadas};
 }
-const mzCaraNom = c => { const m=/\(([^)]+)\)/.exec(c); const t=m?m[1]:c; return t.charAt(0).toUpperCase()+t.slice(1); };   // "Cara 1 (izquierda)" → "Izquierda"
-const mzUbi = z => `${mzCaraNom(z.cara)} · ${z.n.replace(/^Fondo · /,"")}`;
+const mzCaraNom = c => { const m=/\(([^)]+)\)/.exec(c); const t=m?m[1]:c; return t.charAt(0).toUpperCase()+t.slice(1); };   // "Cara 1 (izquierdo)" → "Izquierdo"
+const mzUbi = z => /^(Izquierdo|Fondo) · /.test(z.n) ? z.n : `${mzCaraNom(z.cara)} · ${z.n}`;
 const mzCaraCls = c => /fondo/i.test(c) ? "f" : /izq/i.test(c) ? "i" : "o";
 function viewInvPorProducto(b,M){
   const V=S.mzInv, q=norm(S.mzPq||"");
@@ -3181,7 +3181,7 @@ function viewInvPorProducto(b,M){
     const total=(p.ubic||{})[b.id]||0, zs=M.zonas.filter(z=>p.zonas&&p.zonas[z.id]!==undefined), libres=ef.libre>0;
     const fila=(key,un0,etq)=>{ const d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
       return `<li class="mz-ir">${etq}<span class="mz-sys">${mzTxt(un0,p)}</span>${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}<span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span></li>`; };
-    const filas=zs.map(z=>fila(p.id+"|"+z.id,ef.z[z.id]||0,`<span class="mz-nm"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(mzCaraNom(z.cara))}</span>${esc(z.n.replace(/^Fondo · /,""))}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar</button></span>`)).join("")+(libres?fila(p.id+"|libre",ef.libre,`<span class="mz-nm"><span class="mz-cb sz">Sin zona</span>Aún no está en una zona</span>`):"");
+    const filas=zs.map(z=>fila(p.id+"|"+z.id,ef.z[z.id]||0,`<span class="mz-nm"><span class="mz-cb ${mzCaraCls(z.cara)}">${esc(mzCaraNom(z.cara))}</span>${esc(z.n.replace(/^(Izquierdo|Fondo) · /,""))}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar</button></span>`)).join("")+(libres?fila(p.id+"|libre",ef.libre,`<span class="mz-nm"><span class="mz-cb sz">Sin zona</span>Aún no está en una zona</span>`):"");
     const resumen=[...zs.map(z=>`${esc(mzUbi(z))}: <b>${mzTxt(ef.z[z.id]||0,p)}</b>`),libres?`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`:""].filter(Boolean);
     const libresZ=M.zonas.filter(z=>!(p.zonas&&p.zonas[z.id]!==undefined));
     return `<div class="card mz-isec mz-pcard" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(p.nombre)}</h3><span class="mz-hint">${mzSub(p)} · en la bodega: <b>${mzTxt(total,p)}</b></span></div><span class="mz-pill ${zs.length>1?"ok":"none"}">${zs.length} zona${zs.length===1?"":"s"}${libres?" + sin zona":""}</span></div>
@@ -3886,7 +3886,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "67", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "68", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
