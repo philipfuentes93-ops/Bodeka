@@ -2862,9 +2862,9 @@ const MAPA_P11 = {id:"p11", zonas:[
     vol:{x:[.05,1.15],y:[1.75,8.65],z:[5.1,6.4],pin:"fx"}},
   {id:"p11.agua",  corto:"C1",   cara:"Cara 1 (izquierda)", n:"Reposición de agua", t:"rep", d:"Packs de agua cerrados, en el espacio libre bajo el nivel 3.",
     vol:{x:[.05,1.35],y:[1.7,8.95],z:[0,4.9],pin:"fx"}},
-  {id:"p11.f3",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 3 · Reposición", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+  {id:"p11.f3",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 3 · Picking", t:"pick", d:"Aguas saborizadas y jugos abiertos, para cargar el cooler.",
     vol:{x:[1.15,8.35],y:[.05,1.15],z:[5.1,6.2],pin:"fy"}},
-  {id:"p11.f4",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 4 · Reposición", t:"rep", d:"Aguas saborizadas y jugos en reposición: packs cerrados.",
+  {id:"p11.f4",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 4 · Picking", t:"pick", d:"Aguas saborizadas y jugos abiertos, para cargar el cooler.",
     vol:{x:[1.15,8.35],y:[.05,1.15],z:[3.35,4.45],pin:"fy"}},
   {id:"p11.f5",    corto:"C2",   cara:"Cara 2 (fondo)", n:"Fondo · Nivel 5 · Picking", t:"pick", d:"Bebidas energéticas e hidratantes abiertas, para cargar el cooler.",
     vol:{x:[.55,8.4],y:[.05,1.15],z:[1.6,2.75],pin:"fy"}},
@@ -3868,7 +3868,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "63", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "64", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
