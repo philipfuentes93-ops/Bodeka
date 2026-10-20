@@ -976,6 +976,10 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .mz-pcard .mz-acts select{max-width:100%}
 .mz-quitar{display:block;margin-top:3px;padding:0;font-size:.74rem;font-weight:700;color:var(--danger);text-align:left}
 .mz-pcard .mz-quitar{display:inline-block;margin:0 0 0 auto}
+.mz-mover{margin-top:12px;padding:12px;border-radius:12px;background:var(--field)}
+.mz-mv{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:8px}
+.mz-mv label{display:grid;gap:3px;font-size:.74rem;font-weight:800;color:var(--muted);min-width:0}
+.mz-mv .mz-sel{max-width:260px}
 </style>
 </head>
 <body>
@@ -1193,7 +1197,7 @@ const esCooler = id => (S.bodegas.find(b=>b.id===id)||{}).tipo==="cooler";
 const PK_GEN = "*";   // destino "General": un picking repartido a todos los coolers
 const bodNom = id => id===PK_GEN ? "General (todos los coolers)" : (S.bodegas.find(b=>b.id===id)||{}).nombre || id;
 const S = {tab:"todos", sel:new Set(), open:null, saved:null, productos:[], movs:[], docs:[], bodegas:[...BODEGAS_DEFAULT,...COOLERS_DEFAULT], form:null, dq:"", screen:"home", cat:"todas", modo:"stock", q:"", cod:"", bod:"todas", st:"todos", ev:"todos", sort:{k:"nombre",dir:1}, page:1, size:25, mq:"", pkOrig:"repo", pkUbic:"p14", pkLineas:[], pkq:"", pkErr:"", pkTab:"nuevo", pkModo:"picking", pkRango:"hoy", pkDestF:"todas", invBod:"comparar", invQ:"", invCool:false, invAll:false, msel:new Set(), bfNombre:"", bfTipo:"picking", bfErr:""};
-Object.assign(S,{invVista:"mapa", mpSel:null, mpModo:"tipo", mpQ:"", mpAddQ:"", mpCnt:false, mpDone:new Set(), mzInv:{}, mzAsig:{}, mzRev:false, mzMM:false, mzTmp:{}});   // mapa 3D de bodega
+Object.assign(S,{mzMov:{}, invVista:"mapa", mpSel:null, mpModo:"tipo", mpQ:"", mpAddQ:"", mpCnt:false, mpDone:new Set(), mzInv:{}, mzAsig:{}, mzRev:false, mzMM:false, mzTmp:{}});   // mapa 3D de bodega
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Number(n||0).toLocaleString("es-CL",{maximumFractionDigits:2});
@@ -2994,6 +2998,14 @@ function viewInvPorProducto(b,M){
     return `<div class="card mz-isec mz-pcard" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(p.nombre)}</h3><span class="mz-hint">${mzSub(p)} · en la bodega: <b>${mzTxt(total,p)}</b></span></div><span class="mz-pill ${zs.length>1?"ok":"none"}">${zs.length} zona${zs.length===1?"":"s"}${libres?" + sin zona":""}</span></div>
       ${resumen.length?`<p class="mz-also" style="margin:2px 0 8px">${resumen.join(" · ")}</p>`:""}
       ${filas?`<ul class="mz-items"><li class="mz-ir mz-irh"><span>Ubicación</span><span>Sistema</span><span>Contado</span><span>Dif.</span></li>${filas}</ul>`:`<div class="mz-empty" style="padding:10px 8px">Este producto aún no está en ninguna zona. Agrégalo a una.</div>`}
+      ${(()=>{ const m=(S.mzMov||{})[p.id]||{}, orig=[...zs.filter(z=>(ef.z[z.id]||0)>0).map(z=>[z.id,`${mzUbi(z)} (${mzTxt(ef.z[z.id],p)})`]),...(libres?[["libre",`Sin zona (${mzTxt(ef.libre,p)})`]]:[])];
+        if(!orig.length) return "";
+        const dest=M.zonas.filter(z=>z.id!==m.de).map(z=>[z.id,mzUbi(z)]), opt=(l,v)=>l.map(([id,t])=>`<option value="${id}"${v===id?" selected":""}>${esc(t)}</option>`).join("");
+        return `<div class="mz-mover"><b>Mover de una zona a otra</b> <span class="mz-hint">(por ejemplo, de Reposición a Picking · el stock de la bodega no cambia)</span>
+          <div class="mz-mv"><label>Desde<select class="mz-sel" data-mzmvde="${esc(p.id)}"><option value="">Elegir…</option>${opt(orig,m.de)}</select></label>
+          <label>Hacia<select class="mz-sel" data-mzmva="${esc(p.id)}"><option value="">Elegir…</option>${opt(dest,m.a)}</select></label>
+          ${mzPar(p,["data-mzmvp","data-mzmvs"],esc(p.id),m.pk??"",m.su??"","0","0",p.nombre)}
+          <button class="btn soft sm" type="button" data-mzmover="${esc(p.id)}">Mover</button></div></div>`; })()}
       <div class="mz-acts"><select class="mz-sel" data-mzadds="${esc(p.id)}" aria-label="Agregar ${esc(p.nombre)} a otra zona"><option value="">+ Agregar a ${zs.length?"otra":"una"} zona…</option>${libresZ.map(z=>`<option value="${z.id}">${esc(mzUbi(z))}</option>`).join("")}</select>
         <button class="btn brand sm" type="button" data-mzsz="p:${esc(p.id)}">Guardar este producto</button></div></div>`; };
   return `<div class="mz-add" style="margin-top:12px"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mzpq" type="search" value="${esc(S.mzPq||"")}" placeholder="Buscar un producto (nombre o código)" aria-label="Buscar un producto" autocomplete="off"></label></div>
@@ -3009,7 +3021,7 @@ function viewInvInventario(b,M){
   const sec=z=>{ const its=mzItems(b,M,z), u=mzUn(z);
     return `<div class="card mz-isec" style="margin-top:14px"><div class="mz-ch"><div><h3>${esc(z.n)}</h3><span class="mz-hint">${esc(z.cara)} · ${esc(z.d)}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div>
       ${its.length?`<ul class="mz-items"><li class="mz-ir mz-irh${mm?" mm":""}"><span>Producto</span><span>Sistema</span><span>Contado</span><span>Dif.</span>${mm?`<span>Mínimo (${u})</span><span>Máximo (${u})</span>`:""}</li>${its.map(({p,ef})=>{ const key=p.id+"|"+z.id, un0=ef.z[z.id]||0, d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
-        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar de esta zona</button></span>
+        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar de esta zona</button><button type="button" class="link mz-quitar" style="color:var(--accent-strong)" data-mzgo="${esc(p.id)}">Mover a otra zona</button></span>
           <span class="mz-sys">${mzTxt(un0,p)}</span>
           ${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}
           <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
@@ -3097,6 +3109,24 @@ function viewInvReponer(b,M){
     ${loc.length?`<div class="card mz-isec" style="margin-top:14px"><h3>1 · Pasar de reposición a picking</h3><p class="mz-hint" style="margin:2px 0 8px">Hay packs cerrados en las zonas de Reposición de ${esc(b.nombre)}: se abren y pasan a Picking. El stock de la bodega no cambia.</p><ul class="mz-items">${loc.map(rowL).join("")}</ul></div>`:""}
     ${out.length?`<div class="card mz-isec" style="margin-top:14px"><h3>${loc.length?"2":"1"} · Traer desde ${repoB?esc(repoB.nombre):"la bodega de Reposición"}</h3><p class="mz-hint" style="margin:2px 0 8px">Lo que no alcanza con la reposición de esta bodega. Se arma un traspaso interno con estas cantidades.</p><ul class="mz-items">${out.map(rowO).join("")}</ul>
       ${repoB?`<div class="mz-acts"><button class="btn brand" type="button" data-mztras>Armar traspaso interno desde ${esc(repoB.nombre)}</button></div>`:""}</div>`:""}`;
+}
+// Mover producto de una zona a otra de la misma bodega (p. ej. de una zona de Reposición, o de "Sin zona", a una de Picking)
+async function mzMover(pid){
+  const b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b), p=S.productos.find(x=>x.id===pid), m=(S.mzMov||{})[pid]||{}; if(!M||!p) return;
+  const ef=zonasEf(p,b,M), pk=pkn(p), de=m.de, a=m.a, zn=id=>id==="libre"?"Sin zona":(M.zonas.find(z=>z.id===id)||{}).n;
+  if(!de||!a){ toast("Elige desde qué zona y hacia cuál lo pasas."); return; }
+  if(de===a){ toast("La zona de origen y la de destino deben ser distintas."); return; }
+  const u=Math.round(Math.max(0,parseFloat(m.pk)||0))*(pk>1?pk:1)+(pk>1?Math.round(Math.max(0,parseFloat(m.su)||0)):0);
+  if(u<=0){ toast("Escribe cuánto pasas (packs y/o unidades)."); return; }
+  const disp=de==="libre"?ef.libre:(ef.z[de]||0);
+  if(u>disp){ toast(`En ${zn(de)} solo hay ${mzTxt(disp,p)}.`); return; }
+  const zonas={...ef.z}; if(de!=="libre") zonas[de]=disp-u; zonas[a]=(zonas[a]||0)+u;
+  const now=new Date().toISOString();
+  await Store.putProducto({...p, zonas, actualizado:now});
+  await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"traspaso",cantidad:u,cantidadPack:toPk(u,p),sueltas:suel(u,p),stockFinal:p.stock,
+    nota:`${b.nombre} · Movimiento entre zonas: ${zn(de)} → ${zn(a)} (${mzTxt(u,p)})`,fecha:now});
+  Object.keys(S.mzInv).forEach(k=>{ if(k.startsWith(p.id+"|")) delete S.mzInv[k]; }); S.mzMov[pid]={de:"",a,pk:"",su:""};
+  toast(`${p.nombre}: ${mzTxt(u,p)} pasados de ${zn(de)} a ${zn(a)}. El stock de la bodega no cambia.`); render(true);
 }
 async function mzReponerLocal(key){
   const [pid,zid]=key.split("|"), b=S.bodegas.find(x=>x.id===S.invBod), M=mapaDe(b); if(!M) return;
@@ -3195,6 +3225,8 @@ function mzClick(t){
   if(t.closest("[data-mzrev]")){ S.mzRev=true; render(true); window.scrollTo?.(0,0); return true; }
   if(t.closest("[data-mzback]")){ S.mzRev=false; render(true); return true; }
   if(t.closest("[data-mzapply]")){ mzInvAplicar(); return true; }
+  const mvb=t.closest("[data-mzmover]"); if(mvb){ mzMover(mvb.dataset.mzmover); return true; }
+  const go=t.closest("[data-mzgo]"); if(go){ const p=S.productos.find(x=>x.id===go.dataset.mzgo); S.mzOrden="producto"; S.mzPq=p?p.nombre:""; render(true); window.scrollTo?.(0,0); return true; }
   const od=t.closest("[data-mzorden]"); if(od){ S.mzOrden=od.dataset.mzorden; render(true); return true; }
   const jp=t.closest("[data-mzjump]"); if(jp){ const el=document.querySelector(`[data-cara="${CSS.escape(jp.dataset.mzjump)}"]`); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); return true; }
   const sz=t.closest("[data-mzsz]"); if(sz){ mzInvAplicar(sz.dataset.mzsz); return true; }
@@ -3583,6 +3615,8 @@ C.addEventListener("input",e=>{
   const t=e.target, id=t.id, v=t.value;
   if(t.dataset.mzq!==undefined){ S.mzTmp["q|"+t.dataset.mzq]=v; return; }
   if(t.dataset.mzqs!==undefined){ S.mzTmp["qs|"+t.dataset.mzqs]=v; return; }
+  if(t.dataset.mzmvp!==undefined){ (S.mzMov[t.dataset.mzmvp]=S.mzMov[t.dataset.mzmvp]||{}).pk=v; return; }
+  if(t.dataset.mzmvs!==undefined){ (S.mzMov[t.dataset.mzmvs]=S.mzMov[t.dataset.mzmvs]||{}).su=v; return; }
   if(t.dataset.mzm!==undefined){ S.mzTmp["m|"+t.dataset.mzm]=v; return; }
   if(t.dataset.mzx!==undefined){ S.mzTmp["x|"+t.dataset.mzx]=v; return; }
   if(t.dataset.mzi!==undefined){ S.mzInv[t.dataset.mzi]=v; mzActDif(t); return; }
@@ -3630,6 +3664,8 @@ C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if((id==="smd"||id==="smh") && S.smSec){ S[id==="smd"?"smDesde":"smHasta"]=v; render(true); return; }
   if(t.dataset.mzadds!==undefined){ if(v) mzAgregar(t.dataset.mzadds, v); return; }
+  if(t.dataset.mzmvde!==undefined){ const m=(S.mzMov[t.dataset.mzmvde]=S.mzMov[t.dataset.mzmvde]||{}); m.de=v; if(m.a===v) m.a=""; render(true); return; }
+  if(t.dataset.mzmva!==undefined){ (S.mzMov[t.dataset.mzmva]=S.mzMov[t.dataset.mzmva]||{}).a=v; return; }
   if(t.dataset.mzasel!==undefined){ if(v) mzAsignar(t.dataset.mzasel, v); return; }
   if(t.dataset.mzia!==undefined){ S.mzAsig[t.dataset.mzia]=v; mzBtnN(); return; }
   if(t.hasAttribute("data-mzmm")){ S.mzMM=t.checked; render(true); return; }
@@ -3660,7 +3696,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "61", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "62", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
