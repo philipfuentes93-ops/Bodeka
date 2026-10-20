@@ -1020,6 +1020,14 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .rl-lv.rep{background:color-mix(in srgb,#2A8CA6 24%,var(--panel));color:#0E3A47}
 .rl-lv.lleno{background:color-mix(in srgb,var(--ok) 20%,var(--panel));color:#0C4A2C}
 .rl-bj{position:absolute;top:-12px;right:-4px;min-width:36px;height:36px;border-radius:18px;background:var(--danger);color:#fff;font-style:normal;font-size:1.2rem;font-weight:800;display:grid;place-items:center;padding:0 9px;border:3px solid var(--bg,#fff)}
+/* Por bodega: contorno oscuro para que cada apartado se distinga sobre el fondo claro */
+.mz-wrap,.mz-isec,.mz-card,.mz-pcard,.mz-mover,.mz-scene-card{border:2px solid var(--ink)!important;box-shadow:0 2px 0 color-mix(in srgb,var(--ink) 18%,transparent)}
+.mz-mover{border-style:solid!important;border-width:2px!important;background:var(--panel)}
+.mz-items li{border-top-color:color-mix(in srgb,var(--ink) 30%,transparent)}
+.mz-in,.mz-sel{border:2px solid color-mix(in srgb,var(--ink) 65%,transparent)}
+.mz-in:focus-visible{border-color:var(--accent)}
+.mz-add .qsearch,.mz-add label.qsearch{border:2px solid color-mix(in srgb,var(--ink) 65%,transparent)}
+.mz-caraH{margin-top:26px}
 </style>
 </head>
 <body>
@@ -3868,7 +3876,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "64", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "65", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
