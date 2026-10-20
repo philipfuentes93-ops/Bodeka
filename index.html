@@ -980,6 +980,46 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .mz-mv{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:8px}
 .mz-mv label{display:grid;gap:3px;font-size:.74rem;font-weight:800;color:var(--muted);min-width:0}
 .mz-mv .mz-sel{max-width:260px}
+.sm-rell{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:84px;border-radius:24px;background:color-mix(in srgb,var(--orange) 16%,var(--panel));border:5px solid var(--orange);color:#6B3200;font-size:1.9rem;font-weight:800;cursor:pointer}
+.sm-rell:focus-visible{outline:5px solid var(--accent);outline-offset:3px}
+.rl-badge{position:absolute;top:-14px;right:-6px;min-width:40px;height:40px;border-radius:20px;background:var(--danger);color:#fff;font-size:1.4rem;font-weight:800;display:grid;place-items:center;padding:0 10px;border:3px solid var(--bg,#fff)}
+.rl-seg{margin-top:14px}.rl-seg2{margin:10px 18px 0;grid-template-columns:repeat(2,1fr)}
+.rl-cards{display:grid;gap:14px;padding:8px 18px 28px}
+.rl-card{background:var(--panel);border:5px solid var(--orange);border-radius:26px;padding:14px;display:grid;gap:10px}
+.rl-card.low{border-color:var(--danger)}.rl-card.ok{border-color:var(--ok)}.rl-card.sin{border-color:var(--line)}
+.rl-row{display:flex;gap:12px;align-items:center}.rl-row .sm-ph{width:84px;height:84px;border-radius:18px;font-size:2rem;flex:none}
+.rl-in{min-width:0}.rl-nm{display:block;font-size:1.35rem;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
+.rl-chip{display:inline-block;margin-top:5px;padding:3px 10px;border-radius:99px;font-size:.85rem;font-weight:800;background:color-mix(in srgb,var(--orange) 24%,var(--panel));color:#6B3200}
+.rl-g{display:flex;gap:5px}.rl-g i{flex:1;height:14px;border-radius:7px;background:var(--line)}
+.rl-g.low i.f{background:var(--danger)}.rl-g.mid i.f{background:var(--orange)}.rl-g.ok i.f{background:var(--ok)}
+.rl-left{font-size:1.1rem;font-weight:800}.rl-left.low{color:var(--danger)}.rl-left.mid{color:#9A4A00}
+.rl-pasa,.rl-lleva{display:flex;align-items:center;gap:10px;justify-content:space-between;background:color-mix(in srgb,var(--accent) 10%,var(--panel));border-radius:18px;padding:8px 10px}
+.rl-pasa>span,.rl-lleva>span{font-size:1.1rem;font-weight:700}
+.rl-st{display:flex;align-items:center;gap:8px}.rl-st b{font-size:2rem;line-height:1;min-width:92px;text-align:center;color:var(--accent-strong)}.rl-st b small{font-size:.9rem;font-weight:700;color:var(--ink)}
+.rl-st button{all:unset;box-sizing:border-box;width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:2rem;font-weight:800;background:var(--field);border:3px solid var(--line);color:var(--ink);cursor:pointer}
+.rl-st button:last-child{background:var(--accent);border-color:var(--accent);color:#fff}
+.rl-st button:focus-visible{outline:5px solid var(--orange);outline-offset:2px}
+.rl-src{font-size:1rem;font-weight:700;color:var(--muted)}.rl-src b{color:var(--accent-strong)}
+.rl-ok{min-height:64px;font-size:1.5rem}
+.rl-next{margin:14px 18px 0;background:var(--panel);border:5px solid var(--orange);border-radius:24px;padding:12px;display:grid;grid-template-columns:72px 1fr;gap:4px 12px;align-items:center}
+.rl-next .sm-to{grid-column:1/-1}.rl-next .sm-ph{width:72px;height:72px;grid-row:2/4;border-radius:16px;font-size:1.6rem}.rl-next b{font-size:1.25rem}.rl-next span:last-child{font-weight:700}
+.rl-mis{padding:14px 18px 0;display:grid;gap:10px;justify-items:stretch}
+.rl-dots{display:flex;gap:8px;justify-content:center}.rl-dots i{width:16px;height:16px;border-radius:50%;background:var(--line)}.rl-dots i.d{background:var(--ok)}.rl-dots i.n{background:var(--orange);outline:3px solid color-mix(in srgb,var(--orange) 35%,var(--panel))}
+.rl-mis .rl-big{width:150px;height:150px;border-radius:30px;margin:0 auto;font-size:3.4rem}
+.rl-mn{font-size:1.6rem;font-weight:800;text-align:center;line-height:1.1}
+.rl-paso{display:grid;grid-template-columns:1fr 30px 1fr;gap:4px;align-items:center;text-align:center;font-size:1.6rem;font-weight:800;color:var(--muted)}
+.rl-est{border-radius:18px;padding:10px 8px;min-height:84px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.rl-est small{font-size:.8rem;letter-spacing:.05em;text-transform:uppercase}.rl-est b{font-size:1.05rem;line-height:1.15;color:var(--ink)}
+.rl-est.rep{background:color-mix(in srgb,#2A8CA6 22%,var(--panel));border:4px solid #2A8CA6}.rl-est.pick{background:color-mix(in srgb,var(--orange) 24%,var(--panel));border:4px solid var(--orange)}
+.rl-shelf{margin:8px 18px 28px;border:6px solid #8A9A95;border-bottom-width:10px;border-radius:14px;background:color-mix(in srgb,#8A9A95 18%,var(--panel));padding:8px;display:grid;gap:8px}
+.rl-lv{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;gap:10px;min-height:108px;border-radius:14px;padding:10px 14px;width:100%}
+.rl-lv small{display:block;font-size:.78rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.rl-lv b{display:block;font-size:1.4rem;line-height:1.1}.rl-lv em{display:block;font-style:normal;font-size:.95rem;font-weight:700;margin-top:3px}
+.rl-lv.pick{background:color-mix(in srgb,var(--orange) 30%,var(--panel));outline:5px solid var(--orange);outline-offset:-5px;cursor:pointer;color:#4A2200}
+.rl-lv.pick:focus-visible{outline-color:var(--accent)}
+.rl-lv.rep{background:color-mix(in srgb,#2A8CA6 24%,var(--panel));color:#0E3A47}
+.rl-lv.lleno{background:color-mix(in srgb,var(--ok) 20%,var(--panel));color:#0C4A2C}
+.rl-bj{position:absolute;top:-12px;right:-4px;min-width:36px;height:36px;border-radius:18px;background:var(--danger);color:#fff;font-style:normal;font-size:1.2rem;font-weight:800;display:grid;place-items:center;padding:0 9px;border:3px solid var(--bg,#fff)}
 </style>
 </head>
 <body>
@@ -2359,7 +2399,7 @@ const smSet = (k,v) => { try{ v===null?localStorage.removeItem(k):localStorage.s
 S.simple = smLS("inv-simple","")==="1";
 if(/^#simple/.test(location.hash)){ S.simple=true; smSet("inv-simple","1"); }
 else if(/^#normal/.test(location.hash)){ S.simple=false; smSet("inv-simple",null); }
-S.smPed = null; S.smSec = false; S.smUlt = null; S.smVer = null; S.smRng = "hoy"; S.smDesde = ""; S.smHasta = "";
+S.smPed = null; S.smRell = null; S.smSec = false; S.smUlt = null; S.smVer = null; S.smRng = "hoy"; S.smDesde = ""; S.smHasta = "";
 
 const smUni = n => n===1?"unidad":"unidades";
 function smQty(u,pk){
@@ -2376,7 +2416,7 @@ const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style
 
 /* ---------- inicio ---------- */
 function smLista(){
-  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div><div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
+  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>${smRellCtx()?`<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-rell" data-rlabrir>Rellenar picking${smRellN()?`<span class="rl-badge">${smRellN()}</span>`:""}</button></div>`:""}<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
     +`<footer class="sm-foot"><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
 }
 
@@ -2493,7 +2533,118 @@ async function smRegistrar(){
     S.smPed=null; S.smSec=true; S.smVer=null; S.smRng="hoy"; S.smUlt=doc.id+"|"+dest; render(true); window.scrollTo?.(0,0);
   }catch(e){ toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."); render(true); }
 }
+/* ---------- Rellenar picking: pasar producto de la reserva (Reposición) al estante de Picking, en la misma bodega ----------
+   Tres vistas del mismo trabajo: Lista (lo que falta, de lo más urgente), Estante (se toca el nivel) y Una a una (una "misión" por pantalla).
+   Solo aparecen productos de zonas de Picking que están bajo su mínimo y tienen reserva en las zonas de Reposición. El stock de la bodega no cambia. */
+function smRellCtx(){ const b=S.bodegas.find(x=>x.id==="p11"&&mapaDe(x))||S.bodegas.find(x=>mapaDe(x)); return b?{b,M:mapaDe(b)}:null; }
+function smRellItems(){
+  const c=smRellCtx(), ok=[], sin=[]; if(!c) return {ok,sin,c};
+  mzNecesidades(c.b,c.M).filter(n=>n.z.t==="pick").forEach(n=>{
+    const ef=zonasEf(n.p,c.b,c.M), pk=pkn(n.p), res=Math.floor(c.M.zonas.filter(z=>z.t==="rep").reduce((a,z)=>a+(ef.z[z.id]||0),0)/pk);
+    (n.movePacks>0?ok:sin).push({...n,key:n.p.id+"|"+n.z.id,res,pk}); });
+  const urg=a=>a.v<=0?0:(a.max>0?a.v/a.max:a.v/(a.min*2));
+  ok.sort((a,b)=>urg(a)-urg(b)); sin.sort((a,b)=>urg(a)-urg(b));
+  return {ok,sin,c};
+}
+const smRellN = () => { const r=smRellItems(); return r.ok.length+r.sin.length; };
+const smRellPk = it => Math.max(1,Math.min(it.res,Math.round(+(S.smRell.q||{})[it.key])||it.movePacks));
+const smRellU = it => it.pk>1?"packs":"unidades";
+function smRellOrig(it,packs){   // de qué zonas de Reposición saldría (se saca primero de donde más hay)
+  const c=smRellCtx(), ef=zonasEf(it.p,c.b,c.M), z={...ef.z}, out=[]; let falta=packs*it.pk;
+  c.M.zonas.filter(x=>x.t==="rep"&&z[x.id]>0).sort((a,b)=>z[b.id]-z[a.id]).forEach(x=>{ const q=Math.min(falta,Math.floor(z[x.id]/it.pk)*it.pk); if(q>0){ falta-=q; out.push(x.n); } });
+  return out;
+}
+const smRellOrigTxt = it => smRellOrig(it,smRellPk(it)).join(" y ")||"Reposición";
+function smRellGauge(it){
+  const fr=it.max>0?it.v/it.max:it.v/(it.min*2), n=Math.max(0,Math.min(5,Math.round(fr*5))), cls=it.v<=0||fr<.25?"low":fr<.6?"mid":"ok";
+  return {html:`<div class="rl-g ${cls}" aria-hidden="true">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"f":""}"></i>`).join("")}</div>`,
+    txt:it.v<=0?"Vacío":`${cls==="low"?"Casi vacío · ":cls==="mid"?"Queda poco · ":""}quedan ${smQty(it.v,it.p.packUn).txt}`, cls};
+}
+async function smRellMover(it,packs){
+  const c=smRellCtx(), p=S.productos.find(x=>x.id===it.p.id); if(!c||!p) return null;
+  const ef=zonasEf(p,c.b,c.M), pk=pkn(p), zonas={...ef.z}, orig=[]; let falta=packs*pk;
+  c.M.zonas.filter(z=>z.t==="rep"&&zonas[z.id]>0).sort((a,b)=>zonas[b.id]-zonas[a.id]).forEach(z=>{ const q=Math.min(falta,Math.floor(zonas[z.id]/pk)*pk); if(q>0){ zonas[z.id]-=q; falta-=q; orig.push(z.n); } });
+  const mov=packs*pk-falta; if(mov<=0){ toast("Ya no hay reserva de este producto."); return null; }
+  zonas[it.z.id]=(zonas[it.z.id]||0)+mov;
+  const now=new Date().toISOString();
+  await Store.putProducto({...p, zonas, actualizado:now});
+  await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"traspaso",cantidad:mov,cantidadPack:toPk(mov,p),sueltas:suel(mov,p),stockFinal:p.stock,
+    nota:`${c.b.nombre} · Rellenar picking: ${orig.join(", ")} → ${it.z.n}`,fecha:now});
+  const h={p,nombre:p.nombre,u:mov,txt:smQty(mov,p.packUn).txt,zona:it.z.n,orig:orig.join(" y ")}; (S.smRell.hechos=S.smRell.hechos||[]).push(h); return h;
+}
+const smRellCard = it => { const p=it.p, g=smRellGauge(it), k=smRellPk(it);
+  return `<div class="rl-card ${g.cls}">
+    <div class="rl-row">${smFoto(p,p.nombre)}<div class="rl-in"><span class="rl-nm">${esc(p.nombre)}</span><span class="rl-chip">${esc(it.z.n)}</span></div></div>
+    ${g.html}<div class="rl-left ${g.cls}">${esc(g.txt)}</div>
+    <div class="rl-pasa"><span>Pasa</span><div class="rl-st"><button type="button" data-rlmenos="${esc(it.key)}" aria-label="Quitar uno">−</button><b>${k} <small>${smRellU(it)}</small></b><button type="button" data-rlmas="${esc(it.key)}" aria-label="Agregar uno">+</button></div></div>
+    <div class="rl-src">Sale de <b>${esc(smRellOrigTxt(it))}</b> · hay ${it.res} ${smRellU(it)}</div>
+    <button type="button" class="sm-btn lista rl-ok" data-rlpasar="${esc(it.key)}">Ya lo pasé</button></div>`; };
+const smRellSinCard = it => `<div class="rl-card sin"><div class="rl-row">${smFoto(it.p,it.p.nombre)}<div class="rl-in"><span class="rl-nm">${esc(it.p.nombre)}</span><span class="rl-chip">${esc(it.z.n)}</span></div></div>
+    <div class="rl-src">No hay reserva aquí. Pídelo a <b>${esc(bodNom(((bods("reposicion")||[])[0]||{}).id))}</b>.</div>
+    <button type="button" class="sm-btn2" data-rlsin="${esc(it.key)}">Hacer un pedido</button></div>`;
+const smRellSeg = v => `<div class="sm-seg sm-seg3 rl-seg" role="group" aria-label="Cómo verlo">${[["lista","Lista"],["estante","Estante"],["mision","Una a una"]].map(([k,n])=>`<button type="button" class="${v===k?"on":""}" data-rlvista="${k}" aria-pressed="${v===k}">${n}</button>`).join("")}</div>`;
+const smRellRuta = (orig,dest) => `<div class="sm-ruta"><div class="sm-r" style="--c:var(--accent)"><span>Sacas de</span><b>${esc(orig)}</b></div><div class="sm-fl" aria-hidden="true">↓</div><div class="sm-r" style="--c:var(--orange)"><span>Pones en</span><b>${esc(dest)}</b></div></div>`;
+function smRellFinal(items,titulo){
+  return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 10px">${titulo}</h1></div>
+    <div class="sm-cards" style="padding-top:6px">${items.map(h=>`<div class="sm-card on" style="grid-template-columns:76px minmax(0,1fr) 40px;min-height:0">${smFoto(h.p,h.nombre)}<span class="sm-info"><span class="sm-name" style="font-size:1.25rem">${esc(h.nombre)}</span><span class="sm-qty" style="font-size:1.05rem"><b style="font-size:1.4rem">${esc(h.txt)}</b> · ${esc(h.zona)}</span></span><span class="sm-tick" aria-hidden="true">✓</span></div>`).join("")}</div>
+    <p class="sm-p" style="margin:12px 18px 0">El inventario de la bodega no cambia: solo cambió de lugar.</p>
+    <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-rlfin>Ir al inicio</button></div>`;
+}
+function smRellView(){
+  const R=S.smRell, {ok,sin,c}=smRellItems(); if(!c){ S.smRell=null; return smLista(); }
+  const v=R.vista||"lista", L=R.listo;
+  const hechos=R.hechos||[], pend=ok.filter(i=>!(R.salt||[]).includes(i.key));
+  const nada=()=>smBarra("Rellenar picking","Tránsito Piso 11","var(--ok)")+(hechos.length?"":"")+`<div class="sm-vacio" style="padding-top:34px"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">Todo está lleno</h1><p class="sm-p">No hay nada que rellenar ahora.</p></div>`;
+  // pantalla de "listo"
+  if(L){
+    if(L.tipo==="lote") return smRellFinal(L.items,"¡Listo!");
+    const h=L.items[0];
+    if(v==="mision"){ const sig=pend[0];
+      if(!sig) return smRellFinal(hechos,"¡Todo relleno!");
+      return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 4px">¡Muy bien!</h1><p class="sm-p">${esc(h.nombre)} ya está en ${esc(h.zona)}.<br>Quedan ${pend.length} por rellenar.</p></div>
+        <div class="rl-next"><span class="sm-to">Sigue</span>${smFoto(sig.p,sig.p.nombre)}<b>${esc(sig.p.nombre)}</b><span>Lleva ${smRellPk(sig)} ${smRellU(sig)} a ${esc(sig.z.n)}</span></div>
+        <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-rlsig>Siguiente misión</button></div>`; }
+    return smCab()+`<div class="sm-vacio" style="padding-bottom:0"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 10px">¡Listo!</h1></div>
+      ${smRellRuta(h.orig||"Reposición",h.zona)}<p class="sm-p" style="margin:0 18px"><b>${esc(h.txt)}</b> de ${esc(h.nombre)}. El inventario de la bodega no cambia: solo cambió de lugar.</p>
+      <div class="sm-fin" style="position:static">${pend.length||sin.length?`<button type="button" class="sm-btn lista" data-rlsig>Siguiente (quedan ${pend.length+sin.length})</button>`:""}<button type="button" class="sm-btn2" data-rlfin>Volver al inicio</button></div>`;
+  }
+  const barra=smBarra("Rellenar picking","Tránsito Piso 11","var(--orange)",pend.length+sin.length?`${pend.length+sin.length}`:"");
+  if(!ok.length&&!sin.length) return hechos.length&&v==="mision"?smRellFinal(hechos,"¡Todo relleno!"):nada();
+  // A · lista
+  if(v==="lista") return barra+smRellSeg(v)+`<p class="sm-p" style="margin:14px 18px 4px">Esto se está acabando en picking:</p><div class="rl-cards">${ok.map(smRellCard).join("")}${sin.map(smRellSinCard).join("")}</div>`;
+  // C · una a una
+  if(v==="mision"){ const it=pend[0], tot=hechos.length+pend.length+sin.length;
+    if(!it) return barra+smRellSeg(v)+`<p class="sm-p" style="margin:14px 18px">No quedan más con reserva.</p><div class="rl-cards">${sin.map(smRellSinCard).join("")}</div>`;
+    const g=smRellGauge(it), k=smRellPk(it);
+    return barra+smRellSeg(v)+`<div class="rl-mis"><div class="rl-dots" aria-label="Misión ${hechos.length+1} de ${tot}">${Array.from({length:tot},(_,i)=>`<i class="${i<hechos.length?"d":i===hechos.length?"n":""}"></i>`).join("")}</div>
+      <span class="sm-to" style="text-align:center">Misión ${hechos.length+1} de ${tot}</span>${smFoto(it.p,it.p.nombre).replace('class="sm-ph','class="sm-ph rl-big')}
+      <div class="rl-mn">${esc(it.p.nombre)}</div><div class="rl-left ${g.cls}" style="text-align:center">${esc(g.txt)}</div>
+      <div class="rl-lleva"><span>Lleva</span><div class="rl-st"><button type="button" data-rlmenos="${esc(it.key)}" aria-label="Quitar uno">−</button><b>${k} <small>${smRellU(it)}</small></b><button type="button" data-rlmas="${esc(it.key)}" aria-label="Agregar uno">+</button></div></div>
+      <div class="rl-paso"><div class="rl-est rep"><small>De</small><b>${esc(smRellOrigTxt(it))}</b></div><span aria-hidden="true">→</span><div class="rl-est pick"><small>A</small><b>${esc(it.z.n)}</b></div></div></div>
+      <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-rlpasar="${esc(it.key)}">¡Ya lo pasé!</button><button type="button" class="sm-btn2" data-rlsaltar="${esc(it.key)}">Saltar este</button></div>`; }
+  // B · estante
+  const caras=[...new Set(c.M.zonas.filter(z=>z.cara!=="Piso").map(z=>z.cara))];
+  const needsDe=z=>[...ok,...sin].filter(i=>i.z.id===z.id);
+  if(R.zona){
+    const z=c.M.zonas.find(x=>x.id===R.zona), its=ok.filter(i=>i.z.id===z.id), ns=sin.filter(i=>i.z.id===z.id);
+    if(R.rev){ const orig=[...new Set(its.flatMap(i=>smRellOrig(i,smRellPk(i))))].join(" y ")||"Reposición";
+      return smBarra("Tu traspaso","Revisa antes de confirmar","var(--ok)",`${its.length}`)+smRellRuta(orig,z.n)
+        +`<p class="sm-p" style="margin:0 18px">El inventario de la bodega no cambia: solo cambia de lugar.</p><div class="sm-cards" style="padding-top:12px">${its.map(i=>`<div class="sm-card on" style="grid-template-columns:76px minmax(0,1fr) 40px;min-height:0">${smFoto(i.p,i.p.nombre)}<span class="sm-info"><span class="sm-name" style="font-size:1.25rem">${esc(i.p.nombre)}</span><span class="sm-qty"><b>${smRellPk(i)}</b> ${smRellU(i)}</span></span><span class="sm-tick" aria-hidden="true">✓</span></div>`).join("")}</div>
+        <div class="sm-fin"><button type="button" class="sm-btn lista" data-rlconf="${esc(z.id)}">✓ Confirmar</button><button type="button" class="sm-btn2" data-smback>← Agregar o cambiar</button></div>`; }
+    return smBarra(esc(z.n),"Rellenar","var(--orange)")+`<p class="sm-p" style="margin:14px 18px 4px">Ajusta cuánto pasas de cada producto:</p><div class="rl-cards">${its.map(smRellCard).map(h=>h.replace(/<button type="button" class="sm-btn lista rl-ok"[^>]*>Ya lo pasé<\/button>/,"")).join("")}${ns.map(smRellSinCard).join("")}</div>
+      ${its.length?`<div class="sm-fin"><button type="button" class="sm-btn lista" data-rlrev>Pasar ${its.length} producto${its.length===1?"":"s"}</button></div>`:""}`;
+  }
+  const cara=R.cara&&caras.includes(R.cara)?R.cara:(caras.find(cc=>c.M.zonas.some(z=>z.cara===cc&&needsDe(z).length))||caras[0]);
+  const zs=c.M.zonas.filter(z=>z.cara===cara);
+  return barra+smRellSeg(v)+(caras.length>1?`<div class="sm-seg rl-seg2" role="group" aria-label="Cara">${caras.map(cc=>`<button type="button" class="${cc===cara?"on":""}" data-rlcara="${esc(cc)}" aria-pressed="${cc===cara}">${esc(mzCaraNom(cc))}${c.M.zonas.some(z=>z.cara===cc&&needsDe(z).length)?" •":""}</button>`).join("")}</div>`:"")
+    +`<p class="sm-p" style="margin:12px 18px 4px">Toca el estante que vas a rellenar:</p><div class="rl-shelf">${zs.map(z=>{ const n=needsDe(z).length;
+      if(z.t==="pick") return n?`<button type="button" class="rl-lv pick" data-rlzona="${esc(z.id)}"><span><small>${esc(z.n.replace(/ · Picking$/,""))}</small><b>Picking</b><em>${n} por rellenar</em></span><i class="rl-bj">${n}</i></button>`
+        :`<div class="rl-lv lleno"><span><small>${esc(z.n)}</small><b>Lleno</b></span></div>`;
+      const res=S.productos.reduce((a,p)=>a+((p.zonas&&p.zonas[z.id])?toPk(p.zonas[z.id],p):0),0);
+      return `<div class="rl-lv rep"><span><small>${esc(z.n)}</small><b>Reserva</b><em>${res} packs para rellenar</em></span></div>`; }).join("")}</div>`;
+}
 function viewSimple(){
+  if(S.smRell) return smRellView();
   if(S.smPed) return smPedido();
   if(S.smSec){
     if(S.smVer){ const t=smPartes().find(x=>smKey(x)===S.smVer); if(t) return smDetalle(t); S.smVer=null; }
@@ -2503,10 +2654,10 @@ function viewSimple(){
 }
 function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.AudioContext||window.webkitAudioContext; if(!A) return;
   const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
-function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; go({go:"simple"}); }
+function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; go({go:"simple"}); }
 function smSalir(){
   if(!confirm("¿Salir del modo simple en este equipo?")) return;
-  S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null;
+  S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null;
   try{ history.replaceState(null,"",location.pathname+location.search); }catch{}
   go({go:"home"});
 }
@@ -2515,6 +2666,26 @@ async function smCopiar(){ const url=location.origin+location.pathname+"#simple"
 const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm" type="button" data-simple-on title="Pantalla muy simple para quien lleva los productos: foto, nombre y cantidad.">Modo simple para operarios</button><button class="btn ghost sm" type="button" data-simple-link>Copiar enlace</button>`;
 function smClick(t){
   const P=S.smPed, go1=()=>{ render(true); window.scrollTo?.(0,0); return true; };
+  // rellenar picking
+  if(t.closest("[data-rlabrir]")){ S.smRell={vista:"lista",hechos:[],q:{},salt:[],zona:null,cara:null,rev:false,listo:null}; return go1(); }
+  const R=S.smRell;
+  if(R){
+    const rv=t.closest("[data-rlvista]"); if(rv){ R.vista=rv.dataset.rlvista; R.zona=null; R.rev=false; R.listo=null; return go1(); }
+    const rc=t.closest("[data-rlcara]"); if(rc){ R.cara=rc.dataset.rlcara; return go1(); }
+    const rz=t.closest("[data-rlzona]"); if(rz){ R.zona=rz.dataset.rlzona; R.rev=false; return go1(); }
+    const find=k=>smRellItems().ok.find(i=>i.key===k);
+    const rm=t.closest("[data-rlmas]"); if(rm){ const it=find(rm.dataset.rlmas); if(it){ const n=smRellPk(it); if(n>=it.res) toast("No hay más reserva de este producto."); else R.q[it.key]=n+1; } return go1(); }
+    const rn=t.closest("[data-rlmenos]"); if(rn){ const it=find(rn.dataset.rlmenos); if(it) R.q[it.key]=Math.max(1,smRellPk(it)-1); return go1(); }
+    const rp=t.closest("[data-rlpasar]"); if(rp){ const it=find(rp.dataset.rlpasar); if(it&&!R.busy){ R.busy=true; smRellMover(it,smRellPk(it)).then(h=>{ R.busy=false; if(h){ R.listo={tipo:"uno",items:[h]}; delete R.q[it.key]; } render(true); window.scrollTo?.(0,0); }); } return true; }
+    if(t.closest("[data-rlrev]")){ R.rev=true; return go1(); }
+    const rf=t.closest("[data-rlconf]"); if(rf){ if(R.busy) return true; R.busy=true; (async()=>{ const z=smRellCtx().M.zonas.find(x=>x.id===rf.dataset.rlconf), its=smRellItems().ok.filter(i=>i.z.id===z.id), out=[];
+        for(const it of its){ const h=await smRellMover(it,smRellPk(it)); if(h){ out.push(h); delete R.q[it.key]; } }
+        R.busy=false; R.rev=false; R.zona=null; if(out.length) R.listo={tipo:"lote",items:out}; render(true); window.scrollTo?.(0,0); })(); return true; }
+    const rs=t.closest("[data-rlsaltar]"); if(rs){ (R.salt=R.salt||[]).push(rs.dataset.rlsaltar); return go1(); }
+    if(t.closest("[data-rlsig]")){ R.listo=null; return go1(); }
+    if(t.closest("[data-rlfin]")){ S.smRell=null; return go1(); }
+    const rsin=t.closest("[data-rlsin]"); if(rsin){ const it=smRellItems().sin.find(i=>i.key===rsin.dataset.rlsin), repo=(bods("reposicion")||[])[0]; if(it&&repo){ S.smRell=null; S.smPed={paso:"prod",orig:repo.id,dest:smRellCtx().b.id,lineas:{},modo:{},q:""}; return go1(); } return true; }
+  }
   // hacer un pedido
   if(t.closest("[data-smnuevo]")){ S.smUlt=null; S.smPed={paso:"orig",orig:null,dest:null,lineas:{},modo:{},q:""}; return go1(); }
   const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.modo={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
@@ -2531,6 +2702,7 @@ function smClick(t){
   const v=t.closest("[data-smver]"); if(v){ S.smVer=v.dataset.smver; return go1(); }
   // atrás: cada pantalla vuelve a la anterior
   if(t.closest("[data-smback]")){
+    if(S.smRell){ const R=S.smRell; if(R.listo){ R.listo=null; if(!(R.vista==="mision")) {} } else if(R.rev) R.rev=false; else if(R.zona) R.zona=null; else S.smRell=null; return go1(); }
     if(P){
       if(P.paso==="res") P.paso="prod";
       else if(P.paso==="prod"){ P.paso="dest"; P.q=""; }
@@ -3696,7 +3868,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "62", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "63", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
