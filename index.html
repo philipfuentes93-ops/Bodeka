@@ -1020,13 +1020,18 @@ body.simple .content{padding:0 0 calc(30px + env(safe-area-inset-bottom,0px));ma
 .rl-lv.rep{background:color-mix(in srgb,#2A8CA6 24%,var(--panel));color:#0E3A47}
 .rl-lv.lleno{background:color-mix(in srgb,var(--ok) 20%,var(--panel));color:#0C4A2C}
 .rl-bj{position:absolute;top:-12px;right:-4px;min-width:36px;height:36px;border-radius:18px;background:var(--danger);color:#fff;font-style:normal;font-size:1.2rem;font-weight:800;display:grid;place-items:center;padding:0 9px;border:3px solid var(--bg,#fff)}
-/* Por bodega: contorno oscuro para que cada apartado se distinga sobre el fondo claro */
-.mz-wrap,.mz-isec,.mz-card,.mz-pcard,.mz-mover,.mz-scene-card{border:2px solid var(--ink)!important;box-shadow:0 2px 0 color-mix(in srgb,var(--ink) 18%,transparent)}
-.mz-mover{border-style:solid!important;border-width:2px!important;background:var(--panel)}
-.mz-items li{border-top-color:color-mix(in srgb,var(--ink) 30%,transparent)}
-.mz-in,.mz-sel{border:2px solid color-mix(in srgb,var(--ink) 65%,transparent)}
-.mz-in:focus-visible{border-color:var(--accent)}
-.mz-add .qsearch,.mz-add label.qsearch{border:2px solid color-mix(in srgb,var(--ink) 65%,transparent)}
+/* Por bodega: fondo más oscuro y tarjetas blancas con sombra (los apartados se distinguen por contraste, sin contorno negro) */
+body.scr-inv{background:#C4D2CD fixed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.scr-inv{background:#0A1315 fixed}}
+:root[data-theme="dark"] body.scr-inv{background:#0A1315 fixed}
+body.scr-inv .card,body.scr-inv .mz-card{border-color:transparent;border-radius:18px;box-shadow:0 8px 22px rgba(16,41,44,.28)}
+body.scr-inv .mz-mover{border:0;background:var(--field);box-shadow:none}
+body.scr-inv .mz-items li{border-top:2px solid #B9C7C2}
+body.scr-inv .mz-items li:first-child,body.scr-inv .mz-items li.mz-irh + li{border-top:0}
+body.scr-inv .mz-items li.mz-irh{border-bottom:3px solid var(--ink);padding-bottom:8px}
+body.scr-inv .mz-in,body.scr-inv .mz-sel{border:2px solid #4F666B}
+body.scr-inv .mz-in:focus-visible{border-color:var(--accent)}
+body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .mz-caraH{margin-top:26px}
 </style>
 </head>
@@ -3610,6 +3615,7 @@ function render(force=true){   // live data updates call render(false)
   if(!force && S.screen==="inv" && (S.mpCnt || (S.invVista==="inventario" && mapaDe(S.bodegas.find(x=>x.id===S.invBod))))) return;   // contando en el mapa: no perder lo que se teclea
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   document.body.classList.toggle("simple",!!S.simple);
+  document.body.classList.toggle("scr-inv",S.screen==="inv");
   $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
   if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
@@ -3876,7 +3882,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "65", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "66", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
