@@ -1037,6 +1037,24 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .mz-lvl{display:inline-block;margin:0 0 6px!important;padding:7px 16px;border:3px solid var(--lc);border-radius:12px;background:color-mix(in srgb,var(--lc) 16%,var(--panel));color:var(--ink);font-size:1.1rem!important;font-weight:800;line-height:1.2}
 .mz-lvl.pick{--lc:#E8872E}.mz-lvl.rep{--lc:#2A6FB0}.mz-lvl.sz{--lc:#7C8F8A}
 .mz-lvl+.mz-hint{display:block}
+.sm-avis{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:84px;border-radius:24px;background:color-mix(in srgb,var(--danger) 12%,var(--panel));border:5px solid var(--danger);color:#7A1810;font-size:1.9rem;font-weight:800;cursor:pointer}
+.sm-avis:focus-visible{outline:5px solid var(--accent);outline-offset:3px}
+.av-seg{grid-template-columns:repeat(4,1fr)!important;margin-left:10px;margin-right:10px}
+.av-seg button{display:grid;place-items:center;gap:0;min-height:62px;font-size:.92rem!important;line-height:1.1;padding:4px 2px}
+.av-seg small{font-size:1.25rem;font-weight:800}
+.av-ok{font-size:1.1rem;font-weight:800;color:var(--ok)}
+.rl-chip.av-sin,.rl-chip.av-vencido{background:var(--danger-soft);color:#8A1A11}
+.rl-chip.av-crit,.rl-chip.av-venc,.rl-chip.av-falta{background:var(--warn-soft);color:#7A4F00}
+.av-banner{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:12px 16px;border-radius:14px;background:var(--warn-soft);border:2px solid var(--warn)}
+.av-banner>div{flex:1;font-size:.95rem}.av-bell{width:30px;height:30px;color:var(--warn);flex:none}.av-bell svg{width:100%;height:100%}
+.av-sec{padding:16px 18px;margin-bottom:16px}.av-sec h3{margin:0 0 10px;display:flex;gap:10px;align-items:center;font-size:1.05rem}
+.av-list{list-style:none;margin:0;padding:0}
+.av-row{display:grid;grid-template-columns:minmax(0,1fr) auto 130px 90px auto;gap:10px 14px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.av-row:first-child{border-top:0}
+.av-nm b{display:block}.av-nm .mini{display:block;margin-top:2px}
+.av-a{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.av-t,.av-f{font-size:.85rem;color:var(--muted)}
+.av-hecho .av-row{grid-template-columns:1fr}
+@media (max-width:760px){.av-row{grid-template-columns:1fr auto}.av-a{grid-column:1/-1;justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -1090,6 +1108,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
     <button class="movil-sheet-item" type="button" data-tab="traspaso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg><span>Traspaso interno</span></button>
     <button class="movil-sheet-item" type="button" data-tab="desp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg><span>Despacho</span></button>
     <button class="movil-sheet-item" type="button" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Por bodega</span></button>
+    <button class="movil-sheet-item" type="button" data-tab="avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Avisos</button>
     <button class="movil-sheet-item" type="button" data-tab="movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Movimientos</span></button>
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
@@ -1729,6 +1748,7 @@ const ICON = {
   box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="m3 7 9 4 9-4M12 11v10"/></svg>',
   inn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><path d="M8 5v8m0 0-3-3m3 3 3-3"/></svg>',
   out:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
   hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
   house:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg>',
@@ -1765,6 +1785,7 @@ function renderNav(){
     ${it("home","Resumen",ICON.home,S.screen==="home")}
     ${it("tabla","Productos",ICON.box,S.screen==="tabla",nRep)}
     ${it("inv","Por bodega",ICON.house,S.screen==="inv")}
+    ${it("avisos","Avisos",ICON.bell,S.screen==="avisos",avCuenta().todos)}
     ${it("movs","Movimientos",ICON.hist,S.screen==="movs")}
     <div class="grp">Operación</div>
     ${it("traspaso","Traspaso interno",ICON.swap,S.screen==="picking"&&PKT())}
@@ -2416,7 +2437,7 @@ const smSet = (k,v) => { try{ v===null?localStorage.removeItem(k):localStorage.s
 S.simple = smLS("inv-simple","")==="1";
 if(/^#simple/.test(location.hash)){ S.simple=true; smSet("inv-simple","1"); }
 else if(/^#normal/.test(location.hash)){ S.simple=false; smSet("inv-simple",null); }
-S.smPed = null; S.smRell = null; S.smSec = false; S.smUlt = null; S.smVer = null; S.smRng = "hoy"; S.smDesde = ""; S.smHasta = "";
+S.smPed = null; S.smRell = null; S.smAv = null; S.smSec = false; S.smUlt = null; S.smVer = null; S.smRng = "hoy"; S.smDesde = ""; S.smHasta = "";
 
 const smUni = n => n===1?"unidad":"unidades";
 function smQty(u,pk){
@@ -2433,7 +2454,7 @@ const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style
 
 /* ---------- inicio ---------- */
 function smLista(){
-  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>${smRellCtx()?`<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-rell" data-rlabrir>Rellenar picking${smRellN()?`<span class="rl-badge">${smRellN()}</span>`:""}</button></div>`:""}<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
+  return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>${smRellCtx()?`<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-rell" data-rlabrir>Rellenar picking${smRellN()?`<span class="rl-badge">${smRellN()}</span>`:""}</button></div>`:""}<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-avis" data-avabrir>Avisos de inventario${avAlertas().length?`<span class="rl-badge">${Math.min(99,avAlertas().length)}</span>`:""}</button></div><div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
     +`<footer class="sm-foot"><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
 }
 
@@ -2660,7 +2681,99 @@ function smRellView(){
       const res=S.productos.reduce((a,p)=>a+((p.zonas&&p.zonas[z.id])?toPk(p.zonas[z.id],p):0),0);
       return `<div class="rl-lv rep"><span><small>${esc(z.n)}</small><b>Reserva</b><em>${res} packs para rellenar</em></span></div>`; }).join("")}</div>`;
 }
+/* ---------- Avisos: el operario avisa qué hay que reponer; el coordinador los ve en la plataforma y los atiende ----------
+   Se guardan como documentos {tipo:"aviso"} (sin campo "fecha", para no mezclarse con recepciones, despachos ni pickings).
+   nivel "reposicion": pedido de reponer (lo ve quien repone). nivel "coordinador": el operario lo eleva para que el coordinador pida el producto. */
+const AV_MOT = {sin:"Sin stock", crit:"Crítico", venc:"Por vencer", vencido:"Vencido", falta:"Falta producto"};
+const avDocs = () => S.docs.filter(d=>d.tipo==="aviso");
+const avActivos = () => avDocs().filter(d=>d.estado!=="atendido");
+const avAbierto = (pid,mot) => avDocs().find(d=>d.productoId===pid && d.motivo===mot && d.estado!=="atendido");
+function avAlertas(){
+  const out=[], bs=[...bods("reposicion"),...bods("picking")];
+  S.productos.forEach(p=>{
+    const stk=stkPk(p), det=bs.map(b=>({b,pk:ubPk(p,b.id)})), base={p,det,key:""};
+    const gestionado=(+p.minimo||0)>0 || Object.keys(p.minUbic||{}).length>0 || (p.zonas&&Object.keys(p.zonas).length>0);
+    if(stk<=0){ if(gestionado) out.push({...base,mot:"sin"}); }
+    else if(stk<(+p.minimo||0)) out.push({...base,mot:"crit"});
+    else { const bc=bs.filter(b=>minBod(p,b)>0 && ubPk(p,b.id)<minBod(p,b)); if(bc.length) out.push({...base,mot:"crit",bods:bc}); }
+    const ev=estVenc(p); if((ev==="pv"||ev==="vencido") && stk>0) out.push({...base,mot:ev==="vencido"?"vencido":"venc",dias:diasVenc(p)});
+  });
+  out.forEach(a=>{ a.key=a.p.id+"|"+a.mot; a.faltan=a.mot==="sin"||a.mot==="crit"?Math.max(1,Math.ceil((+a.p.minimo||0)-stkPk(a.p))):0; });
+  const ord={sin:0,vencido:1,crit:2,venc:3};
+  return out.sort((a,b)=>ord[a.mot]-ord[b.mot]||a.p.nombre.localeCompare(b.p.nombre,"es"));
+}
+const avDet = (p) => [...bods("reposicion"),...bods("picking")].map(b=>`${bodNom(b.id)}: ${fmtPk(ubPk(p,b.id))}`).join(" · ");
+async function avGuardar(d){ await Store.addDocu(d); }
+async function avPedir(p,mot,nivel,faltan){
+  const now=new Date().toISOString(), ex=avAbierto(p.id,mot);
+  if(ex){ if(nivel==="coordinador" && ex.estado!=="elevado") await avGuardar({...ex,nivel:"coordinador",estado:"elevado",elevadoEn:now}); return; }
+  await avGuardar({id:uid(),tipo:"aviso",creado:now,productoId:p.id,nombre:p.nombre,codigo:p.codigo||"",motivo:mot,nivel,estado:nivel==="coordinador"?"elevado":"abierto",faltan:faltan||0,stock:stkPk(p),detalle:avDet(p),vence:p.vencimiento||"",...(nivel==="coordinador"?{elevadoEn:now}:{})});
+}
+const avHace = iso => { const m=Math.max(0,Math.round((Date.now()-new Date(iso))/60000)); return m<1?"ahora":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} d`; };
+const avCuenta = () => { const a=avActivos(); return {todos:a.length, elev:a.filter(d=>d.estado==="elevado").length}; };
+
+/* --- panel del operario --- */
+function smAvVenc(a){ if(a.dias==null) return ""; return a.dias<0?`Venció hace ${-a.dias} día${a.dias===-1?"":"s"}`:a.dias===0?"Vence hoy":`Vence en ${a.dias} día${a.dias===1?"":"s"}`; }
+function smAvCard(a){
+  const p=a.p, ex=avAbierto(p.id,a.mot), cls=a.mot==="sin"||a.mot==="vencido"?"low":a.mot==="crit"?"mid":"mid";
+  const estado=ex?(ex.estado==="elevado"?`<div class="av-ok">✓ El coordinador ya está avisado</div>`:`<div class="av-ok">✓ Aviso enviado ${avHace(ex.creado)}</div><button type="button" class="sm-btn2" data-avcoord="${esc(a.key)}">Avisar al coordinador</button>`)
+    :`<button type="button" class="sm-btn lista rl-ok" data-avrep="${esc(a.key)}">Pedir reposición</button><button type="button" class="sm-btn2" data-avcoord="${esc(a.key)}">Avisar al coordinador</button>`;
+  return `<div class="rl-card ${cls}"><div class="rl-row">${smFoto(p,p.nombre)}<div class="rl-in"><span class="rl-nm">${esc(p.nombre)}</span><span class="rl-chip av-${a.mot}">${AV_MOT[a.mot]}${a.bods?` · ${esc(a.bods.map(b=>bodNom(b.id)).join(", "))}`:""}</span></div></div>
+    <div class="rl-src">Hay: <b>${esc(avDet(p))}</b> packs</div>${a.mot==="venc"||a.mot==="vencido"?`<div class="rl-left ${a.mot==="vencido"?"low":"mid"}">${esc(smAvVenc(a))}</div>`:a.faltan?`<div class="rl-left mid">Faltan ${a.faltan} pack${a.faltan===1?"":"s"} para el mínimo</div>`:""}${estado}</div>`;
+}
+function smAvisosView(){
+  const V=S.smAv, al=avAlertas(), g=m=>al.filter(a=>m.includes(a.mot));
+  const tabs=[["sin","Sin stock",g(["sin"])],["crit","Crítico",g(["crit"])],["venc","Por vencer",g(["venc","vencido"])],["mis","Mis avisos",avDocs()]];
+  const cur=tabs.find(t=>t[0]===V.vista)||tabs[0], lista=cur[2];
+  const seg=`<div class="sm-seg rl-seg av-seg" role="group" aria-label="Qué ver">${tabs.map(([k,n,l])=>`<button type="button" class="${cur[0]===k?"on":""}" data-avvista="${k}" aria-pressed="${cur[0]===k}">${n}<small>${l.length}</small></button>`).join("")}</div>`;
+  let cuerpo;
+  if(cur[0]==="mis"){ const l=[...avDocs()].sort((a,b)=>String(b.creado).localeCompare(String(a.creado))).slice(0,30);
+    cuerpo=l.length?`<div class="rl-cards">${l.map(d=>`<div class="rl-card ${d.estado==="atendido"?"ok":"mid"}"><div class="rl-nm">${esc(d.nombre)}</div><span class="rl-chip av-${d.motivo}">${AV_MOT[d.motivo]||""}</span><div class="rl-left ${d.estado==="atendido"?"ok":"mid"}">${d.estado==="atendido"?"✓ Atendido":d.estado==="elevado"?"El coordinador está avisado":"Aviso enviado"} · ${avHace(d.creado)}</div></div>`).join("")}</div>`:`<p class="sm-p" style="margin:14px 18px">Aún no has enviado avisos.</p>`; }
+  else cuerpo=lista.length?`<div class="rl-cards">${lista.slice(0,30).map(smAvCard).join("")}${lista.length>30?`<p class="sm-p">Hay ${lista.length-30} más: busca el producto abajo.</p>`:""}</div>`:`<div class="sm-vacio" style="padding-top:26px"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">Todo en orden</h1><p class="sm-p">No hay productos ${cur[0]==="sin"?"sin stock":cur[0]==="crit"?"en estado crítico":"por vencer"}.</p></div>`;
+  const q=norm(V.q||""), res=q?S.productos.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
+  const otro=`<div class="av-otro"><h2 class="sm-h2" style="margin-top:6px">Avisar otro producto</h2><p class="sm-p" style="margin:0 0 8px">¿Falta algo que no está en la lista? Búscalo y avisa.</p>
+    <div class="sm-find" style="padding:0"><input id="smavq" type="search" value="${esc(V.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
+    ${res.map(p=>{ const ex=avAbierto(p.id,"falta"); return `<div class="rl-card" style="margin-top:10px"><div class="rl-row">${smFoto(p,p.nombre)}<div class="rl-in"><span class="rl-nm">${esc(p.nombre)}</span><span class="rl-src">Hay: ${esc(avDet(p))} packs</span></div></div>${ex?`<div class="av-ok">✓ ${ex.estado==="elevado"?"El coordinador ya está avisado":"Aviso enviado"}</div>${ex.estado!=="elevado"?`<button type="button" class="sm-btn2" data-avcoord="${esc(p.id+"|falta")}">Avisar al coordinador</button>`:""}`:`<button type="button" class="sm-btn lista rl-ok" data-avrep="${esc(p.id+"|falta")}">Avisar que falta</button><button type="button" class="sm-btn2" data-avcoord="${esc(p.id+"|falta")}">Avisar al coordinador</button>`}</div>`; }).join("")}</div>`;
+  return smBarra("Avisos de inventario","Qué se está acabando","var(--orange)",String(al.length))+seg+cuerpo+`<div style="padding:6px 18px 30px">${otro}</div>`;
+}
+async function smAvAccion(key,nivel){
+  const [pid,mot]=key.split("|"), p=S.productos.find(x=>x.id===pid); if(!p) return;
+  const a=avAlertas().find(x=>x.key===key);
+  await avPedir(p,mot,nivel,a?a.faltan:0);
+  toast(nivel==="coordinador"?"Listo: el coordinador quedó avisado.":"Listo: aviso de reposición enviado."); render(true);
+}
+
+/* --- plataforma (coordinador / reposición) --- */
+function avBanner(){
+  const c=avCuenta(); if(!c.todos) return "";
+  return `<div class="av-banner"><span class="av-bell" aria-hidden="true">${ICON.bell}</span><div><b>${c.todos} aviso${c.todos===1?"":"s"} de reposición sin atender</b>${c.elev?`<span> · ${c.elev} elevado${c.elev===1?"":"s"} al coordinador</span>`:""}</div><button class="btn brand sm" type="button" data-go="avisos">Ver avisos</button></div>`;
+}
+function avFila(d){
+  const venc=d.motivo==="venc"||d.motivo==="vencido";
+  return `<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${esc(d.codigo||"")} · ${esc(d.detalle||"")}</span></div>
+    <span class="pill ${d.motivo==="sin"||d.motivo==="vencido"?"venc":"pv"}">${AV_MOT[d.motivo]||""}</span>
+    <span class="av-f">${venc?(d.vence?`Vence ${fFecha(d.vence)}`:""):(d.faltan?`Faltan ${d.faltan} pack${d.faltan===1?"":"s"}`:"")}</span>
+    <span class="av-t">${avHace(d.creado)}</span>
+    <span class="av-a">${d.estado==="abierto"?`<button class="btn soft sm" type="button" data-avelev="${d.id}">Elevar al coordinador</button>`:""}<button class="btn brand sm" type="button" data-avok="${d.id}">Marcar atendido</button></span></li>`;
+}
+function viewAvisos(){
+  const ac=avActivos().sort((a,b)=>String(b.creado).localeCompare(String(a.creado))), el=ac.filter(d=>d.estado==="elevado"), ab=ac.filter(d=>d.estado==="abierto");
+  const hechos=avDocs().filter(d=>d.estado==="atendido").sort((a,b)=>String(b.atendidoEn).localeCompare(String(a.atendidoEn))).slice(0,15);
+  return `<div class="page-head"><h1>Avisos de reposición</h1><span class="spacer"></span>${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
+    <p class="mini" style="margin:0 0 14px">Los avisos los envía el operario desde su panel. Lo que él eleva al coordinador aparece primero para que se pida el producto.</p>
+    <section class="card av-sec"><h3>Elevados al coordinador <span class="pill venc">${el.length}</span></h3>${el.length?`<ul class="av-list">${el.map(avFila).join("")}</ul>`:`<p class="mini-empty">Nada elevado por ahora.</p>`}</section>
+    <section class="card av-sec"><h3>Pedidos de reposición <span class="pill pv">${ab.length}</span></h3>${ab.length?`<ul class="av-list">${ab.map(avFila).join("")}</ul>`:`<p class="mini-empty">No hay avisos pendientes.</p>`}</section>
+    ${hechos.length?`<section class="card av-sec"><h3>Atendidos recientes</h3><ul class="av-list av-hecho">${hechos.map(d=>`<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${AV_MOT[d.motivo]||""} · atendido ${avHace(d.atendidoEn)}</span></div></li>`).join("")}</ul></section>`:""}`;
+}
+function avClick(t){
+  const e1=t.closest("[data-avelev]"); if(e1){ const d=S.docs.find(x=>x.id===e1.dataset.avelev); if(d){ avGuardar({...d,nivel:"coordinador",estado:"elevado",elevadoEn:new Date().toISOString()}).then(()=>render(true)); } return true; }
+  const e2=t.closest("[data-avok]"); if(e2){ const d=S.docs.find(x=>x.id===e2.dataset.avok); if(d){ avGuardar({...d,estado:"atendido",atendidoEn:new Date().toISOString()}).then(()=>{ toast("Aviso atendido"); render(true); }); } return true; }
+  if(t.closest("[data-avcopiar]")){ const l=avActivos().filter(d=>d.estado==="elevado").map(d=>`• ${d.nombre}${d.faltan?` — faltan ${d.faltan} pack${d.faltan===1?"":"s"}`:""} (${AV_MOT[d.motivo]||""})`).join("\n");
+    (navigator.clipboard?navigator.clipboard.writeText("Productos por pedir:\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); return true; }
+  return false;
+}
 function viewSimple(){
+  if(S.smAv) return smAvisosView();
   if(S.smRell) return smRellView();
   if(S.smPed) return smPedido();
   if(S.smSec){
@@ -2671,10 +2784,10 @@ function viewSimple(){
 }
 function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.AudioContext||window.webkitAudioContext; if(!A) return;
   const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
-function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; go({go:"simple"}); }
+function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; S.smAv=null; go({go:"simple"}); }
 function smSalir(){
   if(!confirm("¿Salir del modo simple en este equipo?")) return;
-  S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null;
+  S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; S.smAv=null;
   try{ history.replaceState(null,"",location.pathname+location.search); }catch{}
   go({go:"home"});
 }
@@ -2683,6 +2796,13 @@ async function smCopiar(){ const url=location.origin+location.pathname+"#simple"
 const smEntrada = () => `<span class="spacer"></span><button class="btn soft sm" type="button" data-simple-on title="Pantalla muy simple para quien lleva los productos: foto, nombre y cantidad.">Modo simple para operarios</button><button class="btn ghost sm" type="button" data-simple-link>Copiar enlace</button>`;
 function smClick(t){
   const P=S.smPed, go1=()=>{ render(true); window.scrollTo?.(0,0); return true; };
+  // avisos de inventario
+  if(t.closest("[data-avabrir]")){ S.smAv={vista:"sin",q:""}; return go1(); }
+  if(S.smAv){
+    const av=t.closest("[data-avvista]"); if(av){ S.smAv.vista=av.dataset.avvista; return go1(); }
+    const ar=t.closest("[data-avrep]"); if(ar){ smAvAccion(ar.dataset.avrep,"reposicion"); return true; }
+    const ac=t.closest("[data-avcoord]"); if(ac){ smAvAccion(ac.dataset.avcoord,"coordinador"); return true; }
+  }
   // rellenar picking
   if(t.closest("[data-rlabrir]")){ S.smRell={vista:"lista",hechos:[],q:{},salt:[],zona:null,cara:null,rev:false,listo:null}; return go1(); }
   const R=S.smRell;
@@ -2719,6 +2839,7 @@ function smClick(t){
   const v=t.closest("[data-smver]"); if(v){ S.smVer=v.dataset.smver; return go1(); }
   // atrás: cada pantalla vuelve a la anterior
   if(t.closest("[data-smback]")){
+    if(S.smAv){ S.smAv=null; return go1(); }
     if(S.smRell){ const R=S.smRell; if(R.listo){ R.listo=null; if(!(R.vista==="mision")) {} } else if(R.rev) R.rev=false; else if(R.zona) R.zona=null; else S.smRell=null; return go1(); }
     if(P){
       if(P.paso==="res") P.paso="prod";
@@ -3620,8 +3741,8 @@ function render(force=true){   // live data updates call render(false)
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   document.body.classList.toggle("simple",!!S.simple);
   document.body.classList.toggle("scr-inv",S.screen==="inv");
-  $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?viewHome():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
-  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
+  $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?avBanner()+viewHome():S.screen==="avisos"?viewAvisos():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
+  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq","smavq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
   if(S.simple) d={go:"simple"};   // en modo simple no hay otras pantallas
@@ -3735,6 +3856,7 @@ C.addEventListener("click",e=>{
   const t=e.target;
   if(mzClick(t)) return;
   if(smClick(t)) return;
+  if(avClick(t)) return;
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
   const g=t.closest("[data-go]"); if(g) return go(g.dataset);
   const nw=t.closest("[data-new]"); if(nw) return nuevoForm(nw.dataset.new);
@@ -3823,6 +3945,7 @@ C.addEventListener("input",e=>{
     if(t.dataset.pkd){ l.por=l.por||{}; l.por[t.dataset.pkd]=v; pkSetGen(l); } else l.cantidad=v;
     updPkLinea(+t.dataset.pkq); return; }
   if(id==="pkPick"){ S.pkq=v; $("#pkTiles").innerHTML=pkTiles(); return; }
+  if(id==="smavq" && S.smAv){ clearTimeout(tIn); tIn=setTimeout(()=>{ S.smAv.q=v; render(true); },200); return; }
   if(id==="mzpq"){ clearTimeout(tIn); tIn=setTimeout(()=>{ S.mzPq=v; render(true); },200); return; }
   if(id==="smq" && S.smPed){ clearTimeout(tIn); tIn=setTimeout(()=>{ S.smPed.q=v; render(); },200); return; }
   if(!(["fq","mq","dq","iq","mpq","mpadd"].includes(id) || (id||"").startsWith("mpadd-"))) return;
@@ -3886,7 +4009,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "69", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "70", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
