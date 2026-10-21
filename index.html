@@ -1057,6 +1057,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 @media (max-width:760px){.av-row{grid-template-columns:1fr auto}.av-a{grid-column:1/-1;justify-content:flex-start}}
 .rp-panel{padding:16px 18px}.rp-h{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}.rp-h h3{margin:0;font-size:1.05rem}
 .mz-warn{display:block;margin-top:3px;font-size:.74rem;font-weight:700;color:var(--danger)}
+.pk-sin,.sm-sin{margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--warn-soft);color:var(--ink);font-size:.9rem;line-height:1.4}.pk-sin div,.sm-sin div{margin-top:4px}.sm-sin{margin:12px 4px 0;font-size:1.05rem}
 </style>
 </head>
 <body>
@@ -2313,17 +2314,24 @@ function pkLineHtml(l,i){
     ${qty}
     <button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></li>`;
 }
+// Productos que coinciden con la búsqueda pero no tienen stock en la bodega de origen: se dice dónde están
+function pkSinStockAqui(q,orig){
+  if(!q) return "";
+  const l=S.productos.filter(p=>(p.ubic[orig]||0)<=0 && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6);
+  if(!l.length) return "";
+  return `<div class="pk-sin" style="grid-column:1/-1"><b>Sin stock en ${esc(bodNom(orig))}:</b> ${l.map(p=>{ const d=invBods().filter(b=>(p.ubic[b.id]||0)>0).map(b=>`${esc(bodNom(b.id))}: ${fmtPk(ubPk(p,b.id))} packs`).join(" · "); return `<div>${esc(p.nombre)} — ${d?`hay en ${d}`:"no tiene stock en ninguna bodega"}</div>`; }).join("")}</div>`;
+}
 function pkTiles(){
   const q=norm(S.pkq);
   let ps=S.productos.filter(p=>(p.ubic[S.pkOrig]||0)>0);
   if(q) ps=ps.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
   ps=ps.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-  if(!ps.length) return `<div class="mini-empty" style="grid-column:1/-1">${q?"Sin coincidencias en "+esc(bodNom(S.pkOrig))+".":"No hay productos con stock en "+esc(bodNom(S.pkOrig))+"."}</div>`;
+  if(!ps.length) return `<div class="mini-empty" style="grid-column:1/-1">${q?"Sin coincidencias con stock en "+esc(bodNom(S.pkOrig))+".":"No hay productos con stock en "+esc(bodNom(S.pkOrig))+"."}</div>`+pkSinStockAqui(q,S.pkOrig);
   return ps.map(p=>{ const l=S.pkLineas.find(x=>x.id===p.id);
     return `<button type="button" class="pk-tile ${l?"in":""}" data-pkpick="${p.id}" style="--c:${catColor(p.categoria)}">
       <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
       <span class="pk-tn">${esc(p.nombre)}</span><span class="pk-ts">${fmtPk(ubPk(p,S.pkOrig))} packs · ${fmt(p.ubic[S.pkOrig]||0)} un en ${esc(bodNom(S.pkOrig))}</span>
-      ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("");
+      ${l?`<span class="pk-badge">${fmt(+l.cantidad||0)}</span>`:`<span class="pk-plus">+</span>`}</button>`; }).join("")+pkSinStockAqui(q,S.pkOrig);
 }
 function viewPicking(){
   const T=PKT();
@@ -2547,7 +2555,7 @@ function smPedido(){
       +`<div class="sm-rt2"><div><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div><i aria-hidden="true">→</i><div><span>Llevas a</span><b style="--c:${pkColor(P.dest)}">${esc(bodNom(P.dest))}</b></div></div>
       <div class="sm-find"><input id="smq" type="search" value="${esc(P.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
       <p class="sm-inv">${lista.length} producto${lista.length===1?"":"s"} en ${esc(bodNom(P.orig))}${q?" que coinciden":""}</p>
-      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}</div>
+      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto con stock en esta bodega.":"No hay productos con stock en esta bodega."}</p>`}${q?(()=>{ const o=S.productos.filter(p=>smMax(p,P.orig)<=0 && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,5); return o.length?`<div class="sm-sin"><b>Sin stock en ${esc(bodNom(P.orig))}:</b>${o.map(p=>{ const d=invBods().filter(b=>(p.ubic[b.id]||0)>0).map(b=>`${esc(bodNom(b.id))}: ${fmtPk(ubPk(p,b.id))} packs`).join(" · "); return `<div>${esc(p.nombre)} — ${d?`hay en ${d}`:"sin stock en ninguna bodega"}</div>`; }).join("")}</div>`:""; })():""}</div>
       ${n?`<div class="sm-fin"><button type="button" class="sm-btn lista" data-smver-ped>Ver mi pedido (${n})</button></div>`:""}`;
   }
   if(P.paso==="res"){
@@ -4055,7 +4063,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "75", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "76", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
