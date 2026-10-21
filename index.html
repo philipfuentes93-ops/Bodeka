@@ -1060,14 +1060,14 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .pk-sin,.sm-sin{margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--warn-soft);color:var(--ink);font-size:.9rem;line-height:1.4}.pk-sin div,.sm-sin div{margin-top:4px}.sm-sin{margin:12px 4px 0;font-size:1.05rem}
 .sync-banner{position:relative;z-index:50;display:flex;gap:12px;align-items:center;justify-content:center;padding:9px 14px;background:#B3261E;color:#fff;font-size:.9rem;font-weight:700;text-align:center}
 .sync-banner[hidden]{display:none}
-.sync-banner button{all:unset;cursor:pointer;padding:5px 12px;border-radius:8px;background:#fff;color:#B3261E;font-weight:800}
+.sync-banner button{all:unset;cursor:pointer;padding:5px 12px;border-radius:8px;background:#fff;color:#B3261E;font-weight:800;white-space:nowrap}
 .side-foot .sync-btn{display:block;margin:4px 12px 0;font-size:.74rem;color:var(--side-ic)}
 .sm-sync{font-size:1rem;font-weight:700;color:var(--ok);margin-bottom:6px}.sm-sync.mal{color:var(--danger)}
 .ov-m.bl li:has(.bq){grid-template-columns:1fr;gap:6px}.bq{display:flex;gap:8px}.bq label{display:grid;gap:2px;flex:1;font-size:.7rem;font-weight:700;color:var(--muted)}.bq .ubin{width:100%}
 </style>
 </head>
 <body>
-<div class="sync-banner" id="syncBanner" role="status" hidden><span id="syncBannerTxt"></span><button type="button" id="syncRetry">Reintentar</button></div>
+<div class="sync-banner" id="syncBanner" role="status" hidden><span id="syncBannerTxt"></span><button type="button" id="syncRetry">Reintentar</button><button type="button" id="syncWhy">¿Por qué?</button></div>
 <div class="app">
   <aside class="side" id="side" aria-label="Menú principal">
     <div class="brand"><span class="bmark" aria-hidden="true">D<i></i></span><span class="bname">Depósito<small>picking &amp; inventarios</small></span></div>
@@ -1365,6 +1365,13 @@ function setSync(estado,pend){
 }
 const Store = {
   db:null,
+  async diagnostico(){
+    const t=$("#syncBannerTxt"), bn=$("#syncBanner"); bn.hidden=false; t.textContent="Revisando la conexión…";
+    if(!navigator.onLine){ t.textContent="Este equipo no tiene internet. Revisa el cable o el wifi."; return; }
+    const ping=async u=>{ const c=new AbortController(), h=setTimeout(()=>c.abort(),7000); try{ await fetch(u,{mode:"no-cors",cache:"no-store",signal:c.signal}); return true; }catch{ return false; } finally{ clearTimeout(h); } };
+    const [web,fs]=await Promise.all([ping("https://www.gstatic.com/generate_204"),ping("https://firestore.googleapis.com/")]);
+    t.textContent=!web&&!fs?"Este equipo no logra salir a internet (o la red bloquea Google). Prueba con otro wifi o la red del celular.":!fs?"Hay internet, pero esta red bloquea firestore.googleapis.com, el servidor donde se guardan los datos. Pide a quien administra la red (TI) que lo permita, o usa otra red.":"La red llega al servidor. Toca Reintentar; si sigue igual, cierra sesión y vuelve a entrar.";
+  },
   async reconectar(){
     if(!this.db){ toast(S.sync&&S.sync.estado==="local"?"Este equipo está en modo local: no hay conexión con la nube.":"Aún no hay sesión iniciada."); return; }
     toast("Actualizando datos…");
@@ -1379,14 +1386,14 @@ const Store = {
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
-    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar();
+    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar(); $("#syncWhy").onclick=()=>Store.diagnostico();
     const cfg=window.FIREBASE_CONFIG;
     if(!window.firebase || !cfg || !cfg.apiKey || /PEGAR/i.test(cfg.apiKey)){
       setSync("local"); render(false); return;
     }
     firebase.initializeApp(cfg);
     const db=firebase.firestore();
-    try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch{}   // redes que bloquean el streaming de Firestore
+    try{ db.settings({experimentalForceLongPolling:true, useFetchStreams:false, merge:true}); }catch{}   // redes de empresa/proxy que bloquean o cortan el streaming de Firestore: se usa siempre la conexión por sondeo largo
     try{ await db.enablePersistence({synchronizeTabs:true}); }catch{}   // works offline inside the warehouse
     const auth=firebase.auth();
     const loginErrMsg = e => ({
@@ -4091,7 +4098,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "78", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "79", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
