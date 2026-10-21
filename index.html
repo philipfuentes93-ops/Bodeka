@@ -2528,7 +2528,7 @@ function smPedido(){
   }
   if(P.paso==="prod"){
     const q=norm(P.q||""), lista=S.productos.filter(p=>smMax(p,P.orig)>0 && (!q || norm(p.nombre+" "+(p.codigo||"")).includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")), n=smNPed();
-    const lim=P.lim||60, cards=lista.slice(0,lim).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
+    const lim=lista.length, cards=lista.map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
       const md=smModo(p,P.orig), dos=pkn(p)>1;
       const seg=dos?`<span class="sm-seg" role="group" aria-label="Medir en"><button type="button" class="${md==="pk"?"on":""}" data-smmodo="pk" data-id="${esc(p.id)}" aria-pressed="${md==="pk"}">Packs</button><button type="button" class="${md==="un"?"on":""}" data-smmodo="un" data-id="${esc(p.id)}" aria-pressed="${md==="un"}">Unidades</button></span>`:"";
       const ctl=seg+(u>0 ? `<span class="sm-step"><button type="button" data-smmenos="${esc(p.id)}" aria-label="Quitar ${md==="pk"?"un pack":"una unidad"}">−</button><span class="sm-sn"><b>${q2.n}</b> ${q2.u}${q2.extra?`<small>${q2.extra}</small>`:""}</span><button type="button" data-smmas="${esc(p.id)}" aria-label="Agregar ${md==="pk"?"un pack":"una unidad"}">+</button></span>${dos?`<span class="sm-tot">= ${u} unidades en total</span>`:""}`
@@ -2538,7 +2538,7 @@ function smPedido(){
       +`<div class="sm-rt2"><div><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div><i aria-hidden="true">→</i><div><span>Llevas a</span><b style="--c:${pkColor(P.dest)}">${esc(bodNom(P.dest))}</b></div></div>
       <div class="sm-find"><input id="smq" type="search" value="${esc(P.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
       <p class="sm-inv">${lista.length} producto${lista.length===1?"":"s"} en ${esc(bodNom(P.orig))}${q?" que coinciden":""}</p>
-      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}${lista.length>lim?`<button type="button" class="sm-btn2" data-smmasprod style="margin-top:6px">Ver más productos (${lista.length-lim} más)</button>`:""}</div>
+      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}</div>
       ${n?`<div class="sm-fin"><button type="button" class="sm-btn lista" data-smver-ped>Ver mi pedido (${n})</button></div>`:""}`;
   }
   if(P.paso==="res"){
@@ -2732,7 +2732,7 @@ function smAvisosView(){
   let cuerpo;
   if(cur[0]==="mis"){ const l=[...avDocs()].sort((a,b)=>String(b.creado).localeCompare(String(a.creado))).slice(0,30);
     cuerpo=l.length?`<div class="rl-cards">${l.map(d=>`<div class="rl-card ${d.estado==="atendido"?"ok":"mid"}"><div class="rl-nm">${esc(d.nombre)}</div><span class="rl-chip av-${d.motivo}">${AV_MOT[d.motivo]||""}</span><div class="rl-left ${d.estado==="atendido"?"ok":"mid"}">${d.estado==="atendido"?"✓ Atendido":d.estado==="elevado"?"El coordinador está avisado":"Aviso enviado"} · ${avHace(d.creado)}</div></div>`).join("")}</div>`:`<p class="sm-p" style="margin:14px 18px">Aún no has enviado avisos.</p>`; }
-  else cuerpo=lista.length?`<div class="rl-cards">${lista.slice(0,30).map(smAvCard).join("")}${lista.length>30?`<p class="sm-p">Hay ${lista.length-30} más: busca el producto abajo.</p>`:""}</div>`:`<div class="sm-vacio" style="padding-top:26px"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">Todo en orden</h1><p class="sm-p">No hay productos ${cur[0]==="sin"?"sin stock":cur[0]==="crit"?"en estado crítico":"por vencer"}.</p></div>`;
+  else cuerpo=lista.length?`<div class="rl-cards">${lista.map(smAvCard).join("")}</div>`:`<div class="sm-vacio" style="padding-top:26px"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">Todo en orden</h1><p class="sm-p">No hay productos ${cur[0]==="sin"?"sin stock":cur[0]==="crit"?"en estado crítico":"por vencer"}.</p></div>`;
   const q=norm(V.q||""), res=q?S.productos.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
   const otro=`<div class="av-otro"><h2 class="sm-h2" style="margin-top:6px">Avisar otro producto</h2><p class="sm-p" style="margin:0 0 8px">¿Falta algo que no está en la lista? Búscalo y avisa.</p>
     <div class="sm-find" style="padding:0"><input id="smavq" type="search" value="${esc(V.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
@@ -3251,7 +3251,7 @@ function mzLibres(b,M){
   const opts=`<option value="">Asignar a…</option>`+M.zonas.map(z=>`<option value="${z.id}">${z.corto} · ${esc(z.n)}</option>`).join("");
   return `<div class="card mz-lib" style="margin-top:14px"><h3>Sin zona · ${all.length} producto${all.length===1?"":"s"}</h3>
     <p class="mz-hint" style="margin:2px 0 10px">Este stock está en ${esc(b.nombre)} pero no en una zona del mapa. Asígnalo a la zona donde está; el stock no cambia.</p>
-    <ul class="mz-items">${ls.slice(0,40).map(({p,ef})=>`<li class="mz-lb"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></span><span class="mz-num">${fmtPk(toPk(ef.libre,p))} <small>packs</small>${suel(ef.libre,p)>0?`<small class="mz-sl">+ ${suel(ef.libre,p)} sueltas</small>`:""}</span>
+    <ul class="mz-items">${ls.map(({p,ef})=>`<li class="mz-lb"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></span><span class="mz-num">${fmtPk(toPk(ef.libre,p))} <small>packs</small>${suel(ef.libre,p)>0?`<small class="mz-sl">+ ${suel(ef.libre,p)} sueltas</small>`:""}</span>
       <select class="mz-sel" data-mzasel="${esc(p.id)}" aria-label="Asignar ${esc(p.nombre)} a una zona">${opts}</select></li>`).join("")}</ul>${ls.length>40?`<p class="mz-hint">Y ${ls.length-40} más. Usa el buscador para encontrarlos.</p>`:""}${!ls.length?`<p class="mz-hint">Sin coincidencias.</p>`:""}</div>`;
 }
 function viewInvMapa(b,M){
@@ -3333,7 +3333,7 @@ function viewInvPorProducto(b,M){
       <div class="mz-acts"><select class="mz-sel" data-mzadds="${esc(p.id)}" aria-label="Agregar ${esc(p.nombre)} a otra zona"><option value="">+ Agregar a ${zs.length?"otra":"una"} zona…</option>${libresZ.map(z=>`<option value="${z.id}">${esc(mzUbi(z))}</option>`).join("")}</select>
         <button class="btn brand sm" type="button" data-mzsz="p:${esc(p.id)}">Guardar este producto</button></div></div>`; };
   return `<div class="mz-add" style="margin-top:12px"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mzpq" type="search" value="${esc(S.mzPq||"")}" placeholder="Buscar un producto (nombre o código)" aria-label="Buscar un producto" autocomplete="off"></label></div>
-    ${base.length?base.slice(0,40).map(card).join("")+(base.length>40?`<p class="mz-hint" style="margin:12px 2px">Hay ${base.length-40} productos más: usa el buscador.</p>`:""):`<div class="mz-empty" style="margin-top:14px">${q?"No hay productos con ese nombre.":"Aún no hay productos con stock en esta bodega. Búscalos arriba o cárgalos en la vista Por zona."}</div>`}`;
+    ${base.length?base.map(card).join(""):`<div class="mz-empty" style="margin-top:14px">${q?"No hay productos con ese nombre.":"Aún no hay productos con stock en esta bodega. Búscalos arriba o cárgalos en la vista Por zona."}</div>`}`;
 }
 function viewInvInventario(b,M){
   if(S.mzRev) return mzInvRevision(b,M);
@@ -3672,7 +3672,7 @@ function avPanelRepo(b){
   const total=l.reduce((a,x)=>a+x.f,0), conMeta=S.productos.filter(p=>metaBod(p,b)>0).length, ok=conMeta-l.length;
   if(!conMeta) return `<div class="card rp-panel" style="margin-top:14px"><h3>Para reponer ${esc(b.nombre)}</h3><p class="mini-empty">Define el <b>mínimo</b> y el <b>máximo</b> (en packs) de cada producto en la tabla de abajo y aquí verás cuánto falta para que quede todo OK.</p></div>`;
   return `<div class="card rp-panel" style="margin-top:14px"><div class="rp-h"><div><h3>Para reponer ${esc(b.nombre)}</h3><p class="mini" style="margin:2px 0 0">${l.length?`Faltan <b>${fmt(total)} packs</b> en ${l.length} producto${l.length===1?"":"s"} para llegar al máximo · ${ok} de ${conMeta} ya están OK.`:`Todo en su máximo: ${conMeta} de ${conMeta} productos OK.`}</p></div>${l.length?`<button class="btn soft sm" type="button" data-invcopiarrepo="${esc(b.id)}">Copiar lista para pedir</button>`:""}</div>
-    ${l.length?`<div class="tbl-wrap" style="max-height:none"><table class="db"><thead><tr><th><span>Producto</span></th><th class="n"><span>Hay (packs)</span></th><th class="n"><span>Mínimo</span></th><th class="n"><span>Máximo</span></th><th class="n"><span>Pedir (packs)</span></th><th class="c"><span>Estado</span></th></tr></thead><tbody>${l.slice(0,60).map(x=>`<tr><td class="prod"><b>${esc(x.p.nombre)}</b><span class="sub">${esc(x.p.codigo||"")}</span></td><td class="n">${fmtPk(x.hay)}</td><td class="n">${x.mn?fmtPk(x.mn):"—"}</td><td class="n">${x.mx?fmtPk(x.mx):"—"}</td><td class="n"><b>${fmt(x.f)}</b></td><td class="c"><span class="pill ${critBod(x.p,b)?"venc":"pv"}" style="min-width:0">${critBod(x.p,b)?"Bajo el mínimo":"Bajo el máximo"}</span></td></tr>`).join("")}</tbody></table></div>${l.length>60?`<p class="mini">Hay ${l.length-60} más en la tabla de abajo.</p>`:""}`:""}</div>`;
+    ${l.length?`<div class="tbl-wrap" style="max-height:none"><table class="db"><thead><tr><th><span>Producto</span></th><th class="n"><span>Hay (packs)</span></th><th class="n"><span>Mínimo</span></th><th class="n"><span>Máximo</span></th><th class="n"><span>Pedir (packs)</span></th><th class="c"><span>Estado</span></th></tr></thead><tbody>${l.map(x=>`<tr><td class="prod"><b>${esc(x.p.nombre)}</b><span class="sub">${esc(x.p.codigo||"")}</span></td><td class="n">${fmtPk(x.hay)}</td><td class="n">${x.mn?fmtPk(x.mn):"—"}</td><td class="n">${x.mx?fmtPk(x.mx):"—"}</td><td class="n"><b>${fmt(x.f)}</b></td><td class="c"><span class="pill ${critBod(x.p,b)?"venc":"pv"}" style="min-width:0">${critBod(x.p,b)?"Bajo el mínimo":"Bajo el máximo"}</span></td></tr>`).join("")}</tbody></table></div>`:""}</div>`;
 }
 async function fijarMaxUbic(prodId, bodId, val){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
@@ -4046,7 +4046,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "73", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "74", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
