@@ -1056,6 +1056,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .av-hecho .av-row{grid-template-columns:1fr}
 @media (max-width:760px){.av-row{grid-template-columns:1fr auto}.av-a{grid-column:1/-1;justify-content:flex-start}}
 .rp-panel{padding:16px 18px}.rp-h{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}.rp-h h3{margin:0;font-size:1.05rem}
+.mz-warn{display:block;margin-top:3px;font-size:.74rem;font-weight:700;color:var(--danger)}
 </style>
 </head>
 <body>
@@ -3184,6 +3185,13 @@ function mzOtras(p,b,M,zid){
   if(ef.libre>0) r.push(`Sin zona: <b>${mzTxt(ef.libre,p)}</b>`);
   return r.length?`<span class="mz-also">También está en ${r.join(" · ")}</span>`:"";
 }
+// Aviso cuando la cantidad guardada de una zona es mayor que la que hoy permite el stock de la bodega (por ejemplo, después de un picking)
+function mzAjuste(p,b,M,z,ef){
+  const raw=Math.max(0,Math.round(+((p.zonas||{})[z.id])||0)), eff=(ef||zonasEf(p,b,M)).z[z.id]||0;
+  return raw>eff?`<span class="mz-warn">Estaba en ${mzTxt(raw,p)}: el stock de la bodega bajó (picking o ajustes) y se descontó de esta zona.</span>`:"";
+}
+// Cuánto de un producto está en la bodega pero sin zona (para verlo al buscarlo)
+const mzLibreTxt = (p,b,M) => { const l=zonasEf(p,b,M).libre; return l>0?` · <b>${mzTxt(l,p)} sin zona</b> en ${esc(b.nombre)}`:""; };
 const mzTmp = (k,id,d) => (S.mzTmp[k+"|"+id]!==undefined ? S.mzTmp[k+"|"+id] : d);
 
 /* Cuándo reponer: una ubicación con mínimo definido que baja de él. Se repone hasta el máximo (o hasta el mínimo si no hay máximo).
@@ -3219,17 +3227,17 @@ function mzCard(b,M,z,nec){
   const head=`<div class="mz-ch"><div><h2 class="mz-lvl ${z.t}">${esc(z.n)}</h2><span class="mz-hint">${esc(z.cara)} · ${its.length} producto${its.length===1?"":"s"}${its.length?` · ${fmtPk(tot)} ${u}`:""}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div><p class="mz-desc">${esc(z.d)}</p>`;
   const res=q?S.productos.filter(p=>!(p.zonas&&p.zonas[z.id]!==undefined) && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
   const add=`<div class="mz-add"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mpadd" type="search" value="${esc(S.mpAddQ)}" placeholder="Agregar un producto a esta zona" aria-label="Buscar un producto para agregar a ${esc(z.n)}" autocomplete="off"></label>
-      ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`;
+      ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${mzLibreTxt(p,b,M)}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`;
   if(cnt) return head+`<p class="mz-hint" style="margin:0 0 6px">Cuenta lo que ves: <b>packs</b> cerrados y <b>unidades sueltas</b>. <b>Mínimo</b>: cuándo avisar que hay que reponer. <b>Máximo</b>: hasta dónde reponer. Nada cambia hasta que guardes.</p>
     ${its.length?`<div class="mz-ci-h"><span>Producto</span><span>Contado</span><span>Mínimo (${u})</span><span>Máximo (${u})</span><span></span></div><ul class="mz-items">${its.map(({p,ef})=>{
-      return `<li class="mz-ci"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)} · sistema: ${mzTxt(ef.z[z.id]||0,p)}</span>${mzOtras(p,b,M,z.id)}</span>
+      return `<li class="mz-ci"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)} · sistema: ${mzTxt(ef.z[z.id]||0,p)}</span>${mzAjuste(p,b,M,z,ef)}${mzOtras(p,b,M,z.id)}</span>
       ${mzPar(p,["data-mzq","data-mzqs"],esc(p.id),mzTmp("q",p.id,pkn(p)>1?toPk(ef.z[z.id]||0,p):(ef.z[z.id]||0)),mzTmp("qs",p.id,suel(ef.z[z.id]||0,p)),"","",p.nombre)}
       <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzm="${esc(p.id)}" value="${esc(mzTmp("m",p.id,mzMin(p,z)||""))}" placeholder="mín" aria-label="Mínimo de ${esc(p.nombre)} en ${esc(z.n)}">
       <input class="mz-in" type="number" min="0" step="1" inputmode="numeric" data-mzx="${esc(p.id)}" value="${esc(mzTmp("x",p.id,mzMax(p,z)||""))}" placeholder="máx" aria-label="Máximo de ${esc(p.nombre)} en ${esc(z.n)}">
       <button class="mz-x" type="button" data-mzrm="${esc(p.id)}" title="Quitar de esta zona" aria-label="Quitar ${esc(p.nombre)} de esta zona">×</button></li>`; }).join("")}</ul>`:`<div class="mz-empty">Esta zona no tiene productos. Agrégalos abajo.</div>`}
     <div class="mz-acts"><button class="btn brand sm" type="button" data-mzsave>Guardar</button><button class="btn ghost sm" type="button" data-mzcancel>Cancelar</button></div>${add}`;
   return head+(its.length?`<ul class="mz-items">${its.map(({p,ef})=>{ const un=ef.z[z.id]||0, v=mzVal(un,p,z), st=mzSt(p,z,ef), m=mzMin(p,z), x=mzMax(p,z), n=nec.find(k=>k.p.id===p.id&&k.z.id===z.id);
-      return `<li><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${m||x?` · ${mzMM(m,x)} ${u}`:""}</span>${x?`<span class="mz-cap" title="${Math.round(v/x*100)}% del máximo"><i style="width:${Math.min(100,v/x*100)}%"></i></span>`:""}${n?`<span class="mz-rb">Reponer ${fmtPk(n.need)} ${u}</span>`:""}</span>
+      return `<li><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${m||x?` · ${mzMM(m,x)} ${u}`:""}</span>${mzAjuste(p,b,M,z,ef)}${x?`<span class="mz-cap" title="${Math.round(v/x*100)}% del máximo"><i style="width:${Math.min(100,v/x*100)}%"></i></span>`:""}${n?`<span class="mz-rb">Reponer ${fmtPk(n.need)} ${u}</span>`:""}</span>
         <span class="mz-num">${fmtPk(v)} <small>${u}</small>${z.t==="rep"&&suel(un,p)>0?`<small class="mz-sl">+ ${suel(un,p)} sueltas</small>`:z.t==="pick"&&pkn(p)>1?`<small class="mz-sl">${fmtPk(toPk(un,p))} packs</small>`:""}</span>
         <span class="mz-pill ${st}">${MZ_STTXT[st]}</span></li>`; }).join("")}</ul>`
     :`<div class="mz-empty">Esta zona aún no tiene productos. Agrega los que van aquí.</div>`)
@@ -3332,11 +3340,11 @@ function viewInvInventario(b,M){
   const addBox=z=>{ const idx=M.zonas.indexOf(z), act=S.mzAddZ===z.id, q=act?norm(S.mpAddQ):"";
     const res=q?S.productos.filter(p=>!(p.zonas&&p.zonas[z.id]!==undefined) && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
     return `<div class="mz-add"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mpadd-${idx}" data-mzaddz="${z.id}" type="search" value="${act?esc(S.mpAddQ):""}" placeholder="+ Agregar un producto a esta zona (nombre o código)" aria-label="Agregar un producto a ${esc(z.n)}" autocomplete="off"></label>
-      ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${(p.ubic[b.id]||0)>0?` · hay ${fmtPk(toPk(p.ubic[b.id],p))} packs en ${esc(b.nombre)}`:""}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`; };
+      ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${mzLibreTxt(p,b,M)}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`; };
   const sec=z=>{ const its=mzItems(b,M,z), u=mzUn(z);
     return `<div class="card mz-isec" style="margin-top:14px"><div class="mz-ch"><div><h3 class="mz-lvl ${z.t}">${esc(z.n)}</h3><span class="mz-hint">${esc(z.cara)} · ${esc(z.d)}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div>
       ${its.length?`<ul class="mz-items"><li class="mz-ir mz-irh${mm?" mm":""}"><span>Producto</span><span>Sistema</span><span>Contado</span><span>Dif.</span>${mm?`<span>Mínimo (${u})</span><span>Máximo (${u})</span>`:""}</li>${its.map(({p,ef})=>{ const key=p.id+"|"+z.id, un0=ef.z[z.id]||0, d=mzDifU(V[key],V[key+"|s"],un0,pkn(p));
-        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzOtras(p,b,M,z.id)}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar de esta zona</button><button type="button" class="link mz-quitar" style="color:var(--accent-strong)" data-mzgo="${esc(p.id)}">Mover a otra zona</button></span>
+        return `<li class="mz-ir${mm?" mm":""}"><span class="mz-nm">${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}</span>${mzAjuste(p,b,M,z,ef)}${mzOtras(p,b,M,z.id)}<button type="button" class="link mz-quitar" data-mzrm="${esc(p.id)}" data-mzrz="${z.id}">Quitar de esta zona</button><button type="button" class="link mz-quitar" style="color:var(--accent-strong)" data-mzgo="${esc(p.id)}">Mover a otra zona</button></span>
           <span class="mz-sys">${mzTxt(un0,p)}</span>
           ${mzPar(p,["data-mzi","data-mzis"],esc(key),V[key]??"",V[key+"|s"]??"",pkn(p)>1?toPk(un0,p):un0,suel(un0,p),p.nombre).replace(/data-mzi="/,`data-sysu="${un0}" data-pkn="${pkn(p)}" data-mzi="`)}
           <span class="mz-dif ${d.c}" data-mzd="${esc(key)}">${d.t}</span>
@@ -4037,7 +4045,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "71", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "72", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
