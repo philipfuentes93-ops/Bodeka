@@ -1063,6 +1063,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .sync-banner button{all:unset;cursor:pointer;padding:5px 12px;border-radius:8px;background:#fff;color:#B3261E;font-weight:800}
 .side-foot .sync-btn{display:block;margin:4px 12px 0;font-size:.74rem;color:var(--side-ic)}
 .sm-sync{font-size:1rem;font-weight:700;color:var(--ok);margin-bottom:6px}.sm-sync.mal{color:var(--danger)}
+.ov-m.bl li:has(.bq){grid-template-columns:1fr;gap:6px}.bq{display:flex;gap:8px}.bq label{display:grid;gap:2px;flex:1;font-size:.7rem;font-weight:700;color:var(--muted)}.bq .ubin{width:100%}
 </style>
 </head>
 <body>
@@ -1941,8 +1942,8 @@ function expDetalle(p){
   return `<div class="exp-in">
       <div class="exp-media"><div class="bigthumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}<label class="fotoedit" for="efFoto-${p.id}">${p.foto?"Cambiar foto":"Agregar foto"}</label><input type="file" id="efFoto-${p.id}" data-effoto="${p.id}" accept="image/*" hidden></div>
         <div class="bigstock"><b class="${estado(p)!=="ok"?"neg":""}" style="color:${estado(p)==="ok"?"inherit":"var(--danger)"}">${fmtPk(stkPk(p))}</b> ${lblPk(p)}<span>${fmt(p.stock)} unidades · mínimo ${fmtPk(p.minimo)} packs</span></div>
-        <div class="exp-bodh">Stock por bodega (packs) · editable</div>
-        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q"><input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${ubPk(p,b.id)||0}" data-orig="${ubPk(p,b.id)||0}" aria-label="Packs en ${esc(b.nombre)}"> <small class="muted">${fmt(p.ubic[b.id]||0)} un</small></span></li>`).join("")}</ul>
+        <div class="exp-bodh">Stock por bodega · editable en packs o en unidades</div>
+        <ul class="ov-m bl" style="width:100%;margin:2px 0 0">${bods().filter(b=>b.tipo!=="cooler"||(p.ubic[b.id]||0)>0).map(b=>`<li><span class="nm"><i class="dot" style="background:${pkColor(b.id)}"></i> ${esc(b.nombre)}</span><span class="q bq"><label>Packs<input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubq="${p.id}" data-ubb="${b.id}" value="${ubPk(p,b.id)||0}" data-orig="${ubPk(p,b.id)||0}" aria-label="Packs en ${esc(b.nombre)}"></label><label>Unidades<input class="ubin" type="number" min="0" step="1" inputmode="numeric" data-ubs="${p.id}" data-ubb="${b.id}" value="${p.ubic[b.id]||0}" data-orig="${p.ubic[b.id]||0}" aria-label="Unidades en ${esc(b.nombre)}"></label></span></li>`).join("")}</ul>
         <div class="exp-btns"><button class="btn soft sm" data-newp="recepcion" data-id="${p.id}">Recibir</button><button class="btn soft sm" data-newp="despacho" data-id="${p.id}">Despachar</button><button class="btn ghost sm" data-mov="ajuste" data-id="${p.id}">Conteo físico</button></div></div>
       <div class="exp-grid">
         ${f("nombre","Producto",p.nombre,'maxlength="120"',"wide")}
@@ -4090,7 +4091,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "77", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "78", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:

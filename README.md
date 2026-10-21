@@ -89,3 +89,6 @@ En **Por bodega → Reposición Piso -3** (y en cualquier bodega sin mapa) cada 
 
 ## Si un equipo no ve lo que cambió otro
 Cada cambio se guarda en la nube (Firestore) y llega a los demás equipos en vivo. El estado se ve abajo del menú (**Sincronizado · 14:32**), en el pie del panel del operario (**Datos: …**) y, si falla, en un **cartel rojo arriba**: *Sin conexión con el servidor* (lo que ves puede estar desactualizado; los cambios quedan en cola y se suben al volver la conexión) o *Modo local* (el equipo no cargó Firebase, por ejemplo porque la red bloquea los servicios de Google, y sus datos no se comparten). **Actualizar datos** (menú, o pie del modo simple) y **Reintentar** reconectan y traen los datos del servidor.
+
+## Detalle del producto: stock por bodega en packs o en unidades
+Al abrir un producto en **Productos**, cada bodega tiene dos casillas, **Packs** y **Unidades**. Si cambias las unidades, manda ese total (por ejemplo 102 → 105 queda 17 packs y 3 sueltas); si cambias los packs, se conservan las unidades sueltas que ya había. Cada cambio queda como ajuste manual en Movimientos.
