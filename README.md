@@ -98,3 +98,6 @@ Las librerías de Firebase (10.12.2) van dentro de la app (`vendor/firebase/`) e
 
 ## Cambios que quedaron solo en un equipo
 Si un equipo trabajó sin conexión a la nube (modo local, sin sesión o sin internet), guarda una copia aparte de lo que tenía. Al conectarse y traer los datos de la nube, la app compara: si esa copia tiene stock **más nuevo** que la nube, muestra *Cambios guardados solo en este equipo* con cada producto (nube → este equipo) para **subir lo seleccionado**, **descargar un respaldo** o **descartar**. Se puede abrir cuando se quiera con **Cambios de este equipo** (abajo del menú). *Reparar* descarga un respaldo antes de borrar la copia local.
+
+## Conexión alternativa (cuando la red corta la conexión continua)
+Firestore trabaja con una conexión continua que algunas redes de empresa cortan: el cartel *Sin conexión con el servidor* aparecía a cada rato. Si en 20 segundos el servidor no responde (o al tocar **Actualizar datos** sin éxito), la app cambia sola a la **conexión alternativa**: lee todo y guarda cada cambio con peticiones HTTPS normales (API REST de Firestore, con la misma sesión y las mismas reglas de seguridad) y actualiza cada 12 segundos y después de cada cambio. El menú dice *Sincronizado (conexión alternativa) · hora*. Si la conexión continua vuelve, la app regresa sola a ella.

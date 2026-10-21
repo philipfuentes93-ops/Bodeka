@@ -1356,18 +1356,75 @@ const bodegas = () => [...new Set(S.productos.map(p=>p.bodega).filter(Boolean))]
 const syncErr = e => toast(e && e.code==="permission-denied" ? "Tu cuenta no tiene permiso para guardar cambios." : "Un cambio no se pudo sincronizar. Revisa tu conexión.");
 // Estado de la conexión con el servidor: se ve en el menú, en el panel del operario y, si falla, en un cartel arriba
 const syncHora = () => S.sync&&S.sync.at?new Date(S.sync.at).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hour12:false}):"";
-const syncTxt = () => { const e=(S.sync||{}).estado; return e==="ok"?(S.sync.pend?"Subiendo cambios…":`Sincronizado · ${syncHora()}`):e==="cache"?"Sin conexión · estos datos pueden estar desactualizados":e==="local"?"Modo local · este equipo NO está conectado":"Conectando…"; };
-function setSync(estado,pend){
-  S.sync={estado,pend:!!pend,at:estado==="ok"?Date.now():((S.sync||{}).at||null)};
+const syncTxt = () => { const e=(S.sync||{}).estado; return e==="ok"?(S.sync.pend?"Subiendo cambios…":`Sincronizado${S.sync.alt?" (conexión alternativa)":""} · ${syncHora()}`):e==="cache"?"Sin conexión · estos datos pueden estar desactualizados":e==="local"?"Modo local · este equipo NO está conectado":"Conectando…"; };
+function setSync(estado,pend,alt){
+  S.sync={estado,pend:!!pend,alt:!!alt,at:estado==="ok"?Date.now():((S.sync||{}).at||null)};
   const t=syncTxt(); const a=$("#sync"), m=$("#movilSync"); if(a) a.textContent=t; if(m) m.textContent=t;
   const bn=$("#syncBanner"); if(!bn) return; clearTimeout(S._syncT);
   const msg=estado==="local"?"Este equipo no cargó el servicio de datos (la red o una extensión del navegador lo está bloqueando): está en modo local y lo que ves NO se comparte con los demás equipos.":"Sin conexión con el servidor: lo que ves puede estar desactualizado. Los cambios que hagas se guardarán cuando vuelva la conexión.";
   if(estado==="local"){ $("#syncBannerTxt").textContent=msg; bn.hidden=false; }
-  else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg+(S.syncErr?` (detalle: ${S.syncErr})`:""); bn.hidden=false; },6000); }
+  else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg+(S.syncErr?` (detalle: ${S.syncErr})`:""); bn.hidden=false; },28000); }
   else bn.hidden=true;
 }
+/* ---------- Conexión alternativa (HTTPS simple) ----------
+   Algunas redes de empresa cortan la conexión continua que usa Firestore (el cartel "Sin conexión" aparece a cada rato).
+   Si el servidor no responde, la app cambia sola a leer y guardar con peticiones HTTPS normales (la API REST de Firestore)
+   cada pocos segundos: funciona aunque la conexión continua esté bloqueada. */
+const fsEnc = v => v===null||v===undefined ? {nullValue:null} : typeof v==="string" ? {stringValue:v} : typeof v==="boolean" ? {booleanValue:v}
+  : typeof v==="number" ? (Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v}) : Array.isArray(v) ? {arrayValue:{values:v.map(fsEnc)}}
+  : typeof v==="object" ? {mapValue:{fields:fsFields(v)}} : {nullValue:null};
+const fsFields = o => { const f={}; Object.entries(o).forEach(([k,v])=>{ if(v!==undefined) f[k]=fsEnc(v); }); return f; };
+const fsDec = x => "stringValue" in x ? x.stringValue : "integerValue" in x ? +x.integerValue : "doubleValue" in x ? x.doubleValue : "booleanValue" in x ? x.booleanValue
+  : "nullValue" in x ? null : "timestampValue" in x ? x.timestampValue : "arrayValue" in x ? (x.arrayValue.values||[]).map(fsDec) : "mapValue" in x ? fsObj(x.mapValue.fields||{}) : null;
+const fsObj = f => { const o={}; Object.entries(f||{}).forEach(([k,v])=>{ o[k]=fsDec(v); }); return o; };
+const FS = () => `projects/${(window.FIREBASE_CONFIG||{}).projectId}/databases/(default)/documents`;
+async function fsFetch(path,opt){
+  const c=new AbortController(), h=setTimeout(()=>c.abort(),20000);
+  try{
+    const r=await fetch("https://firestore.googleapis.com/v1/"+path,{...opt,signal:c.signal,headers:{Authorization:"Bearer "+await Store.getToken(),"Content-Type":"application/json"}});
+    if(!r.ok){ let m=""; try{ m=(await r.json()).error.status; }catch{} throw {code:r.status===403||r.status===401?"permission-denied":"http-"+r.status,message:m}; }
+    return r.json();
+  }finally{ clearTimeout(h); }
+}
+async function fsQuery(col,orden,limite){
+  const q={from:[{collectionId:col}]}; if(orden) q.orderBy=[{field:{fieldPath:orden},direction:"DESCENDING"}]; if(limite) q.limit=limite;
+  const j=await fsFetch(FS()+":runQuery",{method:"POST",body:JSON.stringify({structuredQuery:q})});
+  return (j||[]).filter(x=>x.document).map(x=>({id:x.document.name.split("/").pop(),...fsObj(x.document.fields)}));
+}
+const fsName = (col,id) => `${FS()}/${col}/${encodeURIComponent(id)}`;
 const Store = {
   db:null,
+  rest:false,
+  async getToken(){ return firebase.auth().currentUser.getIdToken(); },
+  fsSet(col,id,body){
+    if(!this.db) return Promise.resolve();
+    if(this.rest) return fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[{update:{name:fsName(col,id),fields:fsFields(body)}}]})}).then(()=>this.sondear()).catch(syncErr);
+    return this.db.doc(col+"/"+id).set(body).catch(syncErr);
+  },
+  fsDel(col,id){
+    if(!this.db) return Promise.resolve();
+    if(this.rest) return fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[{delete:fsName(col,id)}]})}).then(()=>this.sondear()).catch(syncErr);
+    return this.db.doc(col+"/"+id).delete().catch(syncErr);
+  },
+  // Lee todo con peticiones HTTPS normales y actualiza la pantalla
+  async sondear(){
+    if(!this.db||!this.rest) return; if(this._sond){ this._otra=true; return; } this._sond=true;
+    try{
+      const [p,m,d,b]=await Promise.all([fsQuery("productos"),fsQuery("movimientos","fecha",400),fsQuery("documentos","creado",500),fsQuery("bodegas")]);
+      S.productos=p.map(fixProd); S.movs=m; S.docs=d;
+      if(b.length){ const cc=conCoolers(b); S.bodegas=ordenBodegas(cc.list); }
+      setSync("ok",false,true); this.saveLocal();
+      if(!this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); }
+      render(false);
+    }catch(e){ S.syncErr=(e&&(e.code||e.message))||""; if(e&&e.code==="permission-denied") toast("Esta cuenta no tiene permiso para leer los datos."); setSync("cache"); }
+    finally{ this._sond=false; if(this._otra){ this._otra=false; setTimeout(()=>this.sondear(),300); } }
+  },
+  activarRest(motivo){
+    if(this.rest||!this.db) return; this.rest=true; clearInterval(this._poll);
+    this.sondear(); this._poll=setInterval(()=>this.sondear(),12000);
+    if(motivo==="manual") toast("Conexión alternativa activada.");
+  },
+  desactivarRest(){ if(!this.rest) return; this.rest=false; clearInterval(this._poll); },
   async diagnostico(){
     const t=$("#syncBannerTxt"), bn=$("#syncBanner"), fx=$("#syncFix"); bn.hidden=false; fx.hidden=true; t.textContent="Revisando la conexión…";
     if(!navigator.onLine){ t.textContent="Este equipo no tiene internet. Revisa el cable o el wifi."; return; }
@@ -1396,8 +1453,11 @@ const Store = {
   async reconectar(){
     if(!this.db){ toast(S.sync&&S.sync.estado==="local"?"Este equipo está en modo local: no hay conexión con la nube.":"Aún no hay sesión iniciada."); return; }
     toast("Actualizando datos…");
-    try{ await this.db.disableNetwork(); await this.db.enableNetwork(); await this.db.collection("productos").get({source:"server"}); toast("Datos al día."); }
-    catch{ toast("No hay conexión con el servidor. Revisa el wifi o la red de este equipo."); }
+    try{
+      await this.db.disableNetwork(); await this.db.enableNetwork();
+      await Promise.race([this.db.collection("productos").get({source:"server"}), new Promise((_,rej)=>setTimeout(()=>rej(new Error("tiempo")),9000))]);
+      toast("Datos al día.");
+    }catch{ this.activarRest("manual"); toast("La conexión continua no responde: se usa la conexión alternativa."); }
   },
   local(){ try{ return {productos:[],movs:[],docs:[],bodegas:[], ...JSON.parse(localStorage.getItem("inv-bodegas")||"{}")} }catch{ return {productos:[],movs:[],docs:[],bodegas:[]} } },
   saveLocal(){ try{ const j=JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas}); localStorage.setItem("inv-bodegas", j); if(!this.db) localStorage.setItem("inv-local-copia", j); }catch{} },   // sin conexión a la nube, además se guarda una copia aparte que no se pisa al volver a conectar
@@ -1485,7 +1545,7 @@ const Store = {
     window.addEventListener("online",()=>Store.reconectar());
     let unsub=[];
     auth.onAuthStateChanged(user=>{
-      unsub.forEach(u=>u()); unsub=[];
+      unsub.forEach(u=>u()); unsub=[]; this.desactivarRest();
       if(!user){ this.db=null; $("#login").hidden=false; $("#acct").hidden=true; $("#lPass").value=""; $("#movilAvatar").textContent="?"; $("#movilAvatar").style.backgroundImage=""; return; }
       $("#login").hidden=true; $("#acct").hidden=false; $("#outBtn").title=`Cerrar sesión (${user.email})`;
       $("#acctName").textContent=user.displayName||user.email;
@@ -1498,10 +1558,23 @@ const Store = {
       });
       this.db=db; setSync("conectando");
       const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else { S.syncErr=(e&&(e.code||e.message))||""; setSync("cache"); } };
-      unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); setSync(snap.metadata.fromCache?"cache":"ok",snap.metadata.hasPendingWrites); this.saveLocal(); if(!snap.metadata.fromCache && !this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); } render(false); }, denied));
-      unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
-      unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
+      this._cargado=false; clearTimeout(this._tAlt); this._tAlt=null;
+      unsub.push(db.collection("productos").onSnapshot({includeMetadataChanges:true}, snap=>{
+        const fc=snap.metadata.fromCache;
+        if(fc && this.rest) return;   // en conexión alternativa la lectura llega por HTTPS; no se pisa con la copia local
+        if(!fc){ clearTimeout(this._tAlt); this._tAlt=null; if(this.rest) this.desactivarRest(); }
+        else if(!this._tAlt){ this._tAlt=setTimeout(()=>{ this._tAlt=null; this.activarRest("auto"); },20000); }   // si en 20 s el servidor no responde, se pasa a la conexión alternativa
+        setSync(fc?"cache":"ok",snap.metadata.hasPendingWrites);
+        if(snap.docChanges().length || !this._cargado){
+          this._cargado=true; S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); this.saveLocal();
+          if(!fc && !this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); }
+          render(false);
+        }
+      }, denied));
+      unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ if(this.rest&&snap.metadata.fromCache) return; S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
+      unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ if(this.rest&&snap.metadata.fromCache) return; S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
+        if(this.rest&&snap.metadata.fromCache) return;
         S.bodegas = snap.docs.map(d=>({id:d.id,...d.data()}));
         if(!S.bodegas.length){ S.bodegas=BODEGAS_DEFAULT.map(b=>({...b})); if(esAdmin) BODEGAS_DEFAULT.forEach(b=>Store.putBodega(b)); }
         const cc=conCoolers(S.bodegas); S.bodegas=ordenBodegas(cc.list); if(esAdmin) cc.nuevos.forEach(b=>Store.putBodega(b));
@@ -1513,37 +1586,37 @@ const Store = {
   async putProducto(p){
     p = fixProd(p);   // asegura ubic/packUn/stock consistentes venga de donde venga (diálogo, import, movimiento)
     const {id,...body}=p;
-    if(this.db) this.db.doc("productos/"+id).set(body).catch(syncErr);
+    this.fsSet("productos",id,body);
     const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
     this.saveLocal(); render(false);
   },
   async delProducto(id){
-    if(this.db) this.db.doc("productos/"+id).delete().catch(syncErr);
+    this.fsDel("productos",id);
     S.productos=S.productos.filter(x=>x.id!==id); this.saveLocal(); render(false);
   },
   async delMov(id){
-    if(this.db) this.db.doc("movimientos/"+id).delete().catch(syncErr);
+    this.fsDel("movimientos",id);
     S.movs=S.movs.filter(x=>x.id!==id); this.saveLocal();
   },
   async addMov(m, silent){
     const {id,...body}=m;
-    if(this.db) this.db.doc("movimientos/"+id).set(body).catch(syncErr);
+    this.fsSet("movimientos",id,body);
     if(!S.movs.find(x=>x.id===id)) S.movs.unshift(m);
     this.saveLocal(); if(!silent) render(false);
   },
   async addDocu(d){
     const {id,...body}=d;
-    if(this.db) this.db.doc("documentos/"+id).set(body).catch(syncErr);
+    this.fsSet("documentos",id,body);
     const i=S.docs.findIndex(x=>x.id===id); if(i>=0) S.docs[i]=d; else S.docs.unshift(d);
     this.saveLocal();
   },
   async delDocu(id){
-    if(this.db) this.db.doc("documentos/"+id).delete().catch(syncErr);
+    this.fsDel("documentos",id);
     S.docs=S.docs.filter(x=>x.id!==id); this.saveLocal();
   },
   async putBodega(b){
     const {id,...body}=b;
-    if(this.db) await this.db.doc("bodegas/"+id).set(body).catch(syncErr);
+    await this.fsSet("bodegas",id,body);
     const i=S.bodegas.findIndex(x=>x.id===id); if(i>=0) S.bodegas[i]=b; else S.bodegas.push(b);
     S.bodegas=ordenBodegas(S.bodegas);
     this.saveLocal(); render(false);
@@ -4160,7 +4233,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "82", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "83", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
