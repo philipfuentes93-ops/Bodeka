@@ -95,3 +95,6 @@ Al abrir un producto en **Productos**, cada bodega tiene dos casillas, **Packs**
 
 ## Modo local y bloqueo de la red
 Las librerías de Firebase (10.12.2) van dentro de la app (`vendor/firebase/`) en vez de cargarse desde www.gstatic.com, para que las redes de empresa que bloquean ese sitio no dejen al equipo en *modo local* (sin compartir datos). Para actualizar la versión: bajar `firebase-app-compat.js`, `firebase-auth-compat.js` y `firebase-firestore-compat.js` de la misma versión del paquete `firebase` y reemplazarlos ahí.
+
+## Cambios que quedaron solo en un equipo
+Si un equipo trabajó sin conexión a la nube (modo local, sin sesión o sin internet), guarda una copia aparte de lo que tenía. Al conectarse y traer los datos de la nube, la app compara: si esa copia tiene stock **más nuevo** que la nube, muestra *Cambios guardados solo en este equipo* con cada producto (nube → este equipo) para **subir lo seleccionado**, **descargar un respaldo** o **descartar**. Se puede abrir cuando se quiera con **Cambios de este equipo** (abajo del menú). *Reparar* descarga un respaldo antes de borrar la copia local.

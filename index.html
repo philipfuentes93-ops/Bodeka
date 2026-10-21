@@ -1065,6 +1065,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .side-foot .sync-btn{display:block;margin:4px 12px 0;font-size:.74rem;color:var(--side-ic)}
 .sm-sync{font-size:1rem;font-weight:700;color:var(--ok);margin-bottom:6px}.sm-sync.mal{color:var(--danger)}
 .ov-m.bl li:has(.bq){grid-template-columns:1fr;gap:6px}.bq{display:flex;gap:8px}.bq label{display:grid;gap:2px;flex:1;font-size:.7rem;font-weight:700;color:var(--muted)}.bq .ubin{width:100%}
+.lc-lista{max-height:46vh;overflow:auto;margin:10px 0}.lc-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border-top:1px solid var(--line)}.lc-fila:first-child{border-top:0}.lc-fila small{display:block;color:var(--muted);margin-top:2px}.lc-fila input{margin-top:4px}
 </style>
 </head>
 <body>
@@ -1090,7 +1091,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
         <div><b id="acctName"></b><span id="acctEmail"></span></div>
         <button id="outBtn" title="Cerrar sesión"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></svg></button>
       </div>
-      <span class="sync" id="sync">Conectando…</span><button type="button" class="link sync-btn" id="syncBtn">Actualizar datos</button>
+      <span class="sync" id="sync">Conectando…</span><button type="button" class="link sync-btn" id="syncBtn">Actualizar datos</button><button type="button" class="link sync-btn" id="localBtn">Cambios de este equipo</button>
     </div>
   </aside>
   <div class="main">
@@ -1218,6 +1219,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 </div></dialog>
 
 <dialog id="dDoc"><div class="dlg" id="docBody"></div></dialog>
+<dialog id="dLocal"><div class="dlg" id="localBody"></div></dialog>
 <dialog id="dBod"><form class="dlg" id="fBod">
   <h2 id="dBodTitle">Agregar bodega</h2>
   <div class="f"><label for="bNombre">Nombre</label><input id="bNombre" required maxlength="60" placeholder="Ej: Piso 9, Reposición Aseo"></div>
@@ -1387,6 +1389,7 @@ const Store = {
   async reparar(){
     if(!this.db) return;
     if(!confirm("Esto borra la copia de datos guardada en ESTE equipo y vuelve a cargarla desde el servidor.\nSi hiciste cambios sin conexión que aún no se subieron, se perderán.\n¿Continuar?")) return;
+    try{ await this.respaldo(); }catch{}
     try{ await this.db.terminate(); await this.db.clearPersistence(); }catch{}
     location.reload();
   },
@@ -1397,14 +1400,55 @@ const Store = {
     catch{ toast("No hay conexión con el servidor. Revisa el wifi o la red de este equipo."); }
   },
   local(){ try{ return {productos:[],movs:[],docs:[],bodegas:[], ...JSON.parse(localStorage.getItem("inv-bodegas")||"{}")} }catch{ return {productos:[],movs:[],docs:[],bodegas:[]} } },
-  saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas})) }catch{} },
+  saveLocal(){ try{ const j=JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas}); localStorage.setItem("inv-bodegas", j); if(!this.db) localStorage.setItem("inv-local-copia", j); }catch{} },   // sin conexión a la nube, además se guarda una copia aparte que no se pisa al volver a conectar
+  // Cambios hechos en este equipo mientras no estaba conectado a la nube (modo local o sin sesión): se comparan con la nube y se ofrece subirlos
+  revisarLocal(manual){
+    let c=null; try{ c=JSON.parse(localStorage.getItem("inv-local-copia")||"null"); }catch{}
+    if(!c||!Array.isArray(c.productos)){ if(manual) toast("Este equipo no tiene datos propios distintos a los de la nube."); return; }
+    const srv=S.productos, dif=[];
+    c.productos.map(fixProd).forEach(a=>{ const b=srv.find(x=>x.id===a.id);
+      if(!b){ if((+a.stock||0)>0) dif.push({a,b:null}); }
+      else if((a.actualizado||"")>(b.actualizado||"") && JSON.stringify(a.ubic||{})!==JSON.stringify(b.ubic||{})) dif.push({a,b}); });
+    const mids=new Set(S.movs.map(m=>m.id)), mv=(c.movs||[]).filter(m=>m&&m.id&&!mids.has(m.id));
+    const dids=new Set(S.docs.map(d=>d.id)), dc=(c.docs||[]).filter(d=>d&&d.id&&!dids.has(d.id));
+    if(!dif.length&&!mv.length&&!dc.length){ if(manual) toast("Todo lo de este equipo ya está en la nube."); try{ localStorage.removeItem("inv-local-copia"); }catch{} return; }
+    this._local={dif,mv,dc};
+    const fila=(x,i)=>{ const a=x.a, bs=[...new Set([...Object.keys(a.ubic||{}),...Object.keys((x.b||{}).ubic||{})])].filter(id=>((a.ubic||{})[id]||0)!==(((x.b||{}).ubic||{})[id]||0));
+      const det=bs.map(id=>`${esc(bodNom(id))}: nube <b>${fmtPk(toPk(((x.b||{}).ubic||{})[id]||0,a))}</b> → este equipo <b>${fmtPk(toPk((a.ubic||{})[id]||0,a))}</b> packs`).join(" · ");
+      return `<label class="lc-fila"><input type="checkbox" data-lc="${i}" checked> <span><b>${esc(a.nombre)}</b>${x.b?"":" (producto nuevo)"}<small>${det||"sin diferencias de stock"}</small></span></label>`; };
+    $("#localBody").innerHTML=`<h2>Cambios guardados solo en este equipo</h2>
+      <p class="sub">Este equipo guardó cambios cuando no estaba conectado a la nube y la nube todavía no los tiene. Marca lo que quieres subir. <b>Lo que no subas se descarta</b> y queda lo de la nube.</p>
+      <div class="lc-lista">${dif.map(fila).join("")||'<p class="mini">No hay productos con stock distinto.</p>'}</div>
+      ${mv.length||dc.length?`<p class="mini">También se subirán ${mv.length} movimiento${mv.length===1?"":"s"} y ${dc.length} documento${dc.length===1?"":"s"} que la nube no tiene.</p>`:""}
+      <div class="dlg-actions" style="flex-wrap:wrap"><button type="button" class="btn ghost" id="lcResp">Descargar respaldo</button><button type="button" class="btn ghost" id="lcDesc">Descartar</button><button type="button" class="btn ghost" data-close>Decidir después</button><button type="button" class="btn" id="lcSubir">Subir lo seleccionado</button></div>`;
+    $("#lcResp").onclick=()=>this.respaldo(); $("#lcDesc").onclick=()=>{ if(confirm("¿Descartar los cambios de este equipo y quedarte con lo que hay en la nube?")){ try{ localStorage.removeItem("inv-local-copia"); }catch{} $("#dLocal").close(); toast("Se descartaron los cambios de este equipo."); } };
+    $("#lcSubir").onclick=async()=>{
+      if(!this.db){ toast("Primero inicia sesión para poder subir."); return; }
+      const sel=[...document.querySelectorAll("[data-lc]")].filter(i=>i.checked).map(i=>this._local.dif[+i.dataset.lc]);
+      $("#lcSubir").disabled=true;
+      for(const x of sel) await this.putProducto({...x.a,actualizado:new Date().toISOString()});
+      for(const m of this._local.mv) await this.addMov(m,true);
+      for(const d of this._local.dc) await this.addDocu(d);
+      try{ localStorage.removeItem("inv-local-copia"); }catch{}
+      $("#dLocal").close(); toast(`Se subieron ${sel.length} producto${sel.length===1?"":"s"} a la nube.`); render(true);
+    };
+    $("#dLocal").showModal();
+  },
+  async respaldo(){
+    let c=null; try{ c=JSON.parse(localStorage.getItem("inv-local-copia")||"null"); }catch{}
+    const data=JSON.stringify({generado:new Date().toISOString(),copiaDeEsteEquipo:c,datosActuales:{productos:S.productos,movimientos:S.movs,documentos:S.docs,bodegas:S.bodegas}},null,1);
+    const d=new Date(), nom=`respaldo-deposito-${d.toISOString().slice(0,10)}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}.json`;
+    const url=URL.createObjectURL(new Blob([data],{type:"application/json"})), a=document.createElement("a"); a.href=url; a.download=nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast("Respaldo descargado: "+nom);
+  },
   async init(){
     const l=this.local(); S.productos=l.productos.map(fixProd); S.movs=l.movs; S.docs=l.docs;
+    try{ if(!localStorage.getItem("inv-local-copia") && localStorage.getItem("inv-bodegas")) localStorage.setItem("inv-local-copia", localStorage.getItem("inv-bodegas")); }catch{}   // lo que este equipo tenía antes de conectarse a la nube
     S.bodegas = ordenBodegas(conCoolers(l.bodegas && l.bodegas.length ? l.bodegas : [...BODEGAS_DEFAULT]).list);
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
-    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar(); $("#syncWhy").onclick=()=>Store.diagnostico(); $("#syncFix").onclick=()=>Store.reparar();
+    $("#syncBtn").onclick=()=>Store.reconectar(); $("#localBtn").onclick=()=>Store.revisarLocal(true); $("#syncRetry").onclick=()=>Store.reconectar(); $("#syncWhy").onclick=()=>Store.diagnostico(); $("#syncFix").onclick=()=>Store.reparar();
     const cfg=window.FIREBASE_CONFIG;
     if(!window.firebase || !cfg || !cfg.apiKey || /PEGAR/i.test(cfg.apiKey)){
       setSync("local"); render(false); return;
@@ -1454,7 +1498,7 @@ const Store = {
       });
       this.db=db; setSync("conectando");
       const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else { S.syncErr=(e&&(e.code||e.message))||""; setSync("cache"); } };
-      unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); setSync(snap.metadata.fromCache?"cache":"ok",snap.metadata.hasPendingWrites); this.saveLocal(); render(false); }, denied));
+      unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); setSync(snap.metadata.fromCache?"cache":"ok",snap.metadata.hasPendingWrites); this.saveLocal(); if(!snap.metadata.fromCache && !this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); } render(false); }, denied));
       unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
@@ -4116,7 +4160,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "81", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "82", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
