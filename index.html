@@ -1068,7 +1068,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 </style>
 </head>
 <body>
-<div class="sync-banner" id="syncBanner" role="status" hidden><span id="syncBannerTxt"></span><button type="button" id="syncRetry">Reintentar</button><button type="button" id="syncWhy">¿Por qué?</button></div>
+<div class="sync-banner" id="syncBanner" role="status" hidden><span id="syncBannerTxt"></span><button type="button" id="syncRetry">Reintentar</button><button type="button" id="syncWhy">¿Por qué?</button><button type="button" id="syncFix" hidden>Reparar</button></div>
 <div class="app">
   <aside class="side" id="side" aria-label="Menú principal">
     <div class="brand"><span class="bmark" aria-hidden="true">D<i></i></span><span class="bname">Depósito<small>picking &amp; inventarios</small></span></div>
@@ -1361,17 +1361,34 @@ function setSync(estado,pend){
   const bn=$("#syncBanner"); if(!bn) return; clearTimeout(S._syncT);
   const msg=estado==="local"?"Este equipo no cargó el servicio de datos (la red o una extensión del navegador lo está bloqueando): está en modo local y lo que ves NO se comparte con los demás equipos.":"Sin conexión con el servidor: lo que ves puede estar desactualizado. Los cambios que hagas se guardarán cuando vuelva la conexión.";
   if(estado==="local"){ $("#syncBannerTxt").textContent=msg; bn.hidden=false; }
-  else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg; bn.hidden=false; },6000); }
+  else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg+(S.syncErr?` (detalle: ${S.syncErr})`:""); bn.hidden=false; },6000); }
   else bn.hidden=true;
 }
 const Store = {
   db:null,
   async diagnostico(){
-    const t=$("#syncBannerTxt"), bn=$("#syncBanner"); bn.hidden=false; t.textContent="Revisando la conexión…";
+    const t=$("#syncBannerTxt"), bn=$("#syncBanner"), fx=$("#syncFix"); bn.hidden=false; fx.hidden=true; t.textContent="Revisando la conexión…";
     if(!navigator.onLine){ t.textContent="Este equipo no tiene internet. Revisa el cable o el wifi."; return; }
     const ping=async u=>{ const c=new AbortController(), h=setTimeout(()=>c.abort(),7000); try{ await fetch(u,{mode:"no-cors",cache:"no-store",signal:c.signal}); return true; }catch{ return false; } finally{ clearTimeout(h); } };
     const [web,fs]=await Promise.all([ping("https://www.gstatic.com/generate_204"),ping("https://firestore.googleapis.com/")]);
-    t.textContent=!web&&!fs?"Este equipo no logra salir a internet (o la red bloquea Google). Prueba con otro wifi o la red del celular.":!fs?"Hay internet, pero esta red bloquea firestore.googleapis.com, el servidor donde se guardan los datos. Pide a quien administra la red (TI) que lo permita, o usa otra red.":"La red llega al servidor. Toca Reintentar; si sigue igual, cierra sesión y vuelve a entrar.";
+    if(!web&&!fs){ t.textContent="Este equipo no logra salir a internet (o la red bloquea Google). Prueba con otro wifi o la red del celular."; return; }
+    if(!fs){ t.textContent="Hay internet, pero esta red bloquea firestore.googleapis.com, el servidor donde se guardan los datos. Pide a quien administra la red (TI) que lo permita, o usa otra red."; return; }
+    if(!this.db){ t.textContent="La red llega al servidor, pero no hay sesión iniciada. Cierra sesión y vuelve a entrar."; return; }
+    t.textContent="La red llega al servidor. Probando la lectura de datos…";
+    try{
+      await Promise.race([this.db.collection("productos").limit(1).get({source:"server"}), new Promise((_,rej)=>setTimeout(()=>rej({code:"tiempo-agotado",message:"el servidor no respondió en 12 s"}),12000))]);
+      t.textContent="El servidor de datos responde. Toca Reintentar para actualizar; si el cartel sigue, recarga la página (Ctrl+F5).";
+    }catch(e){
+      S.syncErr=(e&&(e.code||e.message))||"";
+      t.textContent=e&&e.code==="permission-denied"?"El servidor responde, pero esta cuenta no tiene permiso. Pide que la agreguen a la lista autorizada.":`La red llega al servidor, pero la lectura de datos falla (${S.syncErr||"sin detalle"}). Probablemente un filtro de la red (proxy o antivirus) corta la conexión de datos. Puedes probar Reparar (borra la copia local de este equipo) o usar otra red.`;
+      fx.hidden=false;
+    }
+  },
+  async reparar(){
+    if(!this.db) return;
+    if(!confirm("Esto borra la copia de datos guardada en ESTE equipo y vuelve a cargarla desde el servidor.\nSi hiciste cambios sin conexión que aún no se subieron, se perderán.\n¿Continuar?")) return;
+    try{ await this.db.terminate(); await this.db.clearPersistence(); }catch{}
+    location.reload();
   },
   async reconectar(){
     if(!this.db){ toast(S.sync&&S.sync.estado==="local"?"Este equipo está en modo local: no hay conexión con la nube.":"Aún no hay sesión iniciada."); return; }
@@ -1387,7 +1404,7 @@ const Store = {
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
-    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar(); $("#syncWhy").onclick=()=>Store.diagnostico();
+    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar(); $("#syncWhy").onclick=()=>Store.diagnostico(); $("#syncFix").onclick=()=>Store.reparar();
     const cfg=window.FIREBASE_CONFIG;
     if(!window.firebase || !cfg || !cfg.apiKey || /PEGAR/i.test(cfg.apiKey)){
       setSync("local"); render(false); return;
@@ -1436,7 +1453,7 @@ const Store = {
         else{ av.style.backgroundImage=""; av.textContent=inicial; }
       });
       this.db=db; setSync("conectando");
-      const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else setSync("cache"); };
+      const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else { S.syncErr=(e&&(e.code||e.message))||""; setSync("cache"); } };
       unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); setSync(snap.metadata.fromCache?"cache":"ok",snap.metadata.hasPendingWrites); this.saveLocal(); render(false); }, denied));
       unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
@@ -4099,7 +4116,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "80", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "81", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
