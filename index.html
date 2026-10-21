@@ -1055,6 +1055,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .av-a{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.av-t,.av-f{font-size:.85rem;color:var(--muted)}
 .av-hecho .av-row{grid-template-columns:1fr}
 @media (max-width:760px){.av-row{grid-template-columns:1fr auto}.av-a{grid-column:1/-1;justify-content:flex-start}}
+.rp-panel{padding:16px 18px}.rp-h{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}.rp-h h3{margin:0;font-size:1.05rem}
 </style>
 </head>
 <body>
@@ -1299,6 +1300,7 @@ function fixProd(p){
   Object.keys(q.ubic).forEach(k=>{ q.ubic[k]=+q.ubic[k]||0; });
   S.bodegas.forEach(b=>{ if(b.tipo==="cooler") delete q.ubic[b.id]; });   // los coolers no llevan inventario
   q.minUbic = Object.fromEntries(Object.entries(q.minUbic||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
+  q.maxUbic = Object.fromEntries(Object.entries(q.maxUbic||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.zonas = Object.fromEntries(Object.entries(q.zonas||{}).map(([k,v])=>[k,Math.max(0,Math.round(+v||0))]));   // unidades por zona del mapa de bodega
   q.zmin = Object.fromEntries(Object.entries(q.zmin||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.zmax = Object.fromEntries(Object.entries(q.zmax||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
@@ -1526,7 +1528,7 @@ $("#fProd").addEventListener("submit", async e=>{
   if(!prev && codigo && S.productos.some(x=>x.codigo===codigo)){ $("#pErr").textContent="Ya existe un producto con ese código."; return; }
   const p={ id: prev?prev.id:(codigo?idFromCode(codigo):uid()), codigo, nombre,
     unidad:$("#pUnd").value.trim().toUpperCase()||"UN", categoria:$("#pCat").value.trim()||"Sin categoría",
-    bodega:prev?.bodega||"", ubicacion:$("#pUbic").value.trim(), minUbic:prev?.minUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{}, zmax:prev?.zmax||{},
+    bodega:prev?.bodega||"", ubicacion:$("#pUbic").value.trim(), minUbic:prev?.minUbic||{}, maxUbic:prev?.maxUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{}, zmax:prev?.zmax||{},
     minimo:Math.max(0,+$("#pMin").value||0),
     packUn:Math.max(1,+$("#pPack").value||1),
     vencimiento:$("#pVenc").value||"",
@@ -1698,7 +1700,7 @@ $("#iGo").addEventListener("click", async ()=>{
       const ubic={...(prev?.ubic||{})};
       const pkI=prev?pkn(prev):1;   // el Excel trae packs; se guardan en unidades
       if(Object.keys(setB||{}).length) Object.entries(setB).forEach(([k,v])=>{ ubic[k]=Math.round(v*pkI); }); else ubic[bodImp]=Math.round((+row.stock||0)*pkI);
-      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{}, zmax:prev?.zmax||{}, packUn:prev?.packUn||1,
+      const p={ id: prev?prev.id:(row.codigo?idFromCode(row.codigo):uid()), ...rest, ubic, minUbic:prev?.minUbic||{}, maxUbic:prev?.maxUbic||{}, zonas:prev?.zonas||{}, zmin:prev?.zmin||{}, zmax:prev?.zmax||{}, packUn:prev?.packUn||1,
         stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:new Date().toISOString() };
       await Store.putProducto(p);
       if(!prev || prev.stock!==p.stock)
@@ -2984,7 +2986,10 @@ const invBods = () => bods();
 const uniBod = b => S.productos.reduce((a,p)=>a+(p.ubic[b.id]||0),0);   // unidades (solo para referencia/picking)
 const nProdBod = b => S.productos.filter(p=>(p.ubic[b.id]||0)>0).length;
 const minBod = (p,b) => +((p.minUbic||{})[b.id])||0;   // en packs
-const faltaBod = (p,b) => Math.max(0, minBod(p,b)-ubPk(p,b.id));   // en packs
+const maxBod = (p,b) => +((p.maxUbic||{})[b.id])||0;   // en packs: hasta dónde se repone esta bodega
+const metaBod = (p,b) => maxBod(p,b)||minBod(p,b);     // lo que hay que alcanzar para que quede OK: el máximo, o el mínimo si no hay máximo
+const faltaBod = (p,b) => Math.max(0, metaBod(p,b)-ubPk(p,b.id));   // en packs
+const critBod = (p,b) => minBod(p,b)>0 && ubPk(p,b.id)<minBod(p,b);   // bajo el mínimo
 
 /* ---------- Mapa 3D de bodega (por ahora solo Tránsito Piso 11) ----------
    Cada zona es un volumen sobre el dibujo con un tipo: Reposición (packs cerrados) o Picking (unidades abiertas).
@@ -3577,17 +3582,18 @@ function viewInvBodega(b){
   const totPk=S.productos.reduce((a,p)=>a+stkPk(p),0), pkB=packsBod(b), un=uniBod(b), np=nProdBod(b);
   const faltan=S.productos.filter(p=>faltaBod(p,b)>0), nFalta=faltan.length, pFalta=faltan.reduce((a,p)=>a+faltaBod(p,b),0);
   const kpi=(c,v,t,sub="")=>`<div class="pk-kpi" style="--c:${c}"><b>${v}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
-  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",`${fmt(un)} unidades`)}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Faltan · ${nFalta} producto${nFalta===1?"":"s"}`:"Sin faltantes",nFalta?"packs":"")}</div>`;
+  const kpis=`<div class="pk-kpis">${kpi(pkColor(b.id),fmtPk(pkB),"Packs aquí",`${fmt(un)} unidades`)}${kpi("var(--c1)",np,"Productos con stock")}${kpi("var(--c2)",(totPk?Math.round(pkB/totPk*100):0)+"%","Del inventario general")}${kpi(nFalta?"var(--danger)":"var(--ok)",nFalta?fmtPk(pFalta):"OK",nFalta?`Para dejar OK · ${nFalta} producto${nFalta===1?"":"s"}`:"Todo OK",nFalta?"packs":"")}</div>`;
   if(M && S.invVista!=="lista") return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${mzSwitch(b,M)}</div>`+viewInvBodegaMapa(b,M);
   const ps=invFiltrados(b), n=ps.length, pag=pager(n), rows=ps.slice((S.page-1)*S.size,S.page*S.size);
   const otras=p=>invBods().filter(x=>x.id!==b.id && (p.ubic[x.id]||0)>0).map(x=>`<span class="bchip" title="${esc(x.nombre)} · ${fmt(p.ubic[x.id])} un"><i class="dot" style="background:${pkColor(x.id)}"></i>${esc(bShort(x))} <b>${fmtPk(ubPk(p,x.id))}</b></span>`).join("")||'<span class="muted">-</span>';
   const inp=(attr,val,ph="")=>`<input class="ubin" type="number" min="0" step="any" inputmode="decimal" ${attr} value="${val||val===0?val:""}" data-orig="${val||val===0?val:""}" placeholder="${ph}">`;
-  const falta=p=>{ const f=faltaBod(p,b), m=minBod(p,b); return f>0?`<span class="pill venc" style="min-width:0">Falta ${fmtPk(f)}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
+  const falta=p=>{ const f=faltaBod(p,b), m=metaBod(p,b); return f>0?`<span class="pill ${critBod(p,b)?"venc":"pv"}" style="min-width:0" title="${critBod(p,b)?"Bajo el mínimo":"Bajo el máximo"}">Falta ${fmtPk(Math.ceil(f-1e-9))}</span>`:m>0?'<span class="pill ok" style="min-width:0">OK</span>':'<span class="muted">-</span>'; };
   const rowT=p=>{ const q=ubPk(p,b.id), share=p.stock?(p.ubic[b.id]||0)/p.stock*100:0;
     return `<tr><td class="prod"><div class="inv-p"><span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span><div><b>${esc(p.nombre)}</b><span class="sub">${p.codigo?esc(p.codigo)+" · ":""}${pkn(p)>1?`pack de ${fmt(pkn(p))} un`:esc(p.unidad)}${p.ubicacion?" · Ubic. "+esc(p.ubicacion):""}</span></div></div></td>
       <td class="n">${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}</td>
       <td class="n">${inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,p.ubic[b.id]||0)}</td>
       <td class="n">${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</td>
+      <td class="n">${inp(`data-ubmax="${p.id}" data-ubb="${b.id}" aria-label="Máximo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,maxBod(p,b)||"","—")}</td>
       <td class="c">${falta(p)}</td>
       <td>${otras(p)}</td>
       <td class="n"><b>${fmtPk(stkPk(p))}</b><div class="mbar" title="${Math.round(share)}% está en esta bodega"><i style="width:${share}%;background:${pkColor(b.id)}"></i></div></td>
@@ -3597,13 +3603,15 @@ function viewInvBodega(b){
       <div class="inv-c"><label>Packs${inp(`data-ubq="${p.id}" data-ubb="${b.id}" aria-label="Packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,q)}</label>
         <label>Unidades${inp(`data-ubs="${p.id}" data-ubb="${b.id}" aria-label="Unidades de ${esc(p.nombre)} en ${esc(b.nombre)}"`,p.ubic[b.id]||0)}</label>
         <label>Mínimo (packs)${inp(`data-ubmin="${p.id}" data-ubb="${b.id}" aria-label="Mínimo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,minBod(p,b)||"","—")}</label>
+        <label>Máximo (packs)${inp(`data-ubmax="${p.id}" data-ubb="${b.id}" aria-label="Máximo en packs de ${esc(p.nombre)} en ${esc(b.nombre)}"`,maxBod(p,b)||"","—")}</label>
         <label>Total general<b>${fmtPk(stkPk(p))} <small>packs</small></b><small>${fmt(p.stock)} un</small></label></div>
       <div class="inv-o">${otras(p)}</div></div>`; };
+  const panel=b.tipo==='reposicion'?avPanelRepo(b):"";
   const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
   const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${M?mzSwitch(b,M):""}${invToolbar(extra)}
       <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> o las <b>unidades</b> que hay en <b>${esc(b.nombre)}</b> (se completan solas entre sí) y el mínimo en packs. Las unidades son las que usa el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
-    <div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:980px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí · Packs</span></th><th class="n"><span>Aquí · Unidades</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="c"><span>Estado</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total · Packs</span></th><th class="n"><span>Total · Unidades</span></th></tr></thead>
+    ${panel}<div class="card" style="margin-top:14px">${n?`<div class="tbl-wrap inv-tbl" style="max-height:none"><table class="db" style="min-width:1060px"><thead><tr><th><span>Producto</span></th><th class="n"><span>Aquí · Packs</span></th><th class="n"><span>Aquí · Unidades</span></th><th class="n"><span>Mínimo (packs)</span></th><th class="n"><span>Máximo (packs)</span></th><th class="c"><span>Falta para el máximo</span></th><th><span>En otras bodegas (packs)</span></th><th class="n"><span>Total · Packs</span></th><th class="n"><span>Total · Unidades</span></th></tr></thead>
       <tbody>${rows.map(rowT).join("")}</tbody></table></div><div class="pcards icards">${rows.map(cardT).join("")}</div>${pag}`:vacio}</div>`;
 }
 function viewInvComparar(bs){
@@ -3618,7 +3626,7 @@ function viewInvComparar(bs){
       <tfoot><tr><td><b>Total</b></td>${bs.map(b=>`<td class="n"><b>${totB(b)}</b></td><td class="n"><b>${fmt(uniBod(b))}</b></td>`).join("")}<td class="n"><b>${fmt(totG)}</b></td><td class="n"><b>${fmt(totU)}</b></td><td></td></tr></tfoot></table></div>${pag}`:`<div class="empty">Sin coincidencias.</div>`}</div>`;
 }
 // Redibuja salvo que el usuario esté escribiendo en otra casilla de stock (no perder lo que teclea).
-function refrescarInv(){ setTimeout(()=>{ const ae=document.activeElement; if(!(ae&&ae.dataset&&(ae.dataset.ubq!==undefined||ae.dataset.ubmin!==undefined||ae.dataset.ubs!==undefined))) render(true); },220); }
+function refrescarInv(){ setTimeout(()=>{ const ae=document.activeElement; if(!(ae&&ae.dataset&&(ae.dataset.ubq!==undefined||ae.dataset.ubmin!==undefined||ae.dataset.ubmax!==undefined||ae.dataset.ubs!==undefined))) render(true); },220); }
 async function ajustarUbic(prodId, bodId, packsVal, unidadesVal){
   const p=S.productos.find(x=>x.id===prodId); if(!p) return;
   const old=p.ubic[bodId]||0;
@@ -3649,6 +3657,24 @@ async function fijarMinUbic(prodId, bodId, val){
   catch{ toast("No se pudo guardar. Revisa tu conexión."); }
   refrescarInv();
 }
+// Panel "Para reponer": qué falta en esta bodega para llegar al máximo (lo que hay que pedir)
+function avPanelRepo(b){
+  const l=S.productos.map(p=>({p,hay:ubPk(p,b.id),mn:minBod(p,b),mx:maxBod(p,b),f:Math.ceil(faltaBod(p,b)-1e-9)})).filter(x=>x.f>0).sort((a,c)=>(critBod(c.p,b)-critBod(a.p,b))||(c.f-a.f)||a.p.nombre.localeCompare(c.p.nombre,"es"));
+  const total=l.reduce((a,x)=>a+x.f,0), conMeta=S.productos.filter(p=>metaBod(p,b)>0).length, ok=conMeta-l.length;
+  if(!conMeta) return `<div class="card rp-panel" style="margin-top:14px"><h3>Para reponer ${esc(b.nombre)}</h3><p class="mini-empty">Define el <b>mínimo</b> y el <b>máximo</b> (en packs) de cada producto en la tabla de abajo y aquí verás cuánto falta para que quede todo OK.</p></div>`;
+  return `<div class="card rp-panel" style="margin-top:14px"><div class="rp-h"><div><h3>Para reponer ${esc(b.nombre)}</h3><p class="mini" style="margin:2px 0 0">${l.length?`Faltan <b>${fmt(total)} packs</b> en ${l.length} producto${l.length===1?"":"s"} para llegar al máximo · ${ok} de ${conMeta} ya están OK.`:`Todo en su máximo: ${conMeta} de ${conMeta} productos OK.`}</p></div>${l.length?`<button class="btn soft sm" type="button" data-invcopiarrepo="${esc(b.id)}">Copiar lista para pedir</button>`:""}</div>
+    ${l.length?`<div class="tbl-wrap" style="max-height:none"><table class="db"><thead><tr><th><span>Producto</span></th><th class="n"><span>Hay (packs)</span></th><th class="n"><span>Mínimo</span></th><th class="n"><span>Máximo</span></th><th class="n"><span>Pedir (packs)</span></th><th class="c"><span>Estado</span></th></tr></thead><tbody>${l.slice(0,60).map(x=>`<tr><td class="prod"><b>${esc(x.p.nombre)}</b><span class="sub">${esc(x.p.codigo||"")}</span></td><td class="n">${fmtPk(x.hay)}</td><td class="n">${x.mn?fmtPk(x.mn):"—"}</td><td class="n">${x.mx?fmtPk(x.mx):"—"}</td><td class="n"><b>${fmt(x.f)}</b></td><td class="c"><span class="pill ${critBod(x.p,b)?"venc":"pv"}" style="min-width:0">${critBod(x.p,b)?"Bajo el mínimo":"Bajo el máximo"}</span></td></tr>`).join("")}</tbody></table></div>${l.length>60?`<p class="mini">Hay ${l.length-60} más en la tabla de abajo.</p>`:""}`:""}</div>`;
+}
+async function fijarMaxUbic(prodId, bodId, val){
+  const p=S.productos.find(x=>x.id===prodId); if(!p) return;
+  const v=Math.max(0,Math.round((parseFloat(val)||0)*100)/100), maxUbic={...(p.maxUbic||{})};
+  if(v===maxBod(p,{id:bodId})){ refrescarInv(); return; }
+  const mn=minBod(p,{id:bodId}); if(v>0 && mn>0 && v<mn){ toast("El máximo no puede ser menor que el mínimo ("+fmtPk(mn)+")."); refrescarInv(); return; }
+  if(v>0) maxUbic[bodId]=v; else delete maxUbic[bodId];
+  try{ await Store.putProducto({...p, maxUbic, actualizado:new Date().toISOString()}); }
+  catch{ toast("No se pudo guardar. Revisa tu conexión."); }
+  refrescarInv();
+}
 function armarPickingRellenar(bid){
   const b=S.bodegas.find(x=>x.id===bid), orig=bods("reposicion")[0]; if(!b||!orig) return;
   const lineas=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>({id:p.id, cantidad:String(Math.ceil(faltaBod(p,b)*pkn(p)))}));   // el picking se hace en unidades
@@ -3675,7 +3701,7 @@ async function exportarInv(){
   if(!Store.dl || !window.XLSX) return;
   const {bs,b,ps}=invDatos(); if(!ps.length) return;
   const data=b
-    ? ps.map(p=>({"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UBICACIÓN":p.ubicacion||"","PACKS":Math.round(ubPk(p,b.id)*100)/100,"UN/PACK":pkn(p),"UNIDADES":p.ubic[b.id]||0,"MÍNIMO (PACKS)":minBod(p,b),"FALTA (PACKS)":Math.round(faltaBod(p,b)*100)/100,"TOTAL GENERAL (PACKS)":Math.round(stkPk(p)*100)/100}))
+    ? ps.map(p=>({"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UBICACIÓN":p.ubicacion||"","PACKS":Math.round(ubPk(p,b.id)*100)/100,"UN/PACK":pkn(p),"UNIDADES":p.ubic[b.id]||0,"MÍNIMO (PACKS)":minBod(p,b),"MÁXIMO (PACKS)":maxBod(p,b),"FALTA PARA EL MÁXIMO (PACKS)":Math.round(faltaBod(p,b)*100)/100,"TOTAL GENERAL (PACKS)":Math.round(stkPk(p)*100)/100}))
     : ps.map(p=>{ const r={"CÓDIGO":p.codigo,"PRODUCTO":p.nombre,"UND":p.unidad}; bs.forEach(x=>{ r[x.nombre.toUpperCase()]=Math.round(ubPk(p,x.id)*100)/100; }); r["TOTAL GENERAL (PACKS)"]=Math.round(stkPk(p)*100)/100; return r; });
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), (b?b.nombre:"Todas").slice(0,30));
   const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"}), hoy=new Date().toISOString().slice(0,10);
@@ -3857,6 +3883,7 @@ C.addEventListener("click",e=>{
   if(mzClick(t)) return;
   if(smClick(t)) return;
   if(avClick(t)) return;
+  const cr=t.closest("[data-invcopiarrepo]"); if(cr){ const b=S.bodegas.find(x=>x.id===cr.dataset.invcopiarrepo); if(b){ const l=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>`• ${p.nombre}: pedir ${Math.ceil(faltaBod(p,b)-1e-9)} pack${Math.ceil(faltaBod(p,b)-1e-9)===1?"":"s"} (hay ${fmtPk(ubPk(p,b.id))}, máximo ${fmtPk(maxBod(p,b)||minBod(p,b))})`).join("\n"); (navigator.clipboard?navigator.clipboard.writeText("Para reponer "+b.nombre+":\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); } return; }
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
   const g=t.closest("[data-go]"); if(g) return go(g.dataset);
   const nw=t.closest("[data-new]"); if(nw) return nuevoForm(nw.dataset.new);
@@ -3910,7 +3937,7 @@ C.addEventListener("click",e=>{
   const ebod=t.closest("[data-editbod]"); if(ebod) return openBod(ebod.dataset.editbod);
   const row=t.closest("tr[data-row]"); if(row && !t.closest("button,input,label,a,select")){ S.open = S.open===row.dataset.row ? null : row.dataset.row; S.saved=null; render(); }
 });
-const esUb = t => t && t.dataset && (t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined || t.dataset.ubs!==undefined);
+const esUb = t => t && t.dataset && (t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined||t.dataset.ubmax!==undefined || t.dataset.ubs!==undefined);
 C.addEventListener("focusin",e=>{ if(esUb(e.target)) S.ubBusy=true; });
 C.addEventListener("focusout",e=>{ const t=e.target; if(!esUb(t)) return;
   S.ubBusy=true; setTimeout(()=>{ S.ubBusy=esUb(document.activeElement); },150);   // si pasa a otra casilla, no se redibuja
@@ -3919,9 +3946,10 @@ C.addEventListener("focusout",e=>{ const t=e.target; if(!esUb(t)) return;
   if(t.dataset.ubq!==undefined || t.dataset.ubs!==undefined){
     const qc=q&&q.value!==q.dataset.orig, uc=sl&&sl.value!==sl.dataset.orig;
     ajustarUbic(t.dataset.ubq??t.dataset.ubs, t.dataset.ubb, qc?q.value:undefined, uc?sl.value:undefined);
-  } else fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
+  } else if(t.dataset.ubmax!==undefined) fijarMaxUbic(t.dataset.ubmax, t.dataset.ubb, t.value);
+  else fijarMinUbic(t.dataset.ubmin, t.dataset.ubb, t.value);
 });
-C.addEventListener("wheel",e=>{ const t=e.target; if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined||t.dataset.ubs!==undefined)) t.blur(); },{passive:true});
+C.addEventListener("wheel",e=>{ const t=e.target; if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined||t.dataset.ubmax!==undefined||t.dataset.ubs!==undefined)) t.blur(); },{passive:true});
 let tIn;
 C.addEventListener("input",e=>{
   const t=e.target, id=t.id, v=t.value;
@@ -3970,7 +3998,7 @@ C.addEventListener("keydown",e=>{
   if(t.dataset && t.dataset.ef!==undefined && e.key==="Escape"){ S.open=null; render(true); }
   if(t.id==="pkPick" && e.key==="Enter"){ e.preventDefault(); const r=buscarProd(t.value).filter(p=>(p.ubic[S.pkOrig]||0)>0);
     if(r[0]){ S.pkq=""; addLineaPk(r[0].id); } else if(t.value.trim()){ S.pkErr=`No hay stock de "${t.value.trim()}" en ${bodNom(S.pkOrig)}.`; render(true); } }
-  if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined||t.dataset.ubs!==undefined) && e.key==="Enter"){ e.preventDefault(); t.blur(); }
+  if(t.dataset && (t.dataset.ubq!==undefined||t.dataset.ubmin!==undefined||t.dataset.ubmax!==undefined||t.dataset.ubs!==undefined) && e.key==="Enter"){ e.preventDefault(); t.blur(); }
   if(t.dataset && t.dataset.pkq!==undefined && e.key==="Enter"){ e.preventDefault(); $("#pkPick")?.focus(); }
 });
 C.addEventListener("change",e=>{
@@ -3985,7 +4013,7 @@ C.addEventListener("change",e=>{
   if(S.form && t.dataset.ff){ S.form[t.dataset.ff]=v; if(t.dataset.ff==="bod") render(true); return; }
   if(t.dataset.msel!==undefined){ t.checked?S.msel.add(t.dataset.msel):S.msel.delete(t.dataset.msel); render(true); return; }
   if(t.hasAttribute("data-mselall")){ [...C.querySelectorAll("[data-msel]")].forEach(x=>{ t.checked?S.msel.add(x.dataset.msel):S.msel.delete(x.dataset.msel); }); render(true); return; }
-  if(t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined || t.dataset.ubs!==undefined) return;   // se guardan al salir de la casilla (focusout), no con cada clic de las flechitas
+  if(t.dataset.ubq!==undefined || t.dataset.ubmin!==undefined||t.dataset.ubmax!==undefined || t.dataset.ubs!==undefined) return;   // se guardan al salir de la casilla (focusout), no con cada clic de las flechitas
   if(t.hasAttribute("data-invall")){ S.invAll=t.checked; S.page=1; render(true); return; }
   if(t.dataset.ef!==undefined) return saveInline(t);
   if(t.dataset.effoto!==undefined) return cambiarFotoInline(t.dataset.effoto, t.files[0]);
@@ -4009,7 +4037,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "70", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "71", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:

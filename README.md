@@ -83,3 +83,6 @@ En la app hay un botón **Descargar la app** (en el menú lateral, en **Más** d
 
 ## Avisos de reposición (plataforma)
 Los avisos del operario se guardan como documentos `tipo:"aviso"` y llegan en vivo a la plataforma: aparece **Avisos** en el menú con un contador, un cartel en **Resumen** y la pantalla **Avisos de reposición**, con *Elevados al coordinador* (primero), *Pedidos de reposición* y *Atendidos recientes*. Cada aviso se puede **elevar al coordinador** o **marcar como atendido**, y **Copiar lista para pedir** deja en el portapapeles lo elevado para pegarlo en un correo o chat.
+
+## Reposición Piso -3: máximo y cuánto falta
+En **Por bodega → Reposición Piso -3** (y en cualquier bodega sin mapa) cada producto tiene **Mínimo** y **Máximo** en packs. Arriba aparece el panel **Para reponer…**: cuántos packs faltan en total para llegar al máximo, cuántos productos ya están OK y la lista de lo que hay que **pedir** (máximo − lo que hay), primero lo que está bajo el mínimo. **Copiar lista para pedir** deja esa lista en el portapapeles. En la tabla, la columna *Falta para el máximo* muestra **Falta N** (rojo si está bajo el mínimo, naranja si solo está bajo el máximo) u **OK**. Si un producto no tiene máximo se usa el mínimo como meta. El máximo no puede ser menor que el mínimo. Exportar Excel incluye el máximo y lo que falta.
