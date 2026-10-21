@@ -8,9 +8,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Firebase 10.12.2 se sirve desde la propia app (vendor/firebase) para que las redes que bloquean www.gstatic.com no dejen al equipo en modo local -->
+<script src="vendor/firebase/firebase-app-compat.js"></script>
+<script src="vendor/firebase/firebase-auth-compat.js"></script>
+<script src="vendor/firebase/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1358,7 +1359,7 @@ function setSync(estado,pend){
   S.sync={estado,pend:!!pend,at:estado==="ok"?Date.now():((S.sync||{}).at||null)};
   const t=syncTxt(); const a=$("#sync"), m=$("#movilSync"); if(a) a.textContent=t; if(m) m.textContent=t;
   const bn=$("#syncBanner"); if(!bn) return; clearTimeout(S._syncT);
-  const msg=estado==="local"?"Este equipo está en modo local: NO está conectado a la nube, así que lo que ves no se comparte con los demás equipos.":"Sin conexión con el servidor: lo que ves puede estar desactualizado. Los cambios que hagas se guardarán cuando vuelva la conexión.";
+  const msg=estado==="local"?"Este equipo no cargó el servicio de datos (la red o una extensión del navegador lo está bloqueando): está en modo local y lo que ves NO se comparte con los demás equipos.":"Sin conexión con el servidor: lo que ves puede estar desactualizado. Los cambios que hagas se guardarán cuando vuelva la conexión.";
   if(estado==="local"){ $("#syncBannerTxt").textContent=msg; bn.hidden=false; }
   else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg; bn.hidden=false; },6000); }
   else bn.hidden=true;
@@ -4098,7 +4099,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "79", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "80", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:

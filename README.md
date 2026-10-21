@@ -92,3 +92,6 @@ Cada cambio se guarda en la nube (Firestore) y llega a los demás equipos en viv
 
 ## Detalle del producto: stock por bodega en packs o en unidades
 Al abrir un producto en **Productos**, cada bodega tiene dos casillas, **Packs** y **Unidades**. Si cambias las unidades, manda ese total (por ejemplo 102 → 105 queda 17 packs y 3 sueltas); si cambias los packs, se conservan las unidades sueltas que ya había. Cada cambio queda como ajuste manual en Movimientos.
+
+## Modo local y bloqueo de la red
+Las librerías de Firebase (10.12.2) van dentro de la app (`vendor/firebase/`) en vez de cargarse desde www.gstatic.com, para que las redes de empresa que bloquean ese sitio no dejen al equipo en *modo local* (sin compartir datos). Para actualizar la versión: bajar `firebase-app-compat.js`, `firebase-auth-compat.js` y `firebase-firestore-compat.js` de la misma versión del paquete `firebase` y reemplazarlos ahí.
