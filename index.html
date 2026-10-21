@@ -2317,7 +2317,7 @@ function pkTiles(){
   const q=norm(S.pkq);
   let ps=S.productos.filter(p=>(p.ubic[S.pkOrig]||0)>0);
   if(q) ps=ps.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
-  ps=ps.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).slice(0,60);
+  ps=ps.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
   if(!ps.length) return `<div class="mini-empty" style="grid-column:1/-1">${q?"Sin coincidencias en "+esc(bodNom(S.pkOrig))+".":"No hay productos con stock en "+esc(bodNom(S.pkOrig))+"."}</div>`;
   return ps.map(p=>{ const l=S.pkLineas.find(x=>x.id===p.id);
     return `<button type="button" class="pk-tile ${l?"in":""}" data-pkpick="${p.id}" style="--c:${catColor(p.categoria)}">
@@ -2528,7 +2528,7 @@ function smPedido(){
   }
   if(P.paso==="prod"){
     const q=norm(P.q||""), lista=S.productos.filter(p=>smMax(p,P.orig)>0 && (!q || norm(p.nombre+" "+(p.codigo||"")).includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")), n=smNPed();
-    const cards=lista.slice(0,40).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
+    const lim=P.lim||60, cards=lista.slice(0,lim).map(p=>{ const u=P.lineas[p.id]||0, q2=smQty(u,p.packUn), hay=smQty((p.ubic||{})[P.orig]||0,p.packUn).txt;
       const md=smModo(p,P.orig), dos=pkn(p)>1;
       const seg=dos?`<span class="sm-seg" role="group" aria-label="Medir en"><button type="button" class="${md==="pk"?"on":""}" data-smmodo="pk" data-id="${esc(p.id)}" aria-pressed="${md==="pk"}">Packs</button><button type="button" class="${md==="un"?"on":""}" data-smmodo="un" data-id="${esc(p.id)}" aria-pressed="${md==="un"}">Unidades</button></span>`:"";
       const ctl=seg+(u>0 ? `<span class="sm-step"><button type="button" data-smmenos="${esc(p.id)}" aria-label="Quitar ${md==="pk"?"un pack":"una unidad"}">−</button><span class="sm-sn"><b>${q2.n}</b> ${q2.u}${q2.extra?`<small>${q2.extra}</small>`:""}</span><button type="button" data-smmas="${esc(p.id)}" aria-label="Agregar ${md==="pk"?"un pack":"una unidad"}">+</button></span>${dos?`<span class="sm-tot">= ${u} unidades en total</span>`:""}`
@@ -2537,8 +2537,8 @@ function smPedido(){
     return smBarra("¿Qué llevas?","Nuevo pedido · paso 3 de 3",pkColor(P.dest))
       +`<div class="sm-rt2"><div><span>Sacas de</span><b style="--c:${pkColor(P.orig)}">${esc(bodNom(P.orig))}</b></div><i aria-hidden="true">→</i><div><span>Llevas a</span><b style="--c:${pkColor(P.dest)}">${esc(bodNom(P.dest))}</b></div></div>
       <div class="sm-find"><input id="smq" type="search" value="${esc(P.q||"")}" placeholder="Buscar un producto" aria-label="Buscar un producto" autocomplete="off"></div>
-      <p class="sm-inv">Productos que hay en ${esc(bodNom(P.orig))}</p>
-      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}${lista.length>40?`<p class="sm-p" style="margin:6px 4px">Hay más productos: usa el buscador.</p>`:""}</div>
+      <p class="sm-inv">${lista.length} producto${lista.length===1?"":"s"} en ${esc(bodNom(P.orig))}${q?" que coinciden":""}</p>
+      <div class="sm-cards">${cards||`<p class="sm-p" style="margin:10px 4px">${q?"No encuentro ese producto.":"No hay productos con stock en esta bodega."}</p>`}${lista.length>lim?`<button type="button" class="sm-btn2" data-smmasprod style="margin-top:6px">Ver más productos (${lista.length-lim} más)</button>`:""}</div>
       ${n?`<div class="sm-fin"><button type="button" class="sm-btn lista" data-smver-ped>Ver mi pedido (${n})</button></div>`:""}`;
   }
   if(P.paso==="res"){
@@ -2831,6 +2831,7 @@ function smClick(t){
   const o=t.closest("[data-smorig]"); if(o&&P){ if(P.orig!==o.dataset.smorig){ P.lineas={}; P.modo={}; P.dest=null; } P.orig=o.dataset.smorig; P.q=""; P.paso="dest"; return go1(); }
   const d=t.closest("[data-smdest]"); if(d&&P){ P.dest=d.dataset.smdest; P.q=""; P.paso="prod"; return go1(); }
   const ad=t.closest("[data-smadd]"); if(ad&&P){ const p=S.productos.find(x=>x.id===ad.dataset.smadd); if(p){ P.lineas[p.id]=Math.min(smStepUn(p,P.orig),smMax(p,P.orig)); smBip(); render(true); } return true; }
+  if(t.closest("[data-smmasprod]")&&P){ P.lim=(P.lim||60)+60; return go1(); }
   const mo=t.closest("[data-smmodo]"); if(mo&&P){ (P.modo=P.modo||{})[mo.dataset.id]=mo.dataset.smmodo; render(true); return true; }
   const mas=t.closest("[data-smmas]"); if(mas&&P){ const p=S.productos.find(x=>x.id===mas.dataset.smmas); if(p){ const u=(P.lineas[p.id]||0)+smStepUn(p,P.orig);
       if(u>smMax(p,P.orig)) toast(smModo(p,P.orig)==="pk" ? `Solo quedan ${smMax(p,P.orig)-(P.lineas[p.id]||0)} unidades sueltas: toca "Unidades".` : "No hay más de este producto aquí."); else { P.lineas[p.id]=u; smBip(); } render(true); } return true; }
@@ -4045,7 +4046,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "72", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "73", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
