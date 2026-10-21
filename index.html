@@ -2512,9 +2512,18 @@ const smStock = (p,orig) => (p.ubic||{})[orig]||0;
 const smMax = (p,orig) => smStock(p,orig);
 function smModo(p,orig){ const m=(S.smPed.modo||{})[p.id]; return pkn(p)>1 && m!=="un" && !(m==null && smStock(p,orig)<pkn(p)) ? "pk" : "un"; }   // por defecto de a pack; de a unidad si no hay un pack entero
 const smStepUn = (p,orig) => smModo(p,orig)==="pk" ? pkn(p) : 1;
+// Si mientras se arma el pedido el stock de la bodega bajó (otro picking, un ajuste), se quitan o se bajan las líneas que ya no se pueden sacar
+function smLimpiar(){
+  const P=S.smPed; if(!P||!P.orig) return;
+  let quitados=[];
+  Object.keys(P.lineas).forEach(id=>{ const p=S.productos.find(x=>x.id===id), st=p?smStock(p,P.orig):0, u=P.lineas[id];
+    if(!p||st<=0){ delete P.lineas[id]; if(p) quitados.push(p.nombre); }
+    else if(u>st){ P.lineas[id]=Math.max(1,Math.floor(st/smStepUn(p,P.orig))*smStepUn(p,P.orig)); if(P.lineas[id]>st) P.lineas[id]=st; } });
+  if(quitados.length) toast(`Ya no hay stock en ${bodNom(P.orig)}: se quitó ${quitados.join(", ")} del pedido.`);
+}
 const smNPed = () => Object.values(S.smPed.lineas).filter(u=>u>0).length;
 function smPedido(){
-  const P=S.smPed;
+  const P=S.smPed; if(P.paso==='prod'||P.paso==='res') smLimpiar();
   if(P.paso==="orig"){
     return smBarra("¿De qué bodega sacas?","Nuevo pedido · paso 1 de 3")+`<p class="sm-p" style="margin:16px 18px 0">Los productos salen de esta bodega y se descuentan de su inventario.</p>
       <div class="sm-tiles" style="padding-top:14px">${smOrigenesTodos().map(b=>{ const n=S.productos.filter(p=>((p.ubic||{})[b.id]||0)>0).length;
@@ -2552,7 +2561,7 @@ function smPedido(){
   return "";
 }
 async function smRegistrar(){
-  const P=S.smPed, orig=P.orig, dest=P.dest, T=smEsTraspaso(orig,dest);
+  const P=S.smPed, orig=P.orig, dest=P.dest, T=smEsTraspaso(orig,dest); smLimpiar();
   const lines=Object.entries(P.lineas).filter(([,u])=>u>0).map(([id,q])=>({p:S.productos.find(x=>x.id===id),q})).filter(l=>l.p);
   if(!lines.length){ toast("Elige al menos un producto."); return; }
   const x=lines.find(l=>l.q>((l.p.ubic||{})[orig]||0)); if(x){ toast(`No alcanza "${x.p.nombre}" en ${bodNom(orig)}.`); return; }
@@ -4046,7 +4055,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "74", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "75", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
