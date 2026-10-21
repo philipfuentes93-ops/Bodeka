@@ -1058,9 +1058,15 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .rp-panel{padding:16px 18px}.rp-h{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}.rp-h h3{margin:0;font-size:1.05rem}
 .mz-warn{display:block;margin-top:3px;font-size:.74rem;font-weight:700;color:var(--danger)}
 .pk-sin,.sm-sin{margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--warn-soft);color:var(--ink);font-size:.9rem;line-height:1.4}.pk-sin div,.sm-sin div{margin-top:4px}.sm-sin{margin:12px 4px 0;font-size:1.05rem}
+.sync-banner{position:fixed;top:0;left:0;right:0;z-index:2000;display:flex;gap:12px;align-items:center;justify-content:center;padding:9px 14px;background:#B3261E;color:#fff;font-size:.9rem;font-weight:700;text-align:center}
+.sync-banner[hidden]{display:none}
+.sync-banner button{all:unset;cursor:pointer;padding:5px 12px;border-radius:8px;background:#fff;color:#B3261E;font-weight:800}
+.side-foot .sync-btn{display:block;margin:4px 12px 0;font-size:.74rem;color:var(--side-ic)}
+.sm-sync{font-size:1rem;font-weight:700;color:var(--ok);margin-bottom:6px}.sm-sync.mal{color:var(--danger)}
 </style>
 </head>
 <body>
+<div class="sync-banner" id="syncBanner" role="status" hidden><span id="syncBannerTxt"></span><button type="button" id="syncRetry">Reintentar</button></div>
 <div class="app">
   <aside class="side" id="side" aria-label="Menú principal">
     <div class="brand"><span class="bmark" aria-hidden="true">D<i></i></span><span class="bname">Depósito<small>picking &amp; inventarios</small></span></div>
@@ -1082,7 +1088,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
         <div><b id="acctName"></b><span id="acctEmail"></span></div>
         <button id="outBtn" title="Cerrar sesión"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/></svg></button>
       </div>
-      <span class="sync" id="sync">Conectando…</span>
+      <span class="sync" id="sync">Conectando…</span><button type="button" class="link sync-btn" id="syncBtn">Actualizar datos</button>
     </div>
   </aside>
   <div class="main">
@@ -1344,8 +1350,26 @@ const bodegas = () => [...new Set(S.productos.map(p=>p.bodega).filter(Boolean))]
 /* ---------- Storage ---------- */
 // Firestore queues writes offline and syncs later, so we don't block the UI waiting for the server.
 const syncErr = e => toast(e && e.code==="permission-denied" ? "Tu cuenta no tiene permiso para guardar cambios." : "Un cambio no se pudo sincronizar. Revisa tu conexión.");
+// Estado de la conexión con el servidor: se ve en el menú, en el panel del operario y, si falla, en un cartel arriba
+const syncHora = () => S.sync&&S.sync.at?new Date(S.sync.at).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hour12:false}):"";
+const syncTxt = () => { const e=(S.sync||{}).estado; return e==="ok"?(S.sync.pend?"Subiendo cambios…":`Sincronizado · ${syncHora()}`):e==="cache"?"Sin conexión · estos datos pueden estar desactualizados":e==="local"?"Modo local · este equipo NO está conectado":"Conectando…"; };
+function setSync(estado,pend){
+  S.sync={estado,pend:!!pend,at:estado==="ok"?Date.now():((S.sync||{}).at||null)};
+  const t=syncTxt(); const a=$("#sync"), m=$("#movilSync"); if(a) a.textContent=t; if(m) m.textContent=t;
+  const bn=$("#syncBanner"); if(!bn) return; clearTimeout(S._syncT);
+  const msg=estado==="local"?"Este equipo está en modo local: NO está conectado a la nube, así que lo que ves no se comparte con los demás equipos.":"Sin conexión con el servidor: lo que ves puede estar desactualizado. Los cambios que hagas se guardarán cuando vuelva la conexión.";
+  if(estado==="local"){ $("#syncBannerTxt").textContent=msg; bn.hidden=false; }
+  else if(estado==="cache"){ S._syncT=setTimeout(()=>{ $("#syncBannerTxt").textContent=msg; bn.hidden=false; },6000); }
+  else bn.hidden=true;
+}
 const Store = {
   db:null,
+  async reconectar(){
+    if(!this.db){ toast(S.sync&&S.sync.estado==="local"?"Este equipo está en modo local: no hay conexión con la nube.":"Aún no hay sesión iniciada."); return; }
+    toast("Actualizando datos…");
+    try{ await this.db.disableNetwork(); await this.db.enableNetwork(); await this.db.collection("productos").get({source:"server"}); toast("Datos al día."); }
+    catch{ toast("No hay conexión con el servidor. Revisa el wifi o la red de este equipo."); }
+  },
   local(){ try{ return {productos:[],movs:[],docs:[],bodegas:[], ...JSON.parse(localStorage.getItem("inv-bodegas")||"{}")} }catch{ return {productos:[],movs:[],docs:[],bodegas:[]} } },
   saveLocal(){ try{ localStorage.setItem("inv-bodegas", JSON.stringify({productos:S.productos, movs:S.movs.slice(0,500), docs:S.docs.slice(0,500), bodegas:S.bodegas})) }catch{} },
   async init(){
@@ -1354,9 +1378,10 @@ const Store = {
     // Standalone download (replaces the claude.ai downloads capability)
     this.dl={ async save({filename,data}){ const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data])); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); } };
     $("#expBtn").hidden=false;
+    $("#syncBtn").onclick=()=>Store.reconectar(); $("#syncRetry").onclick=()=>Store.reconectar();
     const cfg=window.FIREBASE_CONFIG;
     if(!window.firebase || !cfg || !cfg.apiKey || /PEGAR/i.test(cfg.apiKey)){
-      $("#sync").textContent="Modo local (sin Firebase)"; render(false); return;
+      setSync("local"); render(false); return;
     }
     firebase.initializeApp(cfg);
     const db=firebase.firestore();
@@ -1387,6 +1412,7 @@ const Store = {
       catch(e){ $("#lErr").textContent="No se pudo enviar: "+e.message; }
     };
     $("#outBtn").onclick=()=>auth.signOut();
+    window.addEventListener("online",()=>Store.reconectar());
     let unsub=[];
     auth.onAuthStateChanged(user=>{
       unsub.forEach(u=>u()); unsub=[];
@@ -1400,9 +1426,9 @@ const Store = {
         if(user.photoURL){ av.style.backgroundImage=`url(${user.photoURL})`; av.textContent=""; }
         else{ av.style.backgroundImage=""; av.textContent=inicial; }
       });
-      this.db=db; $("#sync").textContent="Conectando…";
-      const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else $("#sync").textContent="Sin conexión"; };
-      unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); $("#sync").textContent=snap.metadata.fromCache?"Sin conexión · cambios en cola":"Sincronizado"; this.saveLocal(); render(false); }, denied));
+      this.db=db; setSync("conectando");
+      const denied=e=>{ if(e&&e.code==="permission-denied"){ $("#lErr").textContent=`La cuenta ${user.email} no tiene acceso. Pide que la agreguen a la lista autorizada.`; auth.signOut(); } else setSync("cache"); };
+      unsub.push(db.collection("productos").onSnapshot(snap=>{ S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); setSync(snap.metadata.fromCache?"cache":"ok",snap.metadata.hasPendingWrites); this.saveLocal(); render(false); }, denied));
       unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
@@ -2466,7 +2492,7 @@ const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style
 /* ---------- inicio ---------- */
 function smLista(){
   return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>${smRellCtx()?`<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-rell" data-rlabrir>Rellenar picking${smRellN()?`<span class="rl-badge">${smRellN()}</span>`:""}</button></div>`:""}<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-avis" data-avabrir>Avisos de inventario${avAlertas().length?`<span class="rl-badge">${Math.min(99,avAlertas().length)}</span>`:""}</button></div><div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
-    +`<footer class="sm-foot"><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
+    +`<footer class="sm-foot"><div class="sm-sync ${(S.sync||{}).estado==="ok"?"":"mal"}">Datos: ${esc(syncTxt())}</div><button type="button" class="link" data-smsync>Actualizar datos</button><br><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
 }
 
 /* ---------- mis pedidos: detalle fijo y listado ---------- */
@@ -2871,6 +2897,7 @@ function smClick(t){
     }
     if(S.smVer) S.smVer=null; else { S.smSec=false; S.smUlt=null; }
     return go1(); }
+  if(t.closest("[data-smsync]")){ Store.reconectar(); return true; }
   if(t.closest("[data-smupd]")){ buscarActualizacion(); return true; }
   if(t.closest("[data-smsalir]")){ smSalir(); return true; }
   if(t.closest("[data-simple-on]")){ smActivar(); return true; }
@@ -3825,7 +3852,7 @@ function openMovilSheet(){
   $("#movilAcctAv").textContent=$("#acctAv").textContent;
   $("#movilAcctName").textContent=$("#acctName").textContent||"Depósito";
   $("#movilAcctEmail").textContent=$("#acctEmail").textContent;
-  $("#movilSync").textContent=$("#sync").textContent;
+  $("#movilSync").textContent=syncTxt();
   $("#movilMas").hidden=false;
 }
 $("#movilMasBtn").addEventListener("click",openMovilSheet);
@@ -4063,7 +4090,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "76", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "77", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
