@@ -104,3 +104,6 @@ Firestore trabaja con una conexión continua que algunas redes de empresa cortan
 
 ## Avisos que se cierran solos
 Cuando el producto ya se repuso (por ejemplo al registrar una recepción), su aviso **Sin stock** o **Crítico** se marca como *repuesto* y pasa a *Atendidos recientes*; **Por vencer** se cierra si cambia el vencimiento o se acaba el stock. El stock que se muestra en cada aviso es el actual, no el de cuando se creó.
+
+## Stock que no se pisa entre equipos
+Recepciones, despachos, pickings, traspasos y entradas/salidas rápidas ya no envían el "stock final" del producto sino **solo lo que suma o resta en cada bodega** (incremento atómico de Firestore). Así, si un celular tiene datos atrasados o dos equipos mueven stock a la vez, no se borran los cambios entre sí (antes el último en guardar pisaba todo el producto). Los **conteos físicos y ajustes** siguen guardando el valor contado.

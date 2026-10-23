@@ -1392,6 +1392,7 @@ async function fsQuery(col,orden,limite){
   return (j||[]).filter(x=>x.document).map(x=>({id:x.document.name.split("/").pop(),...fsObj(x.document.fields)}));
 }
 const fsName = (col,id) => `${FS()}/${col}/${encodeURIComponent(id)}`;
+const difUbic = (a,b) => { const d={}; new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>{ const n=(b[k]||0)-((a||{})[k]||0); if(n) d[k]=n; }); return d; };   // cambio por bodega entre dos stocks
 const Store = {
   db:null,
   rest:false,
@@ -1583,6 +1584,31 @@ const Store = {
     });
     render(false);
   },
+  // Suma o resta unidades en una bodega SIN pisar el resto del producto: se envía "+N" (incremento) y no el stock final,
+  // así dos equipos que mueven stock a la vez (o uno con datos atrasados) no se borran los cambios entre sí.
+  async moverStock(id, delta, extra){
+    const cur=S.productos.find(x=>x.id===id); if(!cur) return null;
+    delta=Object.fromEntries(Object.entries(delta||{}).map(([b,n])=>[b,Math.round(+n||0)]).filter(([,n])=>n!==0));
+    const now=new Date().toISOString(), ex=extra||{}, ubic={...cur.ubic};
+    Object.entries(delta).forEach(([b,n])=>{ ubic[b]=Math.max(0,(ubic[b]||0)+n); });
+    const p=fixProd({...cur,...ex,ubic,actualizado:now});
+    const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
+    this.saveLocal();
+    if(this.db){
+      const campo=b=>"ubic."+(/^[A-Za-z_][A-Za-z0-9_]*$/.test(b)?b:"`"+b.replace(/`/g,"\\`")+"`");
+      if(this.rest){
+        const w={update:{name:fsName("productos",id),fields:fsFields({...ex,actualizado:now})},updateMask:{fieldPaths:[...Object.keys(ex),"actualizado"]},
+          updateTransforms:Object.entries(delta).map(([b,n])=>({fieldPath:campo(b),increment:{integerValue:String(n)}}))};
+        await fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[w]})}).then(()=>this.sondear()).catch(syncErr);
+      }else{
+        const inc=firebase.firestore.FieldValue.increment, upd={...ex,actualizado:now};
+        Object.entries(delta).forEach(([b,n])=>{ upd[campo(b)]=inc(n); });
+        this.db.doc("productos/"+id).update(upd).catch(e=>{ if(e&&e.code==="not-found"){ const {id:_,...body}=p; this.db.doc("productos/"+id).set(body).catch(syncErr); } else syncErr(e); });
+      }
+    }
+    render(false);
+    return p;
+  },
   async putProducto(p){
     p = fixProd(p);   // asegura ubic/packUn/stock consistentes venga de donde venga (diálogo, import, movimiento)
     const {id,...body}=p;
@@ -1769,7 +1795,8 @@ $("#fMov").addEventListener("submit", async e=>{
   if(movT==="entrada" && $("#mVenc").value) p.vencimiento=$("#mVenc").value;
   try{
     $("#mSave").disabled=true;
-    await Store.putProducto(p);
+    if(movT==="ajuste") await Store.putProducto(p);   // el conteo físico es un valor absoluto
+    else { const q=await Store.moverStock(movP.id,{[movU]:movT==="entrada"?c:-c},movT==="entrada"&&$("#mVenc").value?{vencimiento:$("#mVenc").value}:{}); if(q){ p.stock=q.stock; } }
     await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,cantidadPack:r.cp,sueltas:r.sl,stockFinal:p.stock,nota:[bodNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
     $("#dMov").close(); toast(movT==="entrada"?"Entrada registrada":movT==="salida"?"Salida registrada":"Conteo guardado");
   }catch{ $("#mErr").textContent="No se pudo registrar. Revisa tu conexión e inténtalo de nuevo."; }
@@ -2361,9 +2388,8 @@ async function confirmarDoc(){
     const stockFinal={};
     for(const [id,u] of mapa){ if(!u) continue;
       const cur=S.productos.find(x=>x.id===id), l=lines.find(x=>x.id===id);
-      const p={...cur, ubic:u, stock:Object.values(u).reduce((a,n)=>a+n,0), actualizado:now};
-      if(f.tipo==="recepcion" && l && l.venc) p.vencimiento=l.venc;
-      await Store.putProducto(p); stockFinal[id]=p.stock;
+      const p=await Store.moverStock(id, difUbic(cur.ubic,u), f.tipo==="recepcion" && l && l.venc ? {vencimiento:l.venc} : {});
+      stockFinal[id]=p.stock;
     }
     if(edit) for(const m of S.movs.filter(m=>m.folio===folio && m.tipo===D.mov)) await Store.delMov(m.id);
     for(const l of lines){
@@ -2587,8 +2613,7 @@ async function confirmarPicking(){
       const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q};
       const rp=gen?reparto(l):{[dest]:l.q};
       Object.entries(rp).forEach(([k,n])=>{ if(!esCooler(k)) ubic[k]=(ubic[k]||0)+n; });   // a un cooler solo sale: no se lleva su stock
-      const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
-      await Store.putProducto(p);
+      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic));
       const det=gen?Object.entries(rp).map(([k,n])=>`${bodNom(k)}: ${fmt(n)}`).join(", "):bodNom(dest);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:T?"traspaso":"picking",cantidad:l.q,stockFinal:p.stock,
         nota:`${folio} · ${T?"Traspaso interno":"Picking"} de ${bodNom(orig)} a ${gen?"General ("+det+")":det}${esCooler(dest)||gen?" · sale a cooler":""}`,fecha:now,folio}, true);
@@ -2749,8 +2774,7 @@ async function smRegistrar(){
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.p.id)||l.p, ubic={...cur.ubic,[orig]:(cur.ubic[orig]||0)-l.q};
       if(!esCooler(dest)) ubic[dest]=(ubic[dest]||0)+l.q;   // a un cooler solo sale: no se lleva su stock
-      const p={...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now};
-      await Store.putProducto(p);
+      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic));
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:T?"traspaso":"picking",cantidad:l.q,stockFinal:p.stock,
         nota:`${folio} · ${T?"Traspaso interno":"Picking"} de ${bodNom(orig)} a ${bodNom(dest)}${esCooler(dest)?" · sale a cooler":""}`,fecha:now,folio}, true);
     }
@@ -4249,7 +4273,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "84", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "85", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
