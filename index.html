@@ -2875,8 +2875,24 @@ function smRellView(){
    nivel "reposicion": pedido de reponer (lo ve quien repone). nivel "coordinador": el operario lo eleva para que el coordinador pida el producto. */
 const AV_MOT = {sin:"Sin stock", crit:"Crítico", venc:"Por vencer", vencido:"Vencido", falta:"Falta producto"};
 const avDocs = () => S.docs.filter(d=>d.tipo==="aviso");
-const avActivos = () => avDocs().filter(d=>d.estado!=="atendido");
-const avAbierto = (pid,mot) => avDocs().find(d=>d.productoId===pid && d.motivo===mot && d.estado!=="atendido");
+// Un aviso queda resuelto solo cuando el producto ya se repuso (por ejemplo, al recibir mercadería)
+function avResuelto(d){
+  if(d.estado==="atendido") return true;
+  const p=S.productos.find(x=>x.id===d.productoId); if(!p) return false;
+  const stk=stkPk(p);
+  if(d.motivo==="sin") return stk>0;
+  if(d.motivo==="crit") return stk>=(+p.minimo||0) && stk>0 && ![...bods("reposicion"),...bods("picking")].some(b=>critBod(p,b));
+  if(d.motivo==="venc"||d.motivo==="vencido") return stk<=0 || (d.vence||"")!==(p.vencimiento||"");
+  return false;
+}
+const avActivos = () => avDocs().filter(d=>!avResuelto(d));
+const avAbierto = (pid,mot) => avDocs().find(d=>d.productoId===pid && d.motivo===mot && !avResuelto(d));
+// Guarda como atendidos los avisos que ya se resolvieron (se hace una vez por aviso, un momento después de cada actualización)
+let avTimer=null; const avCerrados=new Set();
+function avRevisar(){
+  clearTimeout(avTimer);
+  avTimer=setTimeout(()=>{ if(!Store.db) return; avDocs().filter(d=>d.estado!=="atendido" && avResuelto(d) && !avCerrados.has(d.id)).forEach(d=>{ avCerrados.add(d.id); avGuardar({...d,estado:"atendido",atendidoEn:new Date().toISOString(),auto:true}); }); },1500);
+}
 function avAlertas(){
   const out=[], bs=[...bods("reposicion"),...bods("picking")];
   S.productos.forEach(p=>{
@@ -2917,7 +2933,7 @@ function smAvisosView(){
   const seg=`<div class="sm-seg rl-seg av-seg" role="group" aria-label="Qué ver">${tabs.map(([k,n,l])=>`<button type="button" class="${cur[0]===k?"on":""}" data-avvista="${k}" aria-pressed="${cur[0]===k}">${n}<small>${l.length}</small></button>`).join("")}</div>`;
   let cuerpo;
   if(cur[0]==="mis"){ const l=[...avDocs()].sort((a,b)=>String(b.creado).localeCompare(String(a.creado))).slice(0,30);
-    cuerpo=l.length?`<div class="rl-cards">${l.map(d=>`<div class="rl-card ${d.estado==="atendido"?"ok":"mid"}"><div class="rl-nm">${esc(d.nombre)}</div><span class="rl-chip av-${d.motivo}">${AV_MOT[d.motivo]||""}</span><div class="rl-left ${d.estado==="atendido"?"ok":"mid"}">${d.estado==="atendido"?"✓ Atendido":d.estado==="elevado"?"El coordinador está avisado":"Aviso enviado"} · ${avHace(d.creado)}</div></div>`).join("")}</div>`:`<p class="sm-p" style="margin:14px 18px">Aún no has enviado avisos.</p>`; }
+    cuerpo=l.length?`<div class="rl-cards">${l.map(d=>`<div class="rl-card ${avResuelto(d)?"ok":"mid"}"><div class="rl-nm">${esc(d.nombre)}</div><span class="rl-chip av-${d.motivo}">${AV_MOT[d.motivo]||""}</span><div class="rl-left ${avResuelto(d)?"ok":"mid"}">${avResuelto(d)?"✓ Ya se repuso":d.estado==="elevado"?"El coordinador está avisado":"Aviso enviado"} · ${avHace(d.creado)}</div></div>`).join("")}</div>`:`<p class="sm-p" style="margin:14px 18px">Aún no has enviado avisos.</p>`; }
   else cuerpo=lista.length?`<div class="rl-cards">${lista.map(smAvCard).join("")}</div>`:`<div class="sm-vacio" style="padding-top:26px"><div class="sm-okc" aria-hidden="true">✓</div><h1 class="sm-h" style="margin:14px 0 6px">Todo en orden</h1><p class="sm-p">No hay productos ${cur[0]==="sin"?"sin stock":cur[0]==="crit"?"en estado crítico":"por vencer"}.</p></div>`;
   const q=norm(V.q||""), res=q?S.productos.filter(p=>norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
   const otro=`<div class="av-otro"><h2 class="sm-h2" style="margin-top:6px">Avisar otro producto</h2><p class="sm-p" style="margin:0 0 8px">¿Falta algo que no está en la lista? Búscalo y avisa.</p>
@@ -2938,8 +2954,8 @@ function avBanner(){
   return `<div class="av-banner"><span class="av-bell" aria-hidden="true">${ICON.bell}</span><div><b>${c.todos} aviso${c.todos===1?"":"s"} de reposición sin atender</b>${c.elev?`<span> · ${c.elev} elevado${c.elev===1?"":"s"} al coordinador</span>`:""}</div><button class="btn brand sm" type="button" data-go="avisos">Ver avisos</button></div>`;
 }
 function avFila(d){
-  const venc=d.motivo==="venc"||d.motivo==="vencido";
-  return `<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${esc(d.codigo||"")} · ${esc(d.detalle||"")}</span></div>
+  const venc=d.motivo==="venc"||d.motivo==="vencido", pr=S.productos.find(x=>x.id===d.productoId);
+  return `<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${esc(d.codigo||"")} · ${esc(pr?avDet(pr)+" packs (stock actual)":(d.detalle||""))}</span></div>
     <span class="pill ${d.motivo==="sin"||d.motivo==="vencido"?"venc":"pv"}">${AV_MOT[d.motivo]||""}</span>
     <span class="av-f">${venc?(d.vence?`Vence ${fFecha(d.vence)}`:""):(d.faltan?`Faltan ${d.faltan} pack${d.faltan===1?"":"s"}`:"")}</span>
     <span class="av-t">${avHace(d.creado)}</span>
@@ -2947,12 +2963,12 @@ function avFila(d){
 }
 function viewAvisos(){
   const ac=avActivos().sort((a,b)=>String(b.creado).localeCompare(String(a.creado))), el=ac.filter(d=>d.estado==="elevado"), ab=ac.filter(d=>d.estado==="abierto");
-  const hechos=avDocs().filter(d=>d.estado==="atendido").sort((a,b)=>String(b.atendidoEn).localeCompare(String(a.atendidoEn))).slice(0,15);
+  const hechos=avDocs().filter(d=>avResuelto(d)).sort((a,b)=>String(b.atendidoEn||"").localeCompare(String(a.atendidoEn||""))).slice(0,15);
   return `<div class="page-head"><h1>Avisos de reposición</h1><span class="spacer"></span>${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
     <p class="mini" style="margin:0 0 14px">Los avisos los envía el operario desde su panel. Lo que él eleva al coordinador aparece primero para que se pida el producto.</p>
     <section class="card av-sec"><h3>Elevados al coordinador <span class="pill venc">${el.length}</span></h3>${el.length?`<ul class="av-list">${el.map(avFila).join("")}</ul>`:`<p class="mini-empty">Nada elevado por ahora.</p>`}</section>
     <section class="card av-sec"><h3>Pedidos de reposición <span class="pill pv">${ab.length}</span></h3>${ab.length?`<ul class="av-list">${ab.map(avFila).join("")}</ul>`:`<p class="mini-empty">No hay avisos pendientes.</p>`}</section>
-    ${hechos.length?`<section class="card av-sec"><h3>Atendidos recientes</h3><ul class="av-list av-hecho">${hechos.map(d=>`<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${AV_MOT[d.motivo]||""} · atendido ${avHace(d.atendidoEn)}</span></div></li>`).join("")}</ul></section>`:""}`;
+    ${hechos.length?`<section class="card av-sec"><h3>Atendidos recientes</h3><ul class="av-list av-hecho">${hechos.map(d=>`<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${AV_MOT[d.motivo]||""} · ${d.auto?"repuesto":"atendido"} ${avHace(d.atendidoEn||d.creado)}</span></div></li>`).join("")}</ul></section>`:""}`;
 }
 function avClick(t){
   const e1=t.closest("[data-avelev]"); if(e1){ const d=S.docs.find(x=>x.id===e1.dataset.avelev); if(d){ avGuardar({...d,nivel:"coordinador",estado:"elevado",elevadoEn:new Date().toISOString()}).then(()=>render(true)); } return true; }
@@ -3952,7 +3968,7 @@ $("#bArch").addEventListener("click", async ()=>{
 });
 
 function render(force=true){   // live data updates call render(false)
-  renderNav();
+  renderNav(); avRevisar();
   $("#cats").innerHTML = cats().map(c=>`<option value="${esc(c)}">`).join("");
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
@@ -4233,7 +4249,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "83", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "84", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:

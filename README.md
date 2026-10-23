@@ -101,3 +101,6 @@ Si un equipo trabajó sin conexión a la nube (modo local, sin sesión o sin int
 
 ## Conexión alternativa (cuando la red corta la conexión continua)
 Firestore trabaja con una conexión continua que algunas redes de empresa cortan: el cartel *Sin conexión con el servidor* aparecía a cada rato. Si en 20 segundos el servidor no responde (o al tocar **Actualizar datos** sin éxito), la app cambia sola a la **conexión alternativa**: lee todo y guarda cada cambio con peticiones HTTPS normales (API REST de Firestore, con la misma sesión y las mismas reglas de seguridad) y actualiza cada 12 segundos y después de cada cambio. El menú dice *Sincronizado (conexión alternativa) · hora*. Si la conexión continua vuelve, la app regresa sola a ella.
+
+## Avisos que se cierran solos
+Cuando el producto ya se repuso (por ejemplo al registrar una recepción), su aviso **Sin stock** o **Crítico** se marca como *repuesto* y pasa a *Atendidos recientes*; **Por vencer** se cierra si cambia el vencimiento o se acaba el stock. El stock que se muestra en cada aviso es el actual, no el de cuando se creó.
