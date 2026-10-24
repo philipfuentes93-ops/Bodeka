@@ -558,6 +558,8 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .pk-line{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);border-radius:10px}
 .pk-line:last-child{border-bottom:0}
 .pk-line.bad{background:var(--danger-soft)}
+.pk-fefo{background:var(--warn-soft,#FFF1D6);color:#7A4A00;font-weight:700}
+.lote-li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
 .pk-line.flash{animation:pkflash 1.2s ease-out}
 @keyframes pkflash{0%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:transparent}}
 .pk-n{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:.78rem;display:grid;place-items:center}
@@ -1320,7 +1322,7 @@ function parseNum(v){
 function fixProd(p){
   const q = {...p};
   if(!q.categoria && LEGACY[q.bodega]){ q.categoria = LEGACY[q.bodega]; q.bodega=""; }
-  q.unidad = q.unidad||"UN"; q.vencimiento = q.vencimiento||""; q.minimo = +q.minimo||0; q.foto = q.foto||"";
+  q.unidad = q.unidad||"UN"; q.vencimiento = q.vencimiento||""; q.lotes = q.lotes&&typeof q.lotes==="object"?q.lotes:{}; q.minimo = +q.minimo||0; q.foto = q.foto||"";
   q.packUn = Math.max(1, +q.packUn || 1);
   // Migración: productos antiguos solo tenían un stock global, no por bodega.
   // Se asume que ese stock vivía todo en la bodega de reposición por defecto, sin perder unidades.
@@ -1333,6 +1335,7 @@ function fixProd(p){
   q.zmin = Object.fromEntries(Object.entries(q.zmin||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.zmax = Object.fromEntries(Object.entries(q.zmax||{}).map(([k,v])=>[k,Math.max(0,+v||0)]).filter(([,v])=>v>0));
   q.stock = Object.values(q.ubic).reduce((a,n)=>a+n,0);
+  if(Object.keys(q.lotes).length){ const L=lotesDe(q); q.vencimiento=L.length?L[0].v:""; }   // con lotes, la fecha del producto es la del lote que vence primero
   return q;
 }
 /* ---------- Fotos de producto ---------- */
@@ -1611,23 +1614,35 @@ const Store = {
   },
   // Suma o resta unidades en una bodega SIN pisar el resto del producto: se envía "+N" (incremento) y no el stock final,
   // así dos equipos que mueven stock a la vez (o uno con datos atrasados) no se borran los cambios entre sí.
-  async moverStock(id, delta, extra){
+  async moverStock(id, delta, extra, lotes){
     const cur=S.productos.find(x=>x.id===id); if(!cur) return null;
     delta=Object.fromEntries(Object.entries(delta||{}).map(([b,n])=>[b,Math.round(+n||0)]).filter(([,n])=>n!==0));
     const now=new Date().toISOString(), ex={actualizadoPor:quienDe(),...(extra||{})}, ubic={...cur.ubic};
     Object.entries(delta).forEach(([b,n])=>{ ubic[b]=Math.max(0,(ubic[b]||0)+n); });
-    const p=fixProd({...cur,...ex,ubic,actualizado:now});
+    // Lotes: "lotes" trae ajustes explícitos [{venc,un}] (un<0 resta de ese lote); lo que sale de más se descuenta del lote que vence antes
+    const net=Object.values(delta).reduce((a,n)=>a+n,0), ld={}, add=(v,n)=>{ if(v&&n) ld[v]=(ld[v]||0)+n; };
+    const exp=(lotes||[]).map(x=>({venc:x&&x.venc,un:Math.round(+(x&&x.un)||0)})).filter(x=>x.venc&&x.un), antes=cur.lotes||{};
+    if((exp.length||net<0) && !Object.keys(antes).length && cur.vencimiento && (+cur.stock||0)>0) add(cur.vencimiento,Math.round(cur.stock));   // producto antiguo: su fecha única pasa a ser su primer lote
+    exp.forEach(x=>add(x.venc,x.un));
+    let need=Math.max(0,-net-exp.filter(x=>x.un<0).reduce((a,x)=>a-x.un,0)); const usados=[];
+    if(need>0){ const base={...antes}; Object.entries(ld).forEach(([v,n])=>{ base[v]=(+base[v]||0)+n; });
+      for(const [v,u] of Object.entries(base).filter(([,u])=>u>0).sort((a,b)=>a[0].localeCompare(b[0]))){ if(need<=0) break; const t=Math.min(u,need); add(v,-t); usados.push({venc:v,un:t}); need-=t; } }
+    this.ultimoFefo=usados;
+    let lotesNew=antes;
+    if(Object.keys(ld).length){ lotesNew={...antes}; Object.entries(ld).forEach(([v,n])=>{ lotesNew[v]=(+lotesNew[v]||0)+n; if(lotesNew[v]<=0) delete lotesNew[v]; });
+      const prox=Object.keys(lotesNew).sort()[0]; ex.vencimiento=prox||""; }
+    const p=fixProd({...cur,...ex,ubic,lotes:lotesNew,actualizado:now});
     const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
     this.saveLocal();
     if(this.db){
-      const campo=b=>"ubic."+(/^[A-Za-z_][A-Za-z0-9_]*$/.test(b)?b:"`"+b.replace(/`/g,"\\`")+"`");
+      const q1=b=>/^[A-Za-z_][A-Za-z0-9_]*$/.test(b)?b:"`"+b.replace(/`/g,"\\`")+"`", campo=b=>"ubic."+q1(b), campoL=v=>"lotes."+q1(v);
       if(this.rest){
         const w={update:{name:fsName("productos",id),fields:fsFields({...ex,actualizado:now})},updateMask:{fieldPaths:[...Object.keys(ex),"actualizado"]},
-          updateTransforms:Object.entries(delta).map(([b,n])=>({fieldPath:campo(b),increment:{integerValue:String(n)}}))};
+          updateTransforms:[...Object.entries(delta).map(([b,n])=>({fieldPath:campo(b),increment:{integerValue:String(n)}})),...Object.entries(ld).map(([v,n])=>({fieldPath:campoL(v),increment:{integerValue:String(n)}}))]};
         await fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[w]})}).then(()=>this.sondear()).catch(syncErr);
       }else{
         const inc=firebase.firestore.FieldValue.increment, upd={...ex,actualizado:now};
-        Object.entries(delta).forEach(([b,n])=>{ upd[campo(b)]=inc(n); });
+        Object.entries(delta).forEach(([b,n])=>{ upd[campo(b)]=inc(n); }); Object.entries(ld).forEach(([v,n])=>{ upd[campoL(v)]=inc(n); });
         this.db.doc("productos/"+id).update(upd).catch(e=>{ if(e&&e.code==="not-found"){ const {id:_,...body}=p; this.db.doc("productos/"+id).set(body).catch(syncErr); } else syncErr(e); });
       }
     }
@@ -1718,6 +1733,15 @@ const ESTADO_TXT = {critico:"Crítico", minimo:"Mínimo", ok:"Suficiente"}, ESTA
 const DIAS_AVISO = 30;
 function hoy0(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
 function diasVenc(p){ if(!p.vencimiento) return null; const [y,m,d]=p.vencimiento.split("-").map(Number); return Math.round((new Date(y,m-1,d)-hoy0())/86400000); }
+/* Lotes: p.lotes = {fecha de vencimiento: unidades}, solo para lo que entra con fecha. Lo que sale se descuenta del que vence antes (FEFO).
+   El total de los lotes nunca pasa del stock real: si hay de más (por un conteo), se recorta el más antiguo. */
+function lotesDe(p){
+  const L=Object.entries(p.lotes||{}).map(([v,u])=>({v,u:Math.round(+u)||0})).filter(x=>x.u>0).sort((a,b)=>a.v.localeCompare(b.v));
+  let ex=L.reduce((a,x)=>a+x.u,0)-(+p.stock||0);
+  for(const x of L){ if(ex<=0) break; const t=Math.min(x.u,ex); x.u-=t; ex-=t; }
+  return L.filter(x=>x.u>0);
+}
+function lotesTxt(p){ const L=lotesDe(p); return L.map(x=>`${fFecha(x.v)}: ${fmtPk(toPk(x.u,p))} packs${suel(x.u,p)?` + ${suel(x.u,p)} un`:""}`).join(" · "); }
 function estVenc(p){ const d=diasVenc(p); if(d===null) return "none"; if(d<0) return "vencido"; if(d<=DIAS_AVISO) return "pv"; return "vig"; }
 const fFecha = iso => { if(!iso) return ""; const [y,m,d]=iso.split("-"); return `${d}-${m}-${y}`; };
 function chipVenc(p){
@@ -1835,7 +1859,7 @@ $("#fMov").addEventListener("submit", async e=>{
   try{
     $("#mSave").disabled=true;
     if(movT==="ajuste") await Store.putProducto(p);   // el conteo físico es un valor absoluto
-    else { const q=await Store.moverStock(movP.id,{[movU]:movT==="entrada"?c:-c},movT==="entrada"&&$("#mVenc").value?{vencimiento:$("#mVenc").value}:{}); if(q){ p.stock=q.stock; } }
+    else { const q=await Store.moverStock(movP.id,{[movU]:movT==="entrada"?c:-c},{},movT==="entrada"&&$("#mVenc").value?[{venc:$("#mVenc").value,un:c}]:undefined); if(q){ p.stock=q.stock; } }
     await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:movT,cantidad:c,cantidadPack:r.cp,sueltas:r.sl,stockFinal:p.stock,nota:[bodNom(movU),$("#mNota").value.trim()].filter(Boolean).join(" · "),fecha:new Date().toISOString()});
     $("#dMov").close(); toast(movT==="entrada"?"Entrada registrada":movT==="salida"?"Salida registrada":"Conteo guardado");
   }catch{ $("#mErr").textContent="No se pudo registrar. Revisa tu conexión e inténtalo de nuevo."; }
@@ -1961,7 +1985,7 @@ async function exportar(list){
     const row={ "CÓDIGO":p.codigo, "PRODUCTO":p.nombre, "UND":p.unidad, "UN/PACK":p.packUn, "CATEGORÍA":p.categoria,
       "UBICACIÓN":p.ubicacion, "STATUS":ESTADO_TXT[estado(p)].toUpperCase(), "STOCK MÍNIMO":p.minimo, "EXISTENCIA ACT":Math.round(stkPk(p)*100)/100 };
     bs.forEach(b=>{ row[b.nombre.toUpperCase()]=Math.round(ubPk(p,b.id)*100)/100; });
-    row["VENCIMIENTO"]=fFecha(p.vencimiento); row["DÍAS DISPONIBLES"]=diasVenc(p)??""; row["ESTADO PRODUCTO"]={none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)];
+    row["VENCIMIENTO"]=fFecha(p.vencimiento); row["LOTES"]=lotesTxt(p); row["DÍAS DISPONIBLES"]=diasVenc(p)??""; row["ESTADO PRODUCTO"]={none:"Sin fecha",vencido:"Vencido",pv:"Por vencer",vig:"Vigente"}[estVenc(p)];
     return row;
   });
   const ws=XLSX.utils.json_to_sheet(data), wb=XLSX.utils.book_new();
@@ -2161,8 +2185,9 @@ function expDetalle(p){
         ${f("minimo","Stock mínimo (packs)",p.minimo,'type="number" min="0" step="any"')}
         ${f("packUn","Unidades por pack",p.packUn,'type="number" min="1" step="1"')}
         ${f("ubicacion","Ubicación",p.ubicacion||"",'maxlength="20"')}
-        ${f("vencimiento","Vencimiento",p.vencimiento||"",'type="date"')}
+        ${f("vencimiento",lotesDe(p).length?"Vence primero (según lotes)":"Vencimiento",p.vencimiento||"",lotesDe(p).length?'type="date" disabled':'type="date"')}
       </div>
+      ${lotesDe(p).length?`<div class="exp-hist"><p>Lotes · lo que sale se descuenta del que vence antes</p>${lotesDe(p).map(x=>{ const d=diasVenc({vencimiento:x.v}); return `<div class="lote-li"><span><b>${fFecha(x.v)}</b> <span class="mini">${d<0?`vencido hace ${-d} d`:d===0?"vence hoy":`en ${d} d`}</span></span><span>${fmtPk(toPk(x.u,p))} packs${suel(x.u,p)?` + ${suel(x.u,p)} un`:""}</span></div>`; }).join("")}</div>`:""}
       <div class="exp-hist"><p>Últimos movimientos</p>${hist.length?`<ul>${hist.map(m=>{const t=TP[m.tipo]||TP.ajuste; return `<li><span class="pill ${t[1]}">${t[0]}</span><span>${new Date(m.fecha).toLocaleDateString("es-CL")}${m.folio?` · ${esc(m.folio)}`:""}</span><b>${movIco(m.tipo)}${fmtPk(movPk(m))}${esAdmin?` <button class="rm" data-mdel1="${m.id}" title="Eliminar este registro del historial" aria-label="Eliminar este registro">✕</button>`:""}</b></li>`;}).join("")}</ul>`:'<span class="muted" style="font-size:.84rem">Sin movimientos registrados.</span>'}</div>
     </div>
     <div class="exp-foot"><button class="link danger" data-delp="${p.id}">Eliminar producto</button><span class="spacer"></span>
@@ -2427,7 +2452,9 @@ async function confirmarDoc(){
     const stockFinal={};
     for(const [id,u] of mapa){ if(!u) continue;
       const cur=S.productos.find(x=>x.id===id), l=lines.find(x=>x.id===id);
-      const p=await Store.moverStock(id, difUbic(cur.ubic,u), f.tipo==="recepcion" && l && l.venc ? {vencimiento:l.venc} : {});
+      let lot; if(f.tipo==="recepcion"){ const ol=edit&&(edit.lineas||[]).find(x=>x.productoId===id), nv=l&&l.venc||"", nu=l?Math.round(l.q*pkn(l.p)):0;
+        if(!edit) lot=nv?[{venc:nv,un:nu}]:undefined; else { lot=[]; if(ol&&ol.vencimiento) lot.push({venc:ol.vencimiento,un:-(+ol.cantidad||0)}); if(nv) lot.push({venc:nv,un:nu}); } }
+      const p=await Store.moverStock(id, difUbic(cur.ubic,u), {}, lot);
       stockFinal[id]=p.stock;
     }
     if(edit) for(const m of S.movs.filter(m=>m.folio===folio && m.tipo===D.mov)) await Store.delMov(m.id);
@@ -2465,7 +2492,7 @@ async function eliminarDoc(id){
   const now=new Date().toISOString();
   try{
     for(const l of lineas){ const cur=S.productos.find(x=>x.id===l.productoId); if(!cur) continue;
-      await Store.moverStock(cur.id,{[ob]:-sg*(+l.cantidad||0)}); }
+      await Store.moverStock(cur.id,{[ob]:-sg*(+l.cantidad||0)},{},sg>0&&l.vencimiento?[{venc:l.vencimiento,un:-(+l.cantidad||0)}]:undefined); }
     for(const m of S.movs.filter(m=>m.folio===d.folio && m.tipo===D.mov)) await Store.delMov(m.id);
     await Store.delDocu(d.id);
     const dlg=$("#dDoc"); if(dlg.open) dlg.close();
@@ -2542,7 +2569,7 @@ function pkLineHtml(l,i){
     <span class="pk-n">${i+1}</span>
     <span class="thumb" style="--c:${catColor(p.categoria)}">${thumbHtml(p)}</span>
     <div class="pk-info"><div class="nm">${esc(p.nombre)}</div>
-      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un · ${fmtPk(toPk(dispO,p))} packs</span>${dChip}${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}</div>
+      <div class="pk-chips"><span>${esc(p.codigo||"sin código")}</span><span>${esc(bodNom(S.pkOrig))}: <b>${fmt(dispO)}</b> un · ${fmtPk(toPk(dispO,p))} packs</span>${dChip}${pk>1?`<span>pack de ${fmt(pk)}</span>`:""}${(gen||esCooler(S.pkUbic))&&lotesDe(p).length?`<span class="pk-fefo">Sacar primero lote que vence ${fFecha(lotesDe(p)[0].v)}</span>`:""}</div>
       <div class="pk-warn" ${bad?"":"hidden"}>Solo hay ${fmt(dispO)} un disponibles en ${esc(bodNom(S.pkOrig))}</div></div>
     ${qty}
     <button class="rm" data-pkrm="${i}" aria-label="Quitar ${esc(p.nombre)}">✕</button></li>`;
@@ -2644,21 +2671,21 @@ async function confirmarPicking(){
   const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking" && (T?d.modo==="traspaso":d.modo!=="traspaso")).map(d=>+d.numero||0))+1;
   const folio=`${T?"TI":"PK"}-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
   const btn=$("#pkConfirm"); btn.disabled=true; btn.textContent="Guardando…";
-  let hechas=0;
+  let hechas=0; const fefo={};
   try{
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.id)||l.p;
       const ubic={...cur.ubic, [orig]:(cur.ubic[orig]||0)-l.q};
       const rp=gen?reparto(l):{[dest]:l.q};
       Object.entries(rp).forEach(([k,n])=>{ if(!esCooler(k)) ubic[k]=(ubic[k]||0)+n; });   // a un cooler solo sale: no se lleva su stock
-      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic));
+      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic)); fefo[cur.id]=Store.ultimoFefo||[];
       const det=gen?Object.entries(rp).map(([k,n])=>`${bodNom(k)}: ${fmt(n)}`).join(", "):bodNom(dest);
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:T?"traspaso":"picking",cantidad:l.q,stockFinal:p.stock,
         nota:`${folio} · ${T?"Traspaso interno":"Picking"} de ${bodNom(orig)} a ${gen?"General ("+det+")":det}${esCooler(dest)||gen?" · sale a cooler":""}`,fecha:now,folio}, true);
       hechas++;
     }
     const doc={id:uid(), tipo:"picking", ...(T?{modo:"traspaso"}:{}), numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
-      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||"", ...(gen?{reparto:reparto(l)}:{})}))};
+      lineas:lines.map(l=>({productoId:l.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||"", ...(fefo[l.id]&&fefo[l.id].length?{lotes:fefo[l.id]}:{}), ...(gen?{reparto:reparto(l)}:{})}))};
     if(gen) doc.destinos=cs.map(c=>c.id);
     await Store.addDocu(doc);
     S.pkLineas=[]; S.pkq=""; render();
@@ -2809,16 +2836,17 @@ async function smRegistrar(){
   const btn=document.querySelector("[data-smconf]"); if(btn){ btn.disabled=true; btn.textContent="Guardando…"; }
   const numero=Math.max(0,...S.docs.filter(d=>d.tipo==="picking" && (T?d.modo==="traspaso":d.modo!=="traspaso")).map(d=>+d.numero||0))+1;
   const folio=`${T?"TI":"PK"}-${String(numero).padStart(4,"0")}`, now=new Date().toISOString();
+  const fefo={};
   try{
     for(const l of lines){
       const cur=S.productos.find(x=>x.id===l.p.id)||l.p, ubic={...cur.ubic,[orig]:(cur.ubic[orig]||0)-l.q};
       if(!esCooler(dest)) ubic[dest]=(ubic[dest]||0)+l.q;   // a un cooler solo sale: no se lleva su stock
-      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic));
+      const p=await Store.moverStock(cur.id, difUbic(cur.ubic,ubic)); fefo[cur.id]=Store.ultimoFefo||[];
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:T?"traspaso":"picking",cantidad:l.q,stockFinal:p.stock,
         nota:`${folio} · ${T?"Traspaso interno":"Picking"} de ${bodNom(orig)} a ${bodNom(dest)}${esCooler(dest)?" · sale a cooler":""}`,fecha:now,folio}, true);
     }
     const doc={id:uid(), tipo:"picking", ...(T?{modo:"traspaso"}:{}), numero, folio, fecha:hoyISO(), ubicOrigen:orig, ubicDestino:dest, creado:now, unidades:lines.reduce((a,l)=>a+l.q,0),
-      lineas:lines.map(l=>({productoId:l.p.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||""}))};
+      lineas:lines.map(l=>({productoId:l.p.id, codigo:l.p.codigo||"", nombre:l.p.nombre, cantidad:l.q, packUn:l.p.packUn||1, ubicacion:l.p.ubicacion||"", ...(fefo[l.p.id]&&fefo[l.p.id].length?{lotes:fefo[l.p.id]}:{})}))};
     await Store.addDocu(doc);
     S.smPed=null; S.smSec=true; S.smVer=null; S.smRng="hoy"; S.smUlt=doc.id+"|"+dest; render(true); window.scrollTo?.(0,0);
   }catch(e){ toast("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo."); render(true); }
@@ -4028,7 +4056,7 @@ async function deshacerPicking(id){
   try{
     for(const l of lineas){ const p=S.productos.find(x=>x.id===l.productoId); if(!p) continue; const q=+l.cantidad||0, dl={[orig]:q};
       if(dest!==PK_GEN && !esCooler(dest)) dl[dest]=-q;
-      const np=await Store.moverStock(p.id,dl);
+      const np=await Store.moverStock(p.id,dl,{},(l.lotes||[]).map(x=>({venc:x.venc,un:x.un})));
       await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:q,cantidadPack:toPk(q,p),sueltas:suel(q,p),stockFinal:np.stock,nota:`↩ Se deshizo ${d.folio}: ${fmt(q)} un vuelven a ${bodNom(orig)}`,fecha:new Date().toISOString(),folio:d.folio},true); }
     for(const m of S.movs.filter(m=>m.folio===d.folio && (m.tipo==="picking"||m.tipo==="traspaso"))) await Store.delMov(m.id);
     await Store.addDocu({...d,anulado:true,anuladoEn:new Date().toISOString(),anuladoPor:quienDe()});
@@ -4377,7 +4405,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "88", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "89", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
