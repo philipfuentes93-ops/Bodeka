@@ -9,6 +9,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- Firebase 10.12.2 se sirve desde la propia app (vendor/firebase) para que las redes que bloquean www.gstatic.com no dejen al equipo en modo local -->
+<script src="vendor/qrcode/qrcode.js"></script>
 <script src="vendor/firebase/firebase-app-compat.js"></script>
 <script src="vendor/firebase/firebase-auth-compat.js"></script>
 <script src="vendor/firebase/firebase-firestore-compat.js"></script>
@@ -558,6 +559,17 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .pk-line{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);border-radius:10px}
 .pk-line:last-child{border-bottom:0}
 .pk-line.bad{background:var(--danger-soft)}
+.mz-zlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-content:start;flex:1}
+.mz-zb{position:relative;text-align:left;border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;background:var(--card);padding:12px 14px;display:grid;gap:3px;cursor:pointer;color:var(--ink);font:inherit}
+.mz-zb b{font-size:.95rem}.mz-zb span{font-size:.78rem;color:var(--muted)}
+.mz-zb.on{outline:3px solid var(--c);outline-offset:1px}.mz-zb.mz-dim{opacity:.35}.mz-zb.mz-hit{box-shadow:0 0 0 3px var(--warn)}
+.mz-bd{position:absolute;top:8px;right:8px;background:var(--danger);color:#fff;border-radius:99px;font-style:normal;font-size:.72rem;font-weight:800;padding:1px 7px}
+.ze-row{display:grid;grid-template-columns:minmax(0,1.3fr) 130px minmax(0,1fr) auto;gap:8px;align-items:center;margin:8px 0}
+.ze-b{display:flex;gap:4px}
+@media (max-width:640px){.ze-row{grid-template-columns:1fr 1fr}.ze-row .ze-b{grid-column:1/-1}}
+.qr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.qr-etq{border:2px solid #000;border-radius:10px;padding:10px;text-align:center;break-inside:avoid;color:#000;background:#fff}
+.qr-b{font-size:11px;font-weight:700}.qr-n{font-size:15px;font-weight:800;margin-top:4px}.qr-t{font-size:11px}
 .pk-fefo{background:var(--warn-soft,#FFF1D6);color:#7A4A00;font-weight:700}
 .lote-li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
 .pk-line.flash{animation:pkflash 1.2s ease-out}
@@ -1225,6 +1237,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 
 <dialog id="dDoc"><div class="dlg" id="docBody"></div></dialog>
 <dialog id="dLocal"><div class="dlg" id="localBody"></div></dialog>
+<dialog id="dZonas"><div class="dlg" id="zEdBody"></div></dialog>
 <dialog id="dBod"><form class="dlg" id="fBod">
   <h2 id="dBodTitle">Agregar bodega</h2>
   <div class="f"><label for="bNombre">Nombre</label><input id="bNombre" required maxlength="60" placeholder="Ej: Piso 9, Reposición Aseo"></div>
@@ -3333,8 +3346,18 @@ const MAPA_P11 = {id:"p11", zonas:[
   {id:"p11.jabas", corto:"Piso", cara:"Piso", n:"Jabas de botellín", t:"rep", d:"Bebidas en botellín, en jabas apiladas a la orilla derecha.",
     vol:{x:[7.6,8.9],y:[4.8,6.4],z:[0,2.4],pin:"top"}}
 ]};
-// El mapa existe solo para Tránsito Piso 11 (el Piso 14 tiene otra distribución y se configura después).
-const mapaDe = b => (b && (b.id==="p11" || (b.tipo==="picking" && /piso\s*11\b/i.test(b.nombre)))) ? MAPA_P11 : null;
+// Piso 11 tiene su mapa 3D fijo. Cualquier otra bodega puede dividirse en zonas propias (b.zonas, se editan en "Dividir en zonas"): se ve como lista, sin dibujo 3D.
+const _mapasZ = new WeakMap();
+const mapaDe = b => {
+  if(!b) return null;
+  if(b.id==="p11" || (b.tipo==="picking" && /piso\s*11\b/i.test(b.nombre))) return MAPA_P11;
+  if(b.tipo!=="cooler" && Array.isArray(b.zonas) && b.zonas.length){
+    let m=_mapasZ.get(b);
+    if(!m){ m={id:b.id, lista:true, zonas:b.zonas.map(z=>({...z, corto:z.cara||"Zona", cara:z.cara||b.nombre, d:z.d||"", t:z.t==="pick"?"pick":"rep"}))}; _mapasZ.set(b,m); }
+    return m;
+  }
+  return null;
+};
 
 const MAPA3D = (()=>{
   const SCALE = 36, OX = 320, OY = 389, WH = 10.2;
@@ -3532,13 +3555,13 @@ function mzNecesidades(b,M){
 }
 
 function mzSwitch(b,M){
-  const n=mzNecesidades(b,M).length, vs=[["mapa","Mapa 3D"],["inventario","Tomar inventario"],["reponer",`Reponer${n?` (${n})`:""}`],["lista","Lista"]];
-  return `<div class="mz-sw"><div class="mz-seg" role="group" aria-label="Vista de la bodega">${vs.map(([k,t])=>`<button type="button" data-mzvista="${k}" aria-pressed="${S.invVista===k}" class="${k==="reponer"&&n?"mz-alerta":""}">${t}</button>`).join("")}</div></div>`;
+  const n=mzNecesidades(b,M).length, vs=[["mapa",M.lista?"Zonas":"Mapa 3D"],["inventario","Tomar inventario"],["reponer",`Reponer${n?` (${n})`:""}`],["lista","Lista"]];
+  return `<div class="mz-sw"><div class="mz-seg" role="group" aria-label="Vista de la bodega">${vs.map(([k,t])=>`<button type="button" data-mzvista="${k}" aria-pressed="${S.invVista===k}" class="${k==="reponer"&&n?"mz-alerta":""}">${t}</button>`).join("")}</div>${esAdmin&&M.lista?`<button class="btn ghost sm" type="button" data-zedit>Editar zonas</button>`:""}<button class="btn ghost sm" type="button" data-zqr="${esc(b.id)}">Etiquetas QR</button></div>`;
 }
 function mzCard(b,M,z,nec){
   const its=mzItems(b,M,z), cnt=S.mpCnt, u=mzUn(z), q=norm(S.mpAddQ);
   const tot=its.reduce((a,{p,ef})=>a+mzVal(ef.z[z.id]||0,p,z),0);
-  const head=`<div class="mz-ch"><div><h2 class="mz-lvl ${z.t}">${esc(z.n)}</h2><span class="mz-hint">${esc(z.cara)} · ${its.length} producto${its.length===1?"":"s"}${its.length?` · ${fmtPk(tot)} ${u}`:""}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div><p class="mz-desc">${esc(z.d)}</p>`;
+  const head=`<div class="mz-ch"><div><h2 class="mz-lvl ${z.t}">${esc(z.n)}</h2><span class="mz-hint">${esc(z.cara)} · ${its.length} producto${its.length===1?"":"s"}${its.length?` · ${fmtPk(tot)} ${u}`:""}</span></div><span class="mz-pill ${z.t}">${MZ_TIPO[z.t]}</span></div>${z.d?`<p class="mz-desc">${esc(z.d)}</p>`:""}<div class="mz-acts" style="margin:0 0 8px"><button class="btn ghost sm" type="button" data-zqr="${esc(b.id)}" data-zqz="${esc(z.id)}">Etiqueta QR de esta zona</button></div>`;
   const res=q?S.productos.filter(p=>!(p.zonas&&p.zonas[z.id]!==undefined) && norm(p.nombre+" "+(p.codigo||"")).includes(q)).slice(0,6):[];
   const add=`<div class="mz-add"><label class="qsearch" style="min-width:0;width:100%">${ICON.search}<input id="mpadd" type="search" value="${esc(S.mpAddQ)}" placeholder="Agregar un producto a esta zona" aria-label="Buscar un producto para agregar a ${esc(z.n)}" autocomplete="off"></label>
       ${q?(res.length?`<ul class="mz-res">${res.map(p=>`<li><button type="button" data-mzaddp="${esc(p.id)}" data-mzaddz="${z.id}"><b>+</b> ${esc(p.nombre)}<span class="mz-sub">${mzSub(p)}${mzLibreTxt(p,b,M)}</span></button></li>`).join("")}<li><button type="button" data-mznuevo><b>+</b> Crear un producto nuevo…</button></li></ul>`:`<div class="mz-hint" style="padding:6px 2px">Sin coincidencias. <button class="link" type="button" data-mznuevo>Crear un producto nuevo</button></div>`):""}</div>`;
@@ -3571,7 +3594,9 @@ function viewInvMapa(b,M){
   const sel=M.zonas.find(z=>z.id===S.mpSel), q=norm(S.mpQ), est=S.mpModo==="estado", nec=mzNecesidades(b,M);
   const hit=z=>q && mzItems(b,M,z).some(({p})=>norm(p.nombre+" "+(p.codigo||"")).includes(q));
   const nd=S.mpDone.size, nz=M.zonas.length, porZ={}; nec.forEach(n=>{ porZ[n.z.id]=(porZ[n.z.id]||0)+1; });
-  const svg=MAPA3D.svg(M.zonas,{sel:S.mpSel, color:z=>est?"mz-s-"+mzZonaSt(b,M,z):"mz-t-"+z.t, cls:z=>q?(hit(z)?"mz-hit":"mz-dim"):"", done:z=>S.mpDone.has(z.id), badge:z=>porZ[z.id]||0});
+  const zl=z=>{ const its=mzItems(b,M,z).length, st=mzZonaSt(b,M,z), col=est?(st==="ok"?"var(--ok)":st==="warn"?"var(--warn)":st==="bad"?"var(--danger)":"var(--muted)"):(z.t==="pick"?"var(--mz-pick)":"var(--mz-rep)");
+    return `<button type="button" class="mz-zb ${S.mpSel===z.id?"on":""} ${q?(hit(z)?"mz-hit":"mz-dim"):""}" style="--c:${col}" data-mzz="${esc(z.id)}" aria-pressed="${S.mpSel===z.id}"><b>${esc(z.n)}</b><span>${MZ_TIPO[z.t]} · ${its} producto${its===1?"":"s"}${z.cara&&z.cara!==b.nombre?" · "+esc(z.cara):""}</span>${porZ[z.id]?`<i class="mz-bd">${porZ[z.id]}</i>`:""}</button>`; };
+  const svg=M.lista?"":MAPA3D.svg(M.zonas,{sel:S.mpSel, color:z=>est?"mz-s-"+mzZonaSt(b,M,z):"mz-t-"+z.t, cls:z=>q?(hit(z)?"mz-hit":"mz-dim"):"", done:z=>S.mpDone.has(z.id), badge:z=>porZ[z.id]||0});
   const legend=est?`<span><i style="background:var(--ok)"></i>Sobre el mínimo</span><span><i style="background:var(--warn)"></i>Algo bajo el mínimo</span><span><i style="background:var(--danger)"></i>Algo sin stock</span><span><i style="background:var(--muted)"></i>Sin mínimo o sin productos</span>`
     :`<span><i style="background:var(--mz-rep)"></i>Reposición · packs cerrados</span><span><i style="background:var(--mz-pick)"></i>Picking · abierto, unidad por unidad</span>`;
   const alerta=nec.length?`<div class="mz-alert"><b>⚠ ${nec.length} ${nec.length===1?"ubicación":"ubicaciones"} para reponer</b><span>Bajo el mínimo: están marcadas en rojo en el mapa.</span><button class="btn soft sm" type="button" data-mzvista="reponer">Ver qué reponer</button></div>`:"";
@@ -3580,9 +3605,9 @@ function viewInvMapa(b,M){
       <label class="qsearch">${ICON.search}<input id="mpq" type="search" value="${esc(S.mpQ)}" placeholder="Buscar en el mapa" aria-label="Buscar un producto en el mapa" autocomplete="off"></label><span class="spacer"></span>
       <div class="mz-prog" title="Zonas contadas en esta sesión"><span>${nd} de ${nz} zonas contadas</span><i><b style="width:${nd/nz*100}%"></b></i></div></div>
     <div class="mz-legend">${legend}</div>
-    <div class="mz-split"><div class="mz-scene" role="group" aria-label="Ilustración 3D de ${esc(b.nombre)} con sus zonas">${svg}</div>
-      <div class="mz-card">${sel?mzCard(b,M,sel,nec):`<div class="mz-empty">Toca una zona del dibujo para ver qué hay, contarla y fijar su mínimo y máximo.</div>`}</div></div>
-    <p class="mz-hint" style="margin:12px 0 0">El dibujo es una referencia de cómo está ordenada la bodega: los productos dibujados no cambian con el stock. Lo que vale es la lista de cada zona. Los niveles 1 y 2 del fondo están libres para snacks.</p></div>${mzLibres(b,M)}`;
+    <div class="mz-split">${M.lista?`<div class="mz-zlist" role="group" aria-label="Zonas de ${esc(b.nombre)}">${M.zonas.map(zl).join("")}</div>`:`<div class="mz-scene" role="group" aria-label="Ilustración 3D de ${esc(b.nombre)} con sus zonas">${svg}</div>`}
+      <div class="mz-card">${sel?mzCard(b,M,sel,nec):`<div class="mz-empty">Toca una zona ${M.lista?"de la lista":"del dibujo"} para ver qué hay, contarla y fijar su mínimo y máximo.</div>`}</div></div>
+    ${M.lista?"":`<p class="mz-hint" style="margin:12px 0 0">El dibujo es una referencia de cómo está ordenada la bodega: los productos dibujados no cambian con el stock. Lo que vale es la lista de cada zona. Los niveles 1 y 2 del fondo están libres para snacks.</p>`}</div>${mzLibres(b,M)}`;
 }
 
 /* ---------- Tomar inventario físico (toda la bodega) ---------- */
@@ -3929,7 +3954,7 @@ function viewInvBodega(b){
         <label>Total general<b>${fmtPk(stkPk(p))} <small>packs</small></b><small>${fmt(p.stock)} un</small></label></div>
       <div class="inv-o">${otras(p)}</div></div>`; };
   const panel=b.tipo==='reposicion'?avPanelRepo(b):"";
-  const extra=`<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
+  const extra=`${esAdmin&&!M&&b.tipo!=="cooler"?`<button class="btn soft sm" type="button" data-zedit title="Divide esta bodega en estantes, pasillos o niveles">Dividir en zonas</button>`:""}<label class="chk"><input type="checkbox" data-invall ${S.invAll?"checked":""}> Mostrar todos los productos</label>${b.tipo!=="reposicion"&&nFalta&&bods("reposicion").length?`<button class="btn brand sm" type="button" data-invrellenar="${esc(b.id)}">Armar picking para rellenar (${fmtPk(pFalta)} packs)</button>`:""}`;
   const vacio=`<div class="empty">${S.invQ?"Sin coincidencias.":"Esta bodega no tiene productos todavía."}<div class="btns"><button class="btn ghost" type="button" data-invall-on>Mostrar todos los productos para definir su stock</button></div></div>`;
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${kpis}${M?mzSwitch(b,M):""}${invToolbar(extra)}
       <p class="muted" style="margin:0 0 10px;font-size:.84rem">Escribe los <b>packs</b> o las <b>unidades</b> que hay en <b>${esc(b.nombre)}</b> (se completan solas entre sí) y el mínimo en packs. Las unidades son las que usa el picking. Cada cambio queda registrado como ajuste y actualiza el inventario general.</p></div>
@@ -4103,7 +4128,7 @@ $("#fBod").addEventListener("submit", async e=>{
   const nombre=$("#bNombre").value.trim();
   if(!nombre){ $("#bErr").textContent="Escribe un nombre."; return; }
   const prev=S.bodegas.find(x=>x.id===editBodId);
-  const b={ id: prev?prev.id:("b-"+uid()), nombre, tipo:$("#bTipo").value, activa:prev?prev.activa!==false:true };
+  const b={ ...(prev||{}), id: prev?prev.id:("b-"+uid()), nombre, tipo:$("#bTipo").value, activa:prev?prev.activa!==false:true };
   try{ await Store.putBodega(b); $("#dBod").close(); toast("Bodega guardada"); }
   catch{ $("#bErr").textContent="No se pudo guardar. Revisa tu conexión."; }
 });
@@ -4115,7 +4140,81 @@ $("#bArch").addEventListener("click", async ()=>{
   catch{ $("#bErr").textContent="No se pudo guardar. Revisa tu conexión."; }
 });
 
+/* ---------- Zonas propias por bodega (editor) y etiquetas QR por estante ---------- */
+function zEditar(bid){
+  const b=S.bodegas.find(x=>x.id===bid); if(!b||!esAdmin) return;
+  if(mapaDe(b)&&!mapaDe(b).lista){ toast("El mapa del Piso 11 es fijo."); return; }
+  S.zEd={bid, zonas:(b.zonas||[]).map(z=>({id:z.id,n:z.n||"",t:z.t==="pick"?"pick":"rep",cara:z.cara||"",d:z.d||""})), err:""};
+  zEdRender(); $("#dZonas").showModal();
+}
+function zEdRender(){
+  const E=S.zEd, b=S.bodegas.find(x=>x.id===E.bid);
+  $("#zEdBody").innerHTML=`<h2>Zonas de ${esc(b.nombre)}</h2>
+    <p class="sub">Divide la bodega en estantes, pasillos o niveles. <b>Reposición</b> guarda packs cerrados; <b>Picking</b> guarda unidades abiertas. Después asignas productos a cada zona y fijas su mínimo y máximo.</p>
+    <div class="ze-list">${E.zonas.map((z,i)=>`<div class="ze-row"><input data-zen="${i}" value="${esc(z.n)}" maxlength="50" placeholder="Nombre (ej: Pasillo 2 · Nivel 1)" aria-label="Nombre de la zona ${i+1}">
+      <select data-zet="${i}" aria-label="Tipo de la zona ${i+1}"><option value="rep" ${z.t==="rep"?"selected":""}>Reposición</option><option value="pick" ${z.t==="pick"?"selected":""}>Picking</option></select>
+      <input data-zec="${i}" value="${esc(z.cara)}" maxlength="30" placeholder="Pasillo o cara (opcional)" aria-label="Pasillo o cara de la zona ${i+1}">
+      <span class="ze-b"><button type="button" class="btn ghost sm" data-zeup="${i}" ${i?"":"disabled"} aria-label="Subir">↑</button><button type="button" class="btn ghost sm" data-zedn="${i}" ${i<E.zonas.length-1?"":"disabled"} aria-label="Bajar">↓</button><button type="button" class="btn danger sm" data-zerm="${i}" aria-label="Quitar zona">✕</button></span></div>`).join("")||`<p class="mini-empty">Aún no hay zonas. Agrega la primera.</p>`}</div>
+    <button type="button" class="btn soft sm" data-zeadd>+ Agregar zona</button>
+    <p class="err">${esc(E.err||"")}</p>
+    <div class="dlg-actions"><span class="spacer"></span><button type="button" class="btn ghost" data-zecancel>Cancelar</button><button type="button" class="btn" data-zesave>Guardar zonas</button></div>`;
+}
+async function zEdGuardar(){
+  const E=S.zEd, b=S.bodegas.find(x=>x.id===E.bid); if(!b) return;
+  const nombres=E.zonas.map(z=>norm(z.n.trim()));
+  if(E.zonas.some(z=>!z.n.trim())){ E.err="Cada zona necesita un nombre."; zEdRender(); return; }
+  if(new Set(nombres).size!==nombres.length){ E.err="Hay dos zonas con el mismo nombre."; zEdRender(); return; }
+  const quitadas=(b.zonas||[]).filter(z=>!E.zonas.some(x=>x.id===z.id)), conStock=quitadas.filter(z=>S.productos.some(p=>p.zonas&&p.zonas[z.id]!==undefined));
+  if(conStock.length && !confirm(`${conStock.map(z=>z.n).join(", ")} ${conStock.length===1?"tiene":"tienen"} productos asignados. Si ${conStock.length===1?"la quitas":"las quitas"}, ese stock vuelve a «Sin zona» (el stock de la bodega no cambia). ¿Continuar?`)) return;
+  const usados=new Set(E.zonas.map(z=>z.id).filter(Boolean)), nuevoId=()=>{ let i; do{ i=b.id+".z"+Math.random().toString(36).slice(2,8); }while(usados.has(i)); usados.add(i); return i; };
+  const zonas=E.zonas.map(z=>({id:z.id||nuevoId(),n:z.n.trim(),t:z.t,cara:z.cara.trim(),d:z.d||""}));
+  try{ await Store.putBodega({...b, zonas}); $("#dZonas").close(); S.zEd=null; S.mpSel=null; S.invVista="mapa"; toast(zonas.length?"Zonas guardadas":"Zonas quitadas"); render(true); }
+  catch{ E.err="No se pudo guardar. Revisa tu conexión."; zEdRender(); }
+}
+$("#dZonas").addEventListener("input",e=>{ const E=S.zEd; if(!E) return; const t=e.target;
+  if(t.dataset.zen!==undefined) E.zonas[+t.dataset.zen].n=t.value; else if(t.dataset.zec!==undefined) E.zonas[+t.dataset.zec].cara=t.value; });
+$("#dZonas").addEventListener("change",e=>{ const E=S.zEd; if(E&&e.target.dataset.zet!==undefined) E.zonas[+e.target.dataset.zet].t=e.target.value; });
+$("#dZonas").addEventListener("click",e=>{ const E=S.zEd; if(!E) return; const t=e.target.closest("button"); if(!t) return;
+  const mover=(i,d)=>{ const a=E.zonas; [a[i],a[i+d]]=[a[i+d],a[i]]; };
+  if(t.dataset.zeadd!==undefined){ E.zonas.push({id:"",n:"",t:"rep",cara:"",d:""}); E.err=""; zEdRender(); $("#zEdBody").querySelector(`[data-zen="${E.zonas.length-1}"]`)?.focus(); }
+  else if(t.dataset.zerm!==undefined){ E.zonas.splice(+t.dataset.zerm,1); zEdRender(); }
+  else if(t.dataset.zeup!==undefined){ mover(+t.dataset.zeup,-1); zEdRender(); }
+  else if(t.dataset.zedn!==undefined){ mover(+t.dataset.zedn,1); zEdRender(); }
+  else if(t.dataset.zecancel!==undefined){ $("#dZonas").close(); S.zEd=null; }
+  else if(t.dataset.zesave!==undefined) zEdGuardar();
+});
+// QR: cada zona (estante) tiene su etiqueta; al escanearla con la cámara del celular, la app abre esa zona
+const zonaUrl=(b,z)=>location.origin+location.pathname.replace(/index\.html$/,"")+"#zona="+encodeURIComponent(b.id)+"/"+encodeURIComponent(z.id);
+function qrSvg(texto,px){
+  if(typeof qrcode!=="function") return "";
+  const q=qrcode(0,"M"); q.addData(texto); q.make();
+  const n=q.getModuleCount(); let d="";
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(q.isDark(r,c)) d+=`M${c+3} ${r+3}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n+6} ${n+6}" width="${px}" height="${px}" shape-rendering="crispEdges" role="img" aria-label="Código QR"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function imprimirQR(bid,zid){
+  const b=S.bodegas.find(x=>x.id===bid), M=mapaDe(b); if(!b||!M) return;
+  const zs=zid?M.zonas.filter(z=>z.id===zid):M.zonas;
+  if(typeof qrcode!=="function"){ toast("No se pudo generar el código QR."); return; }
+  imprimir(`<section class="ph-doc"><div class="qr-grid">${zs.map(z=>`<div class="qr-etq"><div class="qr-b">${esc(b.nombre)}</div>${qrSvg(zonaUrl(b,z),190)}<div class="qr-n">${esc(z.n)}</div><div class="qr-t">${MZ_TIPO[z.t]}${z.cara&&z.cara!==b.nombre?" · "+esc(z.cara):""}</div></div>`).join("")}</div></section>`);
+}
+// Al abrir el enlace de un QR: modo simple → Rellenar picking de ese estante; coordinador/administrador → la zona en el inventario de la bodega
+function irAZonaHash(){
+  const m=/^#zona=([^/]+)\/(.+)$/.exec(location.hash); if(!m) return false;
+  let bid,zid; try{ bid=decodeURIComponent(m[1]); zid=decodeURIComponent(m[2]); }catch{ return false; }
+  const b=S.bodegas.find(x=>x.id===bid), M=b&&mapaDe(b), z=M&&M.zonas.find(x=>x.id===zid);
+  if(!z){   // puede que los datos aún no lleguen: se reintenta en cada actualización durante 15 segundos
+    if(Date.now()-(S._zHash0||(S._zHash0=Date.now()))>15000){ S._zHash0=0; toast("No encontré esa zona. Puede que se haya quitado."); history.replaceState(null,"",location.pathname); return true; }
+    return false; }
+  S._zHash0=0;
+  history.replaceState(null,"",location.pathname);
+  if(S.simple){ const c=smRellCtx(); if(c&&c.b.id===b.id){ S.smRell={vista:"estante",hechos:[],q:{},salt:[],zona:z.id,cara:null,rev:false,listo:null}; go({go:"simple"}); return true; } toast(`${z.n} · ${b.nombre}`); return true; }
+  go({go:"inv"}); abrirInv(b.id); S.invVista="mapa"; S.mpSel=z.id; render(true); return true;
+}
+window.addEventListener("hashchange",()=>{ if(/^#zona=/.test(location.hash)) irAZonaHash(); });
+
 function render(force=true){   // live data updates call render(false)
+  if(/^#zona=/.test(location.hash) && S.user!==null && irAZonaHash()) return;
   renderNav(); avRevisar();
   $("#cats").innerHTML = cats().map(c=>`<option value="${esc(c)}">`).join("");
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
@@ -4245,6 +4344,8 @@ C.addEventListener("click",e=>{
   if(avClick(t)) return;
   const pi=t.closest("[data-pendinv]"); if(pi){ abrirInv(pi.dataset.pendinv); if(pi.dataset.vista){ S.invVista=pi.dataset.vista; render(true); } return; }
   if(t.closest("[data-pdscroll]")){ const e=$("#pdElev"); if(e) e.scrollIntoView({behavior:"smooth"}); return; }
+  if(t.closest("[data-zedit]")){ zEditar(S.invBod); return; }
+  const zq=t.closest("[data-zqr]"); if(zq){ imprimirQR(zq.dataset.zqr, zq.dataset.zqz||null); return; }
   if(t.closest("[data-respaldo]")){ Store.respaldo().then(()=>{ try{ localStorage.setItem("inv-ultimo-respaldo",new Date().toISOString()); }catch{} render(true); }); return; }
   const rp=t.closest("[data-restprod]"); if(rp){ Store.restaurarProducto(rp.dataset.restprod).then(()=>toast("Producto restaurado")); return; }
   const bp=t.closest("[data-borrarprod]"); if(bp){ const p=(S.papelera||[]).find(x=>x.id===bp.dataset.borrarprod); if(p&&confirm(`¿Eliminar "${p.nombre}" para siempre? Ya no se podrá restaurar.`)) Store.borrarDefinitivo(p.id).then(()=>toast("Eliminado definitivamente")); return; }
@@ -4405,7 +4506,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "89", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "90", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
