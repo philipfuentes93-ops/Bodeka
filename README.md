@@ -112,3 +112,11 @@ Recepciones, despachos, pickings, traspasos y entradas/salidas rápidas ya no en
 - Cada **movimiento, documento (recepción, despacho, picking, traspaso, pedido), aviso y producto modificado** guarda quién lo hizo (campo `por`, más `cuenta` con el correo). Se ve en la columna *Por* de Movimientos, *Registró* en Recepciones/Despachos, en el detalle de cada pedido y en los avisos.
 - En el **modo simple**, la primera vez se pregunta «¿Cómo te llamas?» (queda en ese celular; se cambia al pie de la pantalla). Sirve cuando varias personas comparten una cuenta.
 - **Roles** (colección `usuarios`, se asignan en *Bodegas → Usuarios y roles*, solo administrador): *Operario* (solo modo simple, sin opción de salir), *Coordinador* (toda la app menos la administración) y *Administrador* (los correos de `ADMINS`). Quien no tiene rol es Coordinador. Los roles ocultan funciones en la app; el permiso real del servidor sigue siendo la lista de correos de `firestore.rules`.
+
+## Pendientes (antes "Avisos")
+La pantalla **Pendientes** junta lo que requiere atención en un solo lugar: mosaicos con *Sin stock*, *Bajo el mínimo*, *Por vencer o vencidos* (abren Productos ya filtrado), *Rellenar picking*, *Packs por pedir* al máximo de Reposición (abren la bodega) y *Elevados al coordinador*; debajo siguen los avisos del operario. Al administrador le recuerda **descargar un respaldo** si pasaron 7 días o más.
+
+## Deshacer, papelera y respaldo
+- **Deshacer** un picking, traspaso o pedido (botón en *Mis pedidos* del modo simple y en la lista de Picking): devuelve el stock a la bodega de origen, descuenta el destino, quita los movimientos y deja el documento marcado como **anulado**. El operario puede hasta 2 horas después; coordinador y administrador siempre.
+- **Papelera**: eliminar un producto ya no lo borra; queda en *Bodegas → Respaldo y papelera*, de donde se **restaura** o se **elimina para siempre**. El historial de movimientos se mantiene.
+- **Respaldo**: *Descargar respaldo* baja un archivo JSON con productos, movimientos, documentos y bodegas (más la copia local del equipo). Hay que hacerlo a mano: la app no puede guardar copias en el servidor por sí sola.

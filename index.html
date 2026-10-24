@@ -1068,6 +1068,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .lc-lista{max-height:46vh;overflow:auto;margin:10px 0}.lc-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border-top:1px solid var(--line)}.lc-fila:first-child{border-top:0}.lc-fila small{display:block;color:var(--muted);margin-top:2px}.lc-fila input{margin-top:4px}
 .sm-nom{box-sizing:border-box;width:100%;min-height:68px;border-radius:18px;border:4px solid var(--line);background:var(--field);color:var(--ink);font-size:1.5rem;font-weight:700;padding:0 16px}
 .usr-row{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--line)}.usr-row .mini{display:block}
+.pd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 6px}.pd-tile{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:2px;padding:14px 16px;border-radius:16px;background:var(--panel);border:2px solid color-mix(in srgb,var(--c) 45%,var(--line));box-shadow:0 3px 10px rgba(16,41,44,.1)}.pd-tile b{font-size:1.9rem;line-height:1;color:var(--c)}.pd-tile span{font-weight:700}.pd-tile small{color:var(--muted)}.pd-tile:focus-visible{outline:3px solid var(--accent)}
 </style>
 </head>
 <body>
@@ -1122,7 +1123,7 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
     <button class="movil-sheet-item" type="button" data-tab="traspaso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13m0 0-3-3m3 3-3 3M17 17H4m0 0 3-3m-3 3 3 3"/></svg><span>Traspaso interno</span></button>
     <button class="movil-sheet-item" type="button" data-tab="desp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h13l5 5v5H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/><path d="M8 13V5m0 0L5 8m3-3 3 3"/></svg><span>Despacho</span></button>
     <button class="movil-sheet-item" type="button" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span>Por bodega</span></button>
-    <button class="movil-sheet-item" type="button" data-tab="avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Avisos</button>
+    <button class="movil-sheet-item" type="button" data-tab="avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Pendientes</button>
     <button class="movil-sheet-item" type="button" data-tab="movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Movimientos</span></button>
     <button class="movil-sheet-item" type="button" id="movilImp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Importar Excel</span></button>
     <button class="movil-sheet-item" type="button" id="movilExp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span>Exportar Excel</span></button>
@@ -1407,6 +1408,8 @@ async function fsQuery(col,orden,limite){
   return (j||[]).filter(x=>x.document).map(x=>({id:x.document.name.split("/").pop(),...fsObj(x.document.fields)}));
 }
 const fsName = (col,id) => `${FS()}/${col}/${encodeURIComponent(id)}`;
+// Separa los productos en la papelera de los activos
+function setProductos(lista){ S.papelera=lista.filter(p=>p.eliminado); S.productos=lista.filter(p=>!p.eliminado); }
 const difUbic = (a,b) => { const d={}; new Set([...Object.keys(a||{}),...Object.keys(b||{})]).forEach(k=>{ const n=(b[k]||0)-((a||{})[k]||0); if(n) d[k]=n; }); return d; };   // cambio por bodega entre dos stocks
 const Store = {
   db:null,
@@ -1433,7 +1436,7 @@ const Store = {
     if(!this.db||!this.rest) return; if(this._sond){ this._otra=true; return; } this._sond=true;
     try{
       const [p,m,d,b,us]=await Promise.all([fsQuery("productos"),fsQuery("movimientos","fecha",400),fsQuery("documentos","creado",500),fsQuery("bodegas"),fsQuery("usuarios")]);
-      S.productos=p.map(fixProd); S.movs=m; S.docs=d; S.usuarios=us; aplicarRol(); if(!this._regUsr){ this._regUsr=true; this.registrarUsuario(); }
+      setProductos(p.map(fixProd)); S.movs=m; S.docs=d; S.usuarios=us; aplicarRol(); if(!this._regUsr){ this._regUsr=true; this.registrarUsuario(); }
       if(b.length){ const cc=conCoolers(b); S.bodegas=ordenBodegas(cc.list); }
       setSync("ok",false,true); this.saveLocal();
       if(!this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); }
@@ -1588,7 +1591,7 @@ const Store = {
         else if(!this._tAlt){ this._tAlt=setTimeout(()=>{ this._tAlt=null; this.activarRest("auto"); },20000); }   // si en 20 s el servidor no responde, se pasa a la conexión alternativa
         setSync(fc?"cache":"ok",snap.metadata.hasPendingWrites);
         if(snap.docChanges().length || !this._cargado){
-          this._cargado=true; S.productos=snap.docs.map(d=>fixProd({id:d.id,...d.data()})); this.saveLocal();
+          this._cargado=true; setProductos(snap.docs.map(d=>fixProd({id:d.id,...d.data()}))); this.saveLocal();
           if(!fc && !this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); }
           render(false);
         }
@@ -1638,9 +1641,21 @@ const Store = {
     const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
     this.saveLocal(); render(false);
   },
+  // Eliminar manda el producto a la papelera (se puede restaurar); "borrarDefinitivo" lo elimina de verdad
   async delProducto(id){
-    this.fsDel("productos",id);
-    S.productos=S.productos.filter(x=>x.id!==id); this.saveLocal(); render(false);
+    const p=S.productos.find(x=>x.id===id); if(!p) return;
+    const q={...p, eliminado:true, eliminadoEn:new Date().toISOString(), eliminadoPor:quienDe()}, {id:_,...body}=q;
+    this.fsSet("productos",id,body);
+    S.productos=S.productos.filter(x=>x.id!==id); S.papelera=[q,...(S.papelera||[]).filter(x=>x.id!==id)]; this.saveLocal(); render(false);
+  },
+  async restaurarProducto(id){
+    const p=(S.papelera||[]).find(x=>x.id===id); if(!p) return;
+    const q={...p, eliminado:false, actualizado:new Date().toISOString()}, {id:_,...body}=q;
+    this.fsSet("productos",id,body);
+    S.papelera=S.papelera.filter(x=>x.id!==id); S.productos.push(q); this.saveLocal(); render(false);
+  },
+  async borrarDefinitivo(id){
+    this.fsDel("productos",id); S.papelera=(S.papelera||[]).filter(x=>x.id!==id); this.saveLocal(); render(false);
   },
   async delMov(id){
     this.fsDel("movimientos",id);
@@ -2009,7 +2024,7 @@ function renderNav(){
     ${it("home","Resumen",ICON.home,S.screen==="home")}
     ${it("tabla","Productos",ICON.box,S.screen==="tabla",nRep)}
     ${it("inv","Por bodega",ICON.house,S.screen==="inv")}
-    ${it("avisos","Avisos",ICON.bell,S.screen==="avisos",avCuenta().todos)}
+    ${it("avisos","Pendientes",ICON.bell,S.screen==="avisos",avCuenta().todos)}
     ${it("movs","Movimientos",ICON.hist,S.screen==="movs")}
     <div class="grp">Operación</div>
     ${it("traspaso","Traspaso interno",ICON.swap,S.screen==="picking"&&PKT())}
@@ -2450,8 +2465,7 @@ async function eliminarDoc(id){
   const now=new Date().toISOString();
   try{
     for(const l of lineas){ const cur=S.productos.find(x=>x.id===l.productoId); if(!cur) continue;
-      const ubic={...cur.ubic,[ob]:Math.max(0,(cur.ubic[ob]||0)-sg*(+l.cantidad||0))};
-      await Store.putProducto({...cur, ubic, stock:Object.values(ubic).reduce((a,n)=>a+n,0), actualizado:now}); }
+      await Store.moverStock(cur.id,{[ob]:-sg*(+l.cantidad||0)}); }
     for(const m of S.movs.filter(m=>m.folio===d.folio && m.tipo===D.mov)) await Store.delMov(m.id);
     await Store.delDocu(d.id);
     const dlg=$("#dDoc"); if(dlg.open) dlg.close();
@@ -2693,7 +2707,7 @@ const smHora = iso => { try{ return new Date(iso).toLocaleTimeString("es-CL",{ho
 const smDia = f => { const [y,m,d]=f.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"}); };
 function smPartes(){   // los pickings (y traspasos) de los últimos 400 días, uno por destino, el más nuevo primero
   const lim=new Date(); lim.setDate(lim.getDate()-400);
-  return pkParts(S.docs.filter(d=>d.tipo==="picking" && d.fecha>=pkFechaLocal(lim)).sort((a,b)=>String(b.creado).localeCompare(String(a.creado))));
+  return pkParts(S.docs.filter(d=>d.tipo==="picking" && !d.anulado && d.fecha>=pkFechaLocal(lim)).sort((a,b)=>String(b.creado).localeCompare(String(a.creado))));
 }
 function smRangoFechas(){
   const hoy=hoyISO();
@@ -2708,8 +2722,9 @@ function smCards(t){
     return `<div class="sm-card on">${smFoto(p,l.nombre)}<span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span></div>`; }).join("");
 }
 function smDetalle(t){
+  const dd=S.docs.find(x=>x.id===t._doc), und=puedeDeshacer(dd)?`<div class="sm-fin" style="position:static"><button type="button" class="sm-btn2" data-smundo="${esc(t._doc)}">Deshacer este pedido</button></div>`:"";
   return smBarra(esc(t.folio||"Pedido"),`Pedido de las ${smHora(t.creado)} · ${esc(smDia(t.fecha))}${t.por?` · ${esc(t.por)}`:""}`,pkColor(t.ubicDestino))
-    +smRuta(t.ubicOrigen,t.ubicDestino)+`<div class="sm-cards" style="padding-top:16px">${smCards(t)}</div>`;
+    +smRuta(t.ubicOrigen,t.ubicDestino)+`<div class="sm-cards" style="padding-top:16px">${smCards(t)}</div>`+und;
 }
 function smPedidos(){
   const todas=smPartes(), r=smRangoFechas(), ls=todas.filter(t=>t.fecha>=r.ini && t.fecha<=r.fin);
@@ -3012,9 +3027,16 @@ function avFila(d){
 function viewAvisos(){
   const ac=avActivos().sort((a,b)=>String(b.creado).localeCompare(String(a.creado))), el=ac.filter(d=>d.estado==="elevado"), ab=ac.filter(d=>d.estado==="abierto");
   const hechos=avDocs().filter(d=>avResuelto(d)).sort((a,b)=>String(b.atendidoEn||"").localeCompare(String(a.atendidoEn||""))).slice(0,15);
-  return `<div class="page-head"><h1>Avisos de reposición</h1><span class="spacer"></span>${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
-    <p class="mini" style="margin:0 0 14px">Los avisos los envía el operario desde su panel. Lo que él eleva al coordinador aparece primero para que se pida el producto.</p>
-    <section class="card av-sec"><h3>Elevados al coordinador <span class="pill venc">${el.length}</span></h3>${el.length?`<ul class="av-list">${el.map(avFila).join("")}</ul>`:`<p class="mini-empty">Nada elevado por ahora.</p>`}</section>
+  const al=avAlertas(), nSin=al.filter(a=>a.mot==="sin").length, nCrit=al.filter(a=>a.mot==="crit").length, nVenc=al.filter(a=>a.mot==="venc"||a.mot==="vencido").length;
+  const rep0=bods("reposicion")[0], faltaRep=rep0?S.productos.reduce((a,p)=>a+Math.ceil(faltaBod(p,rep0)-1e-9),0):0, nRell=smRellCtx()?smRellN():0;
+  const tile=(c,n,t,attrs,sub="")=>`<button type="button" class="pd-tile" style="--c:${c}" ${attrs}><b>${n}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</button>`;
+  const hub=`<div class="pd-tiles">${tile("var(--danger)",nSin,"Sin stock",'data-go="tabla" data-cat="todas" data-tab="critico"')}${tile("var(--warn)",nCrit,"Bajo el mínimo",'data-go="tabla" data-cat="todas" data-tab="reponer"')}${tile("var(--c2)",nVenc,"Por vencer o vencidos",'data-go="tabla" data-cat="todas" data-tab="pv"')}${nRell?tile("var(--orange)",nRell,"Rellenar picking",'data-pendinv="p11" data-vista="reponer"',"Piso 11"):""}${rep0?tile("var(--accent)",fmt(faltaRep),`Packs por pedir al ${esc(rep0.nombre.replace("Reposición ",""))}`,`data-pendinv="${esc(rep0.id)}" data-vista="lista"`,"para llegar al máximo"):""}${tile("var(--danger)",el.length,"Elevados al coordinador",'data-pdscroll="1"')}</div>`;
+  const bkDias=(()=>{ try{ const u=localStorage.getItem("inv-ultimo-respaldo"); return u?Math.floor((Date.now()-new Date(u))/864e5):null; }catch{ return null; } })();
+  const recResp=esAdmin&&(bkDias===null||bkDias>=7)?`<div class="av-banner" style="margin-bottom:14px"><div>${bkDias===null?"Aún no descargas un respaldo de los datos.":`Hace ${bkDias} días que no descargas un respaldo.`}</div><button class="btn soft sm" type="button" data-respaldo>Descargar respaldo</button></div>`:"";
+  return `<div class="page-head"><h1>Pendientes</h1><span class="spacer"></span>${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
+    ${recResp}${hub}
+    <p class="mini" style="margin:6px 0 14px">Todo lo que requiere atención, en un solo lugar. Los avisos los envía el operario desde su panel; lo que eleva al coordinador aparece primero para que se pida el producto.</p>
+    <section class="card av-sec" id="pdElev"><h3>Elevados al coordinador <span class="pill venc">${el.length}</span></h3>${el.length?`<ul class="av-list">${el.map(avFila).join("")}</ul>`:`<p class="mini-empty">Nada elevado por ahora.</p>`}</section>
     <section class="card av-sec"><h3>Pedidos de reposición <span class="pill pv">${ab.length}</span></h3>${ab.length?`<ul class="av-list">${ab.map(avFila).join("")}</ul>`:`<p class="mini-empty">No hay avisos pendientes.</p>`}</section>
     ${hechos.length?`<section class="card av-sec"><h3>Atendidos recientes</h3><ul class="av-list av-hecho">${hechos.map(d=>`<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${AV_MOT[d.motivo]||""} · ${d.auto?"repuesto":"atendido"} ${avHace(d.atendidoEn||d.creado)}</span></div></li>`).join("")}</ul></section>`:""}`;
 }
@@ -3112,6 +3134,7 @@ function smClick(t){
     }
     if(S.smVer) S.smVer=null; else { S.smSec=false; S.smUlt=null; }
     return go1(); }
+  const su=t.closest("[data-smundo]"); if(su){ deshacerPicking(su.dataset.smundo).then(()=>{ S.smVer=null; render(true); }); return true; }
   if(t.closest("[data-smquien]")){ const v=(document.querySelector("#smnom")||{}).value||""; if(!v.trim()){ toast("Escribe tu nombre."); return true; } try{ localStorage.setItem("inv-quien",v.trim()); localStorage.removeItem("inv-quien-omitir"); }catch{} return go1(); }
   if(t.closest("[data-smquienomitir]")){ try{ localStorage.setItem("inv-quien-omitir","1"); }catch{} S.smQuienOk=true; return go1(); }
   if(t.closest("[data-smquiencambiar]")){ try{ localStorage.removeItem("inv-quien"); localStorage.removeItem("inv-quien-omitir"); }catch{} S.smQuienOk=false; return go1(); }
@@ -3145,12 +3168,12 @@ function pkParts(docs, F){
 }
 function pkDocs(){
   const r=pkRangoFechas();
-  return S.docs.filter(d=>d.tipo==="picking" && esTraspasoDoc(d)===PKT() && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || pkParts([d],S.pkDestF).length))
+  return S.docs.filter(d=>d.tipo==="picking" && !d.anulado && esTraspasoDoc(d)===PKT() && d.fecha>=r.ini && d.fecha<=r.fin && (S.pkDestF==="todas" || pkParts([d],S.pkDestF).length))
     .sort((a,b)=>String(b.creado).localeCompare(String(a.creado)));
 }
 function viewPkHist(destinos){
   const r=pkRangoFechas(), docs=pkDocs(), hoyF=pkFechaLocal(new Date());
-  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking" && esTraspasoDoc(d)===PKT()).map(d=>d.ubicDestino||d.ubic)])].filter(x=>x&&x!==PK_GEN);
+  const ids=[...new Set([...destinos.map(b=>b.id), ...S.docs.filter(d=>d.tipo==="picking" && !d.anulado && esTraspasoDoc(d)===PKT()).map(d=>d.ubicDestino||d.ubic)])].filter(x=>x&&x!==PK_GEN);
   const dNom=id=>bodNom(id);
   const filtros=`<div class="pk-filters"><div class="seg" role="group" aria-label="Periodo">
       <button type="button" data-pkrango="hoy" aria-pressed="${S.pkRango==="hoy"}">Hoy</button><button type="button" data-pkrango="semana" aria-pressed="${S.pkRango==="semana"}">Esta semana</button></div>
@@ -3183,7 +3206,7 @@ function viewPkHist(destinos){
     return `<details class="pk-doc" style="--c:${pkColor(de)}"><summary><span class="pk-folio">${esc(d.folio)}</span><span class="pk-ruta">${esc(dNom(o))} <i>→</i> <b>${gen?"General · "+cs.length+" coolers":esc(dNom(de))}</b></span>
       <span class="muted">${S.pkRango==="semana"?DIAS_CORTO[(new Date(d.fecha+"T12:00").getDay()+6)%7]+" ":""}${hora}</span><span class="spacer"></span><span class="pk-chip">${(d.lineas||[]).length} prod.</span><span class="pk-chip strong">${fmt(uds(d))} un</span></summary>
       <div class="pk-doc-b"><table class="db" style="min-width:${gen?520+cs.length*70:420}px"><thead><tr><th><span>Código</span></th><th><span>Producto</span></th>${thG}<th class="n"><span>Unidades</span></th><th class="n"><span>Packs</span></th></tr></thead><tbody>${(d.lineas||[]).map(l=>`<tr><td>${esc(l.codigo)}</td><td class="prod">${esc(l.nombre)}</td>${gen?cs.map(c=>`<td class="n">${(l.reparto||{})[c]?fmt(l.reparto[c]):'<span class="muted">-</span>'}</td>`).join(""):""}<td class="n stk">${fmt(l.cantidad)}</td><td class="n">${(l.packUn||1)>1?txtPk(l.cantidad,l.packUn):'<span class="muted">-</span>'}</td></tr>`).join("")}</tbody></table>
-      <div style="padding:10px 0 2px"><button class="btn ghost sm" type="button" data-pkprintdoc="${d.id}">🖨 Imprimir esta hoja</button></div></div></details>`; }).join("");
+      <div style="padding:10px 0 2px"><button class="btn ghost sm" type="button" data-pkprintdoc="${d.id}">🖨 Imprimir esta hoja</button>${puedeDeshacer(d)?` <button class="btn danger sm" type="button" data-pkundo="${d.id}">Deshacer</button>`:""}</div></div></details>`; }).join("");
   return `<div class="card" style="padding:18px;border-top-left-radius:0">${filtros}${kpis}
       <h3 class="pk-h">Unidades ${S.pkRango==="hoy"?"de hoy":"por día"}</h3>${chart}</div>
     <div class="card" style="margin-top:14px"><div class="card-h">Qué hay que recolectar<span class="muted" style="font-weight:500;font-size:.85rem">${cons.length} producto${cons.length===1?"":"s"} · ${fmt(tot)} unidades</span></div>${consT}</div>
@@ -3996,6 +4019,29 @@ function usrGuardar(email,rol){
   const u=(S.usuarios||[]).find(x=>x.id===email); if(u) u.rol=rol; else (S.usuarios=S.usuarios||[]).push({id:email,email,rol});
   Store.fsMerge("usuarios",email,{email,rol}).then(()=>{ toast(`${email}: ${ROLES[rol]}`); }); aplicarRol(); render(true);
 }
+/* --- deshacer un picking / traspaso / pedido: devuelve el stock y deja el documento marcado como "anulado" --- */
+const puedeDeshacer = d => d && d.tipo==="picking" && !d.anulado && (esAdmin || S.rol==="coordinador" || (Date.now()-new Date(d.creado))<2*3600*1000);   // los operarios, hasta 2 horas después
+async function deshacerPicking(id){
+  const d=S.docs.find(x=>x.id===id); if(!puedeDeshacer(d)){ toast("Este documento ya no se puede deshacer."); return; }
+  const orig=d.ubicOrigen, dest=d.ubicDestino, lineas=d.lineas||[], un=lineas.reduce((a,l)=>a+(+l.cantidad||0),0);
+  if(!confirm(`¿Deshacer ${d.folio}?\nSe devuelven ${fmt(un)} unidades a ${bodNom(orig)}${dest!==PK_GEN&&!esCooler(dest)?` y se descuentan de ${bodNom(dest)}`:""}. El documento queda marcado como anulado.`)) return;
+  try{
+    for(const l of lineas){ const p=S.productos.find(x=>x.id===l.productoId); if(!p) continue; const q=+l.cantidad||0, dl={[orig]:q};
+      if(dest!==PK_GEN && !esCooler(dest)) dl[dest]=-q;
+      const np=await Store.moverStock(p.id,dl);
+      await Store.addMov({id:uid(),productoId:p.id,nombre:p.nombre,categoria:p.categoria,tipo:"ajuste",cantidad:q,cantidadPack:toPk(q,p),sueltas:suel(q,p),stockFinal:np.stock,nota:`↩ Se deshizo ${d.folio}: ${fmt(q)} un vuelven a ${bodNom(orig)}`,fecha:new Date().toISOString(),folio:d.folio},true); }
+    for(const m of S.movs.filter(m=>m.folio===d.folio && (m.tipo==="picking"||m.tipo==="traspaso"))) await Store.delMov(m.id);
+    await Store.addDocu({...d,anulado:true,anuladoEn:new Date().toISOString(),anuladoPor:quienDe()});
+    toast(`${d.folio} deshecho`); render(true);
+  }catch{ toast("No se pudo deshacer. Revisa tu conexión."); }
+}
+function viewPapelera(){
+  const pa=S.papelera||[];
+  return `<div class="card" style="margin-top:14px"><div class="card-h">Respaldo y papelera</div>
+    <div class="usr-row"><div><b>Respaldo completo de los datos</b><span class="mini">Descarga un archivo con productos, movimientos, documentos y bodegas. Conviene hacerlo una vez por semana.</span></div><button class="btn soft sm" type="button" data-respaldo>Descargar respaldo</button></div>
+    <div style="padding:10px 18px 4px"><b>Papelera</b> <span class="mini">· los productos eliminados se guardan aquí y se pueden restaurar</span></div>
+    ${pa.length?pa.map(p=>`<div class="usr-row"><div><b>${esc(p.nombre)}</b><span class="mini">${esc(p.codigo||"")} · eliminado ${p.eliminadoEn?avHace(p.eliminadoEn):""}${p.eliminadoPor?` por ${esc(p.eliminadoPor)}`:""}</span></div><span><button class="btn soft sm" type="button" data-restprod="${esc(p.id)}">Restaurar</button> <button class="btn danger sm" type="button" data-borrarprod="${esc(p.id)}">Eliminar para siempre</button></span></div>`).join(""):'<p class="mini-empty" style="padding:6px 18px 14px">La papelera está vacía.</p>'}</div>`;
+}
 function viewBodegas(){
   if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
   const stockDe=b=>packsBod(b);
@@ -4013,7 +4059,7 @@ function viewBodegas(){
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
     <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
     <details class="card cool-det" style="margin-bottom:14px"><summary>Destinos de picking (coolers, sin inventario)</summary>${grupo("cooler","Coolers")}</details>
-    ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}${viewUsuarios()}`;
+    ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}${viewUsuarios()}${viewPapelera()}`;
 }
 let editBodId=null;
 function openBod(id){
@@ -4169,6 +4215,12 @@ C.addEventListener("click",e=>{
   if(mzClick(t)) return;
   if(smClick(t)) return;
   if(avClick(t)) return;
+  const pi=t.closest("[data-pendinv]"); if(pi){ abrirInv(pi.dataset.pendinv); if(pi.dataset.vista){ S.invVista=pi.dataset.vista; render(true); } return; }
+  if(t.closest("[data-pdscroll]")){ const e=$("#pdElev"); if(e) e.scrollIntoView({behavior:"smooth"}); return; }
+  if(t.closest("[data-respaldo]")){ Store.respaldo().then(()=>{ try{ localStorage.setItem("inv-ultimo-respaldo",new Date().toISOString()); }catch{} render(true); }); return; }
+  const rp=t.closest("[data-restprod]"); if(rp){ Store.restaurarProducto(rp.dataset.restprod).then(()=>toast("Producto restaurado")); return; }
+  const bp=t.closest("[data-borrarprod]"); if(bp){ const p=(S.papelera||[]).find(x=>x.id===bp.dataset.borrarprod); if(p&&confirm(`¿Eliminar "${p.nombre}" para siempre? Ya no se podrá restaurar.`)) Store.borrarDefinitivo(p.id).then(()=>toast("Eliminado definitivamente")); return; }
+  const pku=t.closest("[data-pkundo]"); if(pku){ deshacerPicking(pku.dataset.pkundo); return; }
   if(t.closest("[data-usradd]")){ const e=prompt("Correo de la persona:"); if(e){ const r=prompt("Rol (operario, coordinador o admin):","operario"); const k=String(r||"").trim().toLowerCase(); usrGuardar(e, k==="admin"||k==="administrador"?"admin":k==="coordinador"?"coordinador":"operario"); } return; }
   const cr=t.closest("[data-invcopiarrepo]"); if(cr){ const b=S.bodegas.find(x=>x.id===cr.dataset.invcopiarrepo); if(b){ const l=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>`• ${p.nombre}: pedir ${Math.ceil(faltaBod(p,b)-1e-9)} pack${Math.ceil(faltaBod(p,b)-1e-9)===1?"":"s"} (hay ${fmtPk(ubPk(p,b.id))}, máximo ${fmtPk(maxBod(p,b)||minBod(p,b))})`).join("\n"); (navigator.clipboard?navigator.clipboard.writeText("Para reponer "+b.nombre+":\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); } return; }
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
@@ -4325,7 +4377,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "86", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "88", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
