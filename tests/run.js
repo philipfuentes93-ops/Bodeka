@@ -139,7 +139,7 @@ async function prueba(nombre, fn) {
 
   await prueba("Avisos del navegador: avisa de un aviso nuevo de otra persona", async () => {
     const { ctx, page } = await nueva({ permissions: ["notifications"] });
-    await page.evaluate(() => { window.__n = []; navigator.serviceWorker.getRegistration = async () => ({ showNotification: async (t, o) => window.__n.push([t, o.body]) }); });
+    await page.evaluate(() => { Object.defineProperty(Notification, "permission", { get: () => "granted" }); window.__n = []; navigator.serviceWorker.getRegistration = async () => ({ showNotification: async (t, o) => window.__n.push([t, o.body]) }); });
     await page.evaluate(async () => { await Store.putProducto(fixProd({ id: "c", codigo: "c", nombre: "Fanta", packUn: 6, categoria: "B", ubic: { repo: 0 }, minimo: 2 })); render(true); });
     await page.evaluate(async () => { await Store.addDocu({ id: "av1", tipo: "aviso", creado: new Date().toISOString(), productoId: "c", nombre: "Fanta", codigo: "c", motivo: "sin", nivel: "operario", estado: "abierto", por: "Ana", cuenta: "ana@x.cl" }); render(false); });
     await page.waitForTimeout(300);
