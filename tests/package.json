@@ -1,0 +1,7 @@
+{
+  "name": "deposito-pruebas",
+  "private": true,
+  "description": "Pruebas automáticas de la app (se ejecutan en GitHub Actions antes de publicar)",
+  "scripts": { "test": "node run.js" },
+  "devDependencies": { "jsqr": "1.4.0", "playwright": "1.49.1", "pngjs": "7.0.0" }
+}

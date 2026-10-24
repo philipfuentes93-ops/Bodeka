@@ -6,7 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  pruebas:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar las pruebas y el navegador
+        working-directory: tests
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Revisar que el código de la app no tenga errores de sintaxis
+        run: |
+          node -e "const s=require('fs').readFileSync('index.html','utf8');const m=s.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);if(!m)throw new Error('no se encontró el script principal');new Function(m[1]);console.log('sintaxis OK')"
+      - name: Pruebas automáticas
+        working-directory: tests
+        run: node run.js
+
   deploy:
+    needs: pruebas
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

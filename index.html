@@ -570,6 +570,13 @@ table.db thead th:last-child{border-top-right-radius:14px}
 .qr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .qr-etq{border:2px solid #000;border-radius:10px;padding:10px;text-align:center;break-inside:avoid;color:#000;background:#fff}
 .qr-b{font-size:11px;font-weight:700}.qr-n{font-size:15px;font-weight:800;margin-top:4px}.qr-t{font-size:11px}
+.has-scan{position:relative}.has-scan>input{padding-right:48px}
+.scan-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:10px;border:0;background:var(--accent-soft,#E3F2EF);color:var(--accent,#0E7C70);display:grid;place-items:center;cursor:pointer}
+.sm-find.has-scan .scan-btn{top:19px;right:24px;transform:none;width:44px;height:44px}.sm-find.has-scan>input{padding-right:78px}
+.qsearch.has-scan .scan-btn{position:static;transform:none}
+#scanVid{width:100%;max-height:60vh;border-radius:12px;background:#000;margin-top:8px}
+.sg-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:0 18px 10px}.sg-bar input{width:70px;margin-left:6px}
+.sg-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--line)}
 .pk-fefo{background:var(--warn-soft,#FFF1D6);color:#7A4A00;font-weight:700}
 .lote-li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
 .pk-line.flash{animation:pkflash 1.2s ease-out}
@@ -1237,6 +1244,9 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 
 <dialog id="dDoc"><div class="dlg" id="docBody"></div></dialog>
 <dialog id="dLocal"><div class="dlg" id="localBody"></div></dialog>
+<dialog id="dScan"><div class="dlg"><h2>Escanear código</h2><p class="sub" id="scanMsg">Apunta al código de barras del producto.</p>
+  <video id="scanVid" playsinline muted></video>
+  <div class="dlg-actions"><span class="spacer"></span><button type="button" class="btn ghost" id="scanCancel">Cancelar</button></div></div></dialog>
 <dialog id="dZonas"><div class="dlg" id="zEdBody"></div></dialog>
 <dialog id="dBod"><form class="dlg" id="fBod">
   <h2 id="dBodTitle">Agregar bodega</h2>
@@ -3074,16 +3084,19 @@ function viewAvisos(){
   const hub=`<div class="pd-tiles">${tile("var(--danger)",nSin,"Sin stock",'data-go="tabla" data-cat="todas" data-tab="critico"')}${tile("var(--warn)",nCrit,"Bajo el mínimo",'data-go="tabla" data-cat="todas" data-tab="reponer"')}${tile("var(--c2)",nVenc,"Por vencer o vencidos",'data-go="tabla" data-cat="todas" data-tab="pv"')}${nRell?tile("var(--orange)",nRell,"Rellenar picking",'data-pendinv="p11" data-vista="reponer"',"Piso 11"):""}${rep0?tile("var(--accent)",fmt(faltaRep),`Packs por pedir al ${esc(rep0.nombre.replace("Reposición ",""))}`,`data-pendinv="${esc(rep0.id)}" data-vista="lista"`,"para llegar al máximo"):""}${tile("var(--danger)",el.length,"Elevados al coordinador",'data-pdscroll="1"')}</div>`;
   const bkDias=(()=>{ try{ const u=localStorage.getItem("inv-ultimo-respaldo"); return u?Math.floor((Date.now()-new Date(u))/864e5):null; }catch{ return null; } })();
   const recResp=esAdmin&&(bkDias===null||bkDias>=7)?`<div class="av-banner" style="margin-bottom:14px"><div>${bkDias===null?"Aún no descargas un respaldo de los datos.":`Hace ${bkDias} días que no descargas un respaldo.`}</div><button class="btn soft sm" type="button" data-respaldo>Descargar respaldo</button></div>`:"";
-  return `<div class="page-head"><h1>Pendientes</h1><span class="spacer"></span>${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
+  return `<div class="page-head"><h1>Pendientes</h1><span class="spacer"></span>${"Notification" in window?(Notification.permission==="granted"?`<span class="mini">Avisos del navegador activados</span>`:Notification.permission==="denied"?`<span class="mini" title="Se cambia en los permisos del sitio">Avisos del navegador bloqueados</span>`:`<button class="btn ghost" type="button" data-notif>Activar avisos en este equipo</button>`):""}${el.length?`<button class="btn soft" type="button" data-avcopiar>Copiar lista para pedir</button>`:""}</div>
     ${recResp}${hub}
     <p class="mini" style="margin:6px 0 14px">Todo lo que requiere atención, en un solo lugar. Los avisos los envía el operario desde su panel; lo que eleva al coordinador aparece primero para que se pida el producto.</p>
     <section class="card av-sec" id="pdElev"><h3>Elevados al coordinador <span class="pill venc">${el.length}</span></h3>${el.length?`<ul class="av-list">${el.map(avFila).join("")}</ul>`:`<p class="mini-empty">Nada elevado por ahora.</p>`}</section>
+    ${viewSugerencia()}
     <section class="card av-sec"><h3>Pedidos de reposición <span class="pill pv">${ab.length}</span></h3>${ab.length?`<ul class="av-list">${ab.map(avFila).join("")}</ul>`:`<p class="mini-empty">No hay avisos pendientes.</p>`}</section>
     ${hechos.length?`<section class="card av-sec"><h3>Atendidos recientes</h3><ul class="av-list av-hecho">${hechos.map(d=>`<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${AV_MOT[d.motivo]||""} · ${d.auto?"repuesto":"atendido"} ${avHace(d.atendidoEn||d.creado)}</span></div></li>`).join("")}</ul></section>`:""}`;
 }
 function avClick(t){
   const e1=t.closest("[data-avelev]"); if(e1){ const d=S.docs.find(x=>x.id===e1.dataset.avelev); if(d){ avGuardar({...d,nivel:"coordinador",estado:"elevado",elevadoEn:new Date().toISOString()}).then(()=>render(true)); } return true; }
   const e2=t.closest("[data-avok]"); if(e2){ const d=S.docs.find(x=>x.id===e2.dataset.avok); if(d){ avGuardar({...d,estado:"atendido",atendidoEn:new Date().toISOString()}).then(()=>{ toast("Aviso atendido"); render(true); }); } return true; }
+  if(t.closest("[data-notif]")){ Notification.requestPermission().then(r=>{ toast(r==="granted"?"Te avisaremos cuando llegue un aviso nuevo, mientras la app esté abierta.":"No se activaron los avisos."); render(true); }); return true; }
+  if(t.closest("[data-sugcopiar]")){ const g=sugerencias(); (navigator.clipboard?navigator.clipboard.writeText(sugTexto(g)):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); return true; }
   if(t.closest("[data-avcopiar]")){ const l=avActivos().filter(d=>d.estado==="elevado").map(d=>`• ${d.nombre}${d.faltan?` — faltan ${d.faltan} pack${d.faltan===1?"":"s"}`:""} (${AV_MOT[d.motivo]||""})`).join("\n");
     (navigator.clipboard?navigator.clipboard.writeText("Productos por pedir:\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); return true; }
   return false;
@@ -4213,9 +4226,103 @@ function irAZonaHash(){
 }
 window.addEventListener("hashchange",()=>{ if(/^#zona=/.test(location.hash)) irAZonaHash(); });
 
+/* ---------- Escanear códigos con la cámara ----------
+   Usa el lector del navegador (BarcodeDetector) y, si el equipo no lo trae (iPhone, algunos Android), carga el lector ZXing de vendor/zxing/ solo cuando hace falta. */
+const SCAN_IDS=["pick","pkPick","smq","smavq","iq"];
+const ICON_CAM='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+function scanBotones(){
+  SCAN_IDS.forEach(id=>{ const el=document.getElementById(id); if(!el||!el.parentElement||el.parentElement.querySelector(".scan-btn")) return;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) return;
+    el.parentElement.classList.add("has-scan"); el.insertAdjacentHTML("afterend",`<button type="button" class="scan-btn" data-scan="${id}" aria-label="Escanear con la cámara" title="Escanear con la cámara">${ICON_CAM}</button>`); });
+}
+let scanSt=null;
+const cargarZXing=()=>window.ZXing?Promise.resolve():new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="vendor/zxing/zxing.min.js"; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
+function scanCerrar(){
+  if(!scanSt) return; scanSt.fin=true; clearTimeout(scanSt.t);
+  try{ scanSt.stream&&scanSt.stream.getTracks().forEach(t=>t.stop()); }catch{}
+  scanSt=null; const d=$("#dScan"); if(d.open) d.close();
+}
+async function scanAbrir(inputId){
+  const dlg=$("#dScan"), vid=$("#scanVid"); $("#scanMsg").textContent="Apunta al código de barras del producto.";
+  const st=scanSt={inputId,fin:false}; dlg.showModal();
+  try{ st.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false}); }
+  catch{ $("#scanMsg").textContent="No se pudo abrir la cámara. Revisa el permiso del navegador para esta página."; return; }
+  if(st.fin){ st.stream.getTracks().forEach(t=>t.stop()); return; }
+  vid.srcObject=st.stream; try{ await vid.play(); }catch{}
+  let det=null;
+  if("BarcodeDetector" in window){ try{ det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf","qr_code"]}); }catch{} }
+  let zx=null, cv=null;
+  if(!det){
+    try{ await cargarZXing(); }catch{ $("#scanMsg").textContent="Este equipo no puede leer códigos con la cámara."; return; }
+    const Z=window.ZXing, hints=new Map(); hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E,Z.BarcodeFormat.CODE_128,Z.BarcodeFormat.CODE_39,Z.BarcodeFormat.ITF,Z.BarcodeFormat.QR_CODE]); hints.set(Z.DecodeHintType.TRY_HARDER,true);
+    zx=new Z.MultiFormatReader(); zx.setHints(hints); cv=document.createElement("canvas");
+  }
+  const paso=async()=>{
+    if(!scanSt||scanSt!==st||st.fin) return; let code="";
+    try{
+      if(vid.readyState>=2 && vid.videoWidth){
+        if(det){ const r=await det.detect(vid); code=r&&r[0]&&r[0].rawValue||""; }
+        else{ const Z=window.ZXing; cv.width=vid.videoWidth; cv.height=vid.videoHeight; const cx=cv.getContext("2d",{willReadFrequently:true}); cx.drawImage(vid,0,0);
+          try{ const src=new Z.HTMLCanvasElementLuminanceSource(cv); code=zx.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(src))).getText(); }catch{ code=""; } }
+      }
+    }catch{}
+    if(code){ const id=st.inputId; scanCerrar(); try{ navigator.vibrate&&navigator.vibrate(60); }catch{} scanResultado(id,code); return; }
+    st.t=setTimeout(paso,det?150:250);
+  };
+  paso();
+}
+const buscarCodigo=code=>{ const c=String(code).trim(), sc=c.replace(/^0+/,""); return S.productos.find(p=>p.codigo&&(String(p.codigo).trim()===c||String(p.codigo).replace(/^0+/,"")===sc)); };
+function scanResultado(inputId,code){
+  const el=document.getElementById(inputId), p=buscarCodigo(code);
+  if(!el){ toast(`Código ${code}`); return; }
+  el.value=p&&(inputId==="pick"||inputId==="pkPick")?p.codigo:code;
+  el.dispatchEvent(new Event("input",{bubbles:true}));
+  if(p) toast(`Leído: ${p.nombre}`); else toast(`El código ${code} no está en tus productos.`);
+  if(inputId==="pick"||inputId==="pkPick") el.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+  else el.focus();
+}
+$("#scanCancel").addEventListener("click",scanCerrar); $("#dScan").addEventListener("close",()=>{ if(scanSt) scanCerrar(); });
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-scan]"); if(b){ e.preventDefault(); scanAbrir(b.dataset.scan); } });
+
+/* ---------- Avisos del navegador (mientras la app está abierta) ---------- */
+function avNotificar(){
+  if(S.simple||S.soloSimple||!S.user&&Store.db) return;
+  const ac=avActivos();
+  if(!S._avNotif){ S._avNotif=new Set(ac.map(d=>d.id)); return; }
+  const nuevos=ac.filter(d=>!S._avNotif.has(d.id)); ac.forEach(d=>S._avNotif.add(d.id));
+  const ajenos=nuevos.filter(d=>!(d.cuenta&&d.cuenta===cuentaDe()&&d.por===quienDe()));
+  if(!ajenos.length||!("Notification" in window)||Notification.permission!=="granted") return;
+  const t="Depósito · "+(ajenos.length===1?"nuevo aviso de reposición":`${ajenos.length} avisos de reposición`);
+  const b=ajenos.slice(0,3).map(d=>`${d.nombre} (${AV_MOT[d.motivo]||""})`).join(", ")+(ajenos.length>3?` y ${ajenos.length-3} más`:"");
+  const dir=()=>{ try{ new Notification(t,{body:b,tag:"aviso"}); }catch{} };
+  try{ navigator.serviceWorker&&navigator.serviceWorker.getRegistration().then(r=>r&&r.showNotification?r.showNotification(t,{body:b,tag:"aviso",icon:"icon-192.png"}):dir()).catch(dir); }catch{ dir(); }
+}
+
+/* ---------- Sugerencia de pedido: lo que sale (despachos, salidas y picking a coolers) frente a lo que hay ---------- */
+const sugDias=()=>{ const v=Math.round(+smLS("inv-sug-dias","14")); return v>=1&&v<=90?v:14; };
+function sugerencias(){
+  const ahora=Date.now(), desde=ahora-30*864e5, cons={}; let primero=ahora;
+  S.movs.forEach(m=>{ const t=new Date(m.fecha).getTime(); if(!(t>=desde)) return; if(t<primero) primero=t;
+    if(m.tipo==="despacho"||m.tipo==="salida"||(m.tipo==="picking"&&/sale a cooler/i.test(m.nota||""))) cons[m.productoId]=(cons[m.productoId]||0)+(+m.cantidad||0); });
+  const dias=Math.min(30,Math.max(7,Math.ceil((ahora-primero)/864e5))), obj=sugDias(), out=[];
+  S.productos.forEach(p=>{ const c=cons[p.id]||0; if(c<=0) return;
+    const dia=c/dias, hay=+p.stock||0, cob=hay/dia, pk=pkn(p), falta=Math.ceil((dia*obj-hay)/pk-1e-9);
+    if(falta>0) out.push({p,sem:dia*7,hay,cob,falta,pk}); });
+  return {rows:out.sort((a,b)=>a.cob-b.cob), dias, obj};
+}
+function sugTexto(S0){ return "Sugerencia de pedido (para cubrir "+S0.obj+" días):\n"+S0.rows.map(r=>`• ${r.p.nombre} — pedir ${r.falta} pack${r.falta===1?"":"s"}`).join("\n"); }
+function viewSugerencia(){
+  const g=sugerencias();
+  const fila=r=>`<li class="sg-row"><div class="av-nm"><b>${esc(r.p.nombre)}</b><span class="mini">Sale ~${fmtPk(Math.round(r.sem/r.pk*10)/10)} pack${Math.round(r.sem/r.pk*10)/10===1?"":"s"} por semana · hay ${fmtPk(toPk(r.hay,r.p))} · alcanza ${r.cob<1?"menos de 1 día":Math.floor(r.cob)+" días"}</span></div><span class="pill ${r.cob<7?"venc":"pv"}">Pedir ${r.falta} pack${r.falta===1?"":"s"}</span></li>`;
+  return `<section class="card av-sec" id="pdSug"><h3>Sugerencia de pedido <span class="pill pv">${g.rows.length}</span></h3>
+    <p class="mini" style="margin:0 18px 8px">Se calcula con lo que salió en los últimos ${g.dias} días (despachos, salidas y picking a coolers) para que alcance ${g.obj} días de venta. Es una ayuda: revísala antes de pedir.</p>
+    <div class="sg-bar"><label>Días a cubrir <input type="number" min="1" max="90" inputmode="numeric" value="${g.obj}" data-sugdias aria-label="Días a cubrir"></label>${g.rows.length?`<button class="btn soft sm" type="button" data-sugcopiar>Copiar</button><a class="btn soft sm" href="mailto:?subject=${encodeURIComponent("Pedido de reposición")}&body=${encodeURIComponent(sugTexto(g))}">Enviar por correo</a>`:""}</div>
+    ${g.rows.length?`<ul class="av-list">${g.rows.map(fila).join("")}</ul>`:`<p class="mini-empty">Con lo que hay, no falta pedir nada (o aún no hay salidas registradas).</p>`}</section>`;
+}
+
 function render(force=true){   // live data updates call render(false)
   if(/^#zona=/.test(location.hash) && S.user!==null && irAZonaHash()) return;
-  renderNav(); avRevisar();
+  renderNav(); avRevisar(); avNotificar();
   $("#cats").innerHTML = cats().map(c=>`<option value="${esc(c)}">`).join("");
   $("#bods").innerHTML = bodegas().map(b=>`<option value="${esc(b)}">`).join("");
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
@@ -4227,6 +4334,7 @@ function render(force=true){   // live data updates call render(false)
   document.body.classList.toggle("simple",!!S.simple);
   document.body.classList.toggle("scr-inv",S.screen==="inv");
   $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?avBanner()+viewHome():S.screen==="avisos"?viewAvisos():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
+  scanBotones();
   if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq","smavq","smnom"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
@@ -4473,6 +4581,7 @@ C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if((id==="smd"||id==="smh") && S.smSec){ S[id==="smd"?"smDesde":"smHasta"]=v; render(true); return; }
   if(t.dataset.usrol!==undefined){ usrGuardar(t.dataset.usrol,v); return; }
+  if(t.dataset.sugdias!==undefined){ smSet("inv-sug-dias",String(Math.max(1,Math.min(90,Math.round(+v)||14)))); render(true); return; }
   if(t.dataset.mzadds!==undefined){ if(v) mzAgregar(t.dataset.mzadds, v); return; }
   if(t.dataset.mzmvde!==undefined){ const m=(S.mzMov[t.dataset.mzmvde]=S.mzMov[t.dataset.mzmvde]||{}); m.de=v; if(m.a===v) m.a=""; render(true); return; }
   if(t.dataset.mzmva!==undefined){ (S.mzMov[t.dataset.mzmva]=S.mzMov[t.dataset.mzmva]||{}).a=v; return; }
@@ -4506,7 +4615,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "90", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "91", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
