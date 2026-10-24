@@ -107,3 +107,8 @@ Cuando el producto ya se repuso (por ejemplo al registrar una recepción), su av
 
 ## Stock que no se pisa entre equipos
 Recepciones, despachos, pickings, traspasos y entradas/salidas rápidas ya no envían el "stock final" del producto sino **solo lo que suma o resta en cada bodega** (incremento atómico de Firestore). Así, si un celular tiene datos atrasados o dos equipos mueven stock a la vez, no se borran los cambios entre sí (antes el último en guardar pisaba todo el producto). Los **conteos físicos y ajustes** siguen guardando el valor contado.
+
+## Usuarios, roles y quién hizo qué
+- Cada **movimiento, documento (recepción, despacho, picking, traspaso, pedido), aviso y producto modificado** guarda quién lo hizo (campo `por`, más `cuenta` con el correo). Se ve en la columna *Por* de Movimientos, *Registró* en Recepciones/Despachos, en el detalle de cada pedido y en los avisos.
+- En el **modo simple**, la primera vez se pregunta «¿Cómo te llamas?» (queda en ese celular; se cambia al pie de la pantalla). Sirve cuando varias personas comparten una cuenta.
+- **Roles** (colección `usuarios`, se asignan en *Bodegas → Usuarios y roles*, solo administrador): *Operario* (solo modo simple, sin opción de salir), *Coordinador* (toda la app menos la administración) y *Administrador* (los correos de `ADMINS`). Quien no tiene rol es Coordinador. Los roles ocultan funciones en la app; el permiso real del servidor sigue siendo la lista de correos de `firestore.rules`.

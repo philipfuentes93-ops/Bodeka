@@ -1066,6 +1066,8 @@ body.scr-inv .mz-add .qsearch{border:2px solid #4F666B}
 .sm-sync{font-size:1rem;font-weight:700;color:var(--ok);margin-bottom:6px}.sm-sync.mal{color:var(--danger)}
 .ov-m.bl li:has(.bq){grid-template-columns:1fr;gap:6px}.bq{display:flex;gap:8px}.bq label{display:grid;gap:2px;flex:1;font-size:.7rem;font-weight:700;color:var(--muted)}.bq .ubin{width:100%}
 .lc-lista{max-height:46vh;overflow:auto;margin:10px 0}.lc-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border-top:1px solid var(--line)}.lc-fila:first-child{border-top:0}.lc-fila small{display:block;color:var(--muted);margin-top:2px}.lc-fila input{margin-top:4px}
+.sm-nom{box-sizing:border-box;width:100%;min-height:68px;border-radius:18px;border:4px solid var(--line);background:var(--field);color:var(--ink);font-size:1.5rem;font-weight:700;padding:0 16px}
+.usr-row{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--line)}.usr-row .mini{display:block}
 </style>
 </head>
 <body>
@@ -1279,6 +1281,19 @@ function conCoolers(list){
   return {list:[...list,...nuevos], nuevos:[...cambios,...nuevos]};
 }
 const ADMINS = ["philip.fuentes93@gmail.com","pfuentesarroyo@coca-cola.com"];
+/* ---------- Usuarios y roles ----------
+   Cada cambio queda con el nombre de quien lo hizo ("por"). El nombre es el que la persona escribe en el celular (modo simple) o, si no, el de la cuenta.
+   Roles (se guardan en la colección "usuarios"; el administrador los asigna): operario = solo el modo simple; coordinador = toda la app menos la administración; administrador = todo.
+   OJO: los roles ocultan funciones en la app; los permisos reales del servidor (firestore.rules) siguen siendo la lista de correos autorizados. */
+const ROLES = {admin:"Administrador", coordinador:"Coordinador", operario:"Operario"};
+const quienDe = () => { let q=""; try{ q=(localStorage.getItem("inv-quien")||"").trim(); }catch{} return q || (S.user&&(S.user.nombre||S.user.email)) || "Este equipo"; };
+const cuentaDe = () => (S.user&&S.user.email)||"";
+const rolDe = email => ADMINS.includes(email) ? "admin" : (((S.usuarios||[]).find(u=>u.id===email)||{}).rol||"coordinador");
+function aplicarRol(){
+  const rol=S.user?rolDe(S.user.email):"admin"; S.rol=rol; esAdmin=rol==="admin"; S.soloSimple=rol==="operario";
+  if(S.soloSimple && !S.simple){ S.simple=true; try{ localStorage.setItem("inv-simple","1"); }catch{} S.screen="simple"; }
+  const em=$("#acctEmail"); if(em&&S.user) em.textContent=(S.user.nombre?S.user.email+" · ":"")+ROLES[rol];
+}
 let esAdmin = true;   // en modo local (sin Firebase) no hay otros usuarios; con Firebase se ajusta al iniciar sesión
 // bods() = bodegas donde se guarda inventario (Reposición y tránsito). Los coolers son solo un destino: no llevan stock.
 const bods = tipo => S.bodegas.filter(b=>b.activa!==false && (tipo ? b.tipo===tipo : b.tipo!=="cooler"));
@@ -1402,6 +1417,12 @@ const Store = {
     if(this.rest) return fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[{update:{name:fsName(col,id),fields:fsFields(body)}}]})}).then(()=>this.sondear()).catch(syncErr);
     return this.db.doc(col+"/"+id).set(body).catch(syncErr);
   },
+  fsMerge(col,id,body){   // actualiza solo esos campos (no pisa el resto del documento)
+    if(!this.db) return Promise.resolve();
+    if(this.rest) return fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[{update:{name:fsName(col,id),fields:fsFields(body)},updateMask:{fieldPaths:Object.keys(body)}}]})}).catch(syncErr);
+    return this.db.doc(col+"/"+id).set(body,{merge:true}).catch(syncErr);
+  },
+  registrarUsuario(){ if(S.user&&S.user.email) this.fsMerge("usuarios",S.user.email,{email:S.user.email,nombre:S.user.nombre||"",ultimo:new Date().toISOString()}); },
   fsDel(col,id){
     if(!this.db) return Promise.resolve();
     if(this.rest) return fsFetch(FS()+":commit",{method:"POST",body:JSON.stringify({writes:[{delete:fsName(col,id)}]})}).then(()=>this.sondear()).catch(syncErr);
@@ -1411,8 +1432,8 @@ const Store = {
   async sondear(){
     if(!this.db||!this.rest) return; if(this._sond){ this._otra=true; return; } this._sond=true;
     try{
-      const [p,m,d,b]=await Promise.all([fsQuery("productos"),fsQuery("movimientos","fecha",400),fsQuery("documentos","creado",500),fsQuery("bodegas")]);
-      S.productos=p.map(fixProd); S.movs=m; S.docs=d;
+      const [p,m,d,b,us]=await Promise.all([fsQuery("productos"),fsQuery("movimientos","fecha",400),fsQuery("documentos","creado",500),fsQuery("bodegas"),fsQuery("usuarios")]);
+      S.productos=p.map(fixProd); S.movs=m; S.docs=d; S.usuarios=us; aplicarRol(); if(!this._regUsr){ this._regUsr=true; this.registrarUsuario(); }
       if(b.length){ const cc=conCoolers(b); S.bodegas=ordenBodegas(cc.list); }
       setSync("ok",false,true); this.saveLocal();
       if(!this._revisado){ this._revisado=true; setTimeout(()=>this.revisarLocal(false),700); }
@@ -1547,11 +1568,11 @@ const Store = {
     let unsub=[];
     auth.onAuthStateChanged(user=>{
       unsub.forEach(u=>u()); unsub=[]; this.desactivarRest();
-      if(!user){ this.db=null; $("#login").hidden=false; $("#acct").hidden=true; $("#lPass").value=""; $("#movilAvatar").textContent="?"; $("#movilAvatar").style.backgroundImage=""; return; }
+      if(!user){ S.user=null; S.soloSimple=false; this.db=null; $("#login").hidden=false; $("#acct").hidden=true; $("#lPass").value=""; $("#movilAvatar").textContent="?"; $("#movilAvatar").style.backgroundImage=""; return; }
       $("#login").hidden=true; $("#acct").hidden=false; $("#outBtn").title=`Cerrar sesión (${user.email})`;
       $("#acctName").textContent=user.displayName||user.email;
       $("#acctEmail").textContent=user.displayName?user.email:"";
-      esAdmin = ADMINS.includes(user.email);
+      S.user={email:user.email,nombre:user.displayName||""}; aplicarRol(); this._regUsr=false;
       const inicial=(user.displayName||user.email||"?").trim()[0].toUpperCase();
       [$("#acctAv"),$("#movilAvatar")].forEach(av=>{
         if(user.photoURL){ av.style.backgroundImage=`url(${user.photoURL})`; av.textContent=""; }
@@ -1572,6 +1593,7 @@ const Store = {
           render(false);
         }
       }, denied));
+      unsub.push(db.collection("usuarios").onSnapshot(snap=>{ if(this.rest&&snap.metadata.fromCache) return; S.usuarios=snap.docs.map(d=>({id:d.id,...d.data()})); aplicarRol(); if(!this._regUsr){ this._regUsr=true; this.registrarUsuario(); } render(false); }, ()=>{}));
       unsub.push(db.collection("movimientos").orderBy("fecha","desc").limit(400).onSnapshot(snap=>{ if(this.rest&&snap.metadata.fromCache) return; S.movs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("documentos").orderBy("creado","desc").limit(500).onSnapshot(snap=>{ if(this.rest&&snap.metadata.fromCache) return; S.docs=snap.docs.map(d=>({id:d.id,...d.data()})); render(false); }, ()=>{}));
       unsub.push(db.collection("bodegas").onSnapshot(snap=>{
@@ -1589,7 +1611,7 @@ const Store = {
   async moverStock(id, delta, extra){
     const cur=S.productos.find(x=>x.id===id); if(!cur) return null;
     delta=Object.fromEntries(Object.entries(delta||{}).map(([b,n])=>[b,Math.round(+n||0)]).filter(([,n])=>n!==0));
-    const now=new Date().toISOString(), ex=extra||{}, ubic={...cur.ubic};
+    const now=new Date().toISOString(), ex={actualizadoPor:quienDe(),...(extra||{})}, ubic={...cur.ubic};
     Object.entries(delta).forEach(([b,n])=>{ ubic[b]=Math.max(0,(ubic[b]||0)+n); });
     const p=fixProd({...cur,...ex,ubic,actualizado:now});
     const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
@@ -1610,7 +1632,7 @@ const Store = {
     return p;
   },
   async putProducto(p){
-    p = fixProd(p);   // asegura ubic/packUn/stock consistentes venga de donde venga (diálogo, import, movimiento)
+    p = {...fixProd(p), actualizadoPor:quienDe()};   // asegura ubic/packUn/stock consistentes venga de donde venga (diálogo, import, movimiento)
     const {id,...body}=p;
     this.fsSet("productos",id,body);
     const i=S.productos.findIndex(x=>x.id===id); if(i>=0) S.productos[i]=p; else S.productos.push(p);
@@ -1625,12 +1647,14 @@ const Store = {
     S.movs=S.movs.filter(x=>x.id!==id); this.saveLocal();
   },
   async addMov(m, silent){
+    m={por:quienDe(),cuenta:cuentaDe(),...m};
     const {id,...body}=m;
     this.fsSet("movimientos",id,body);
     if(!S.movs.find(x=>x.id===id)) S.movs.unshift(m);
     this.saveLocal(); if(!silent) render(false);
   },
   async addDocu(d){
+    d={por:quienDe(),cuenta:cuentaDe(),...d};
     const {id,...body}=d;
     this.fsSet("documentos",id,body);
     const i=S.docs.findIndex(x=>x.id===id); if(i>=0) S.docs[i]=d; else S.docs.unshift(d);
@@ -2232,10 +2256,10 @@ function viewMovs(){
   const th=(t,c="")=>`<th class="${c}"><span>${t}</span></th>`;
   const allM=rows.length&&rows.every(m=>S.msel.has(m.id));
   const bulkM=esAdmin&&S.msel.size?`<div class="bulk"><b>${S.msel.size} seleccionado${S.msel.size===1?"":"s"}</b><button class="btn danger sm" data-mdel>Eliminar del historial</button><span class="spacer"></span><button class="link" data-mclear>Quitar selección</button></div>`:"";
-  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:860px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","c")}${th("Cantidad (un)","c")}${th("Referencia")}</tr></thead>
+  return head+`<div class="card">${bulkM}<div class="tbl-wrap"><table class="db" style="min-width:860px"><thead><tr>${esAdmin?`<th class="cb"><span><input type="checkbox" data-mselall ${allM?"checked":""} aria-label="Seleccionar todos los de esta página"></span></th>`:""}${th("Fecha")}${th("Producto")}${th("Categoría")}${th("Movimiento","c")}${th("Cantidad (packs)","c")}${th("Cantidad (un)","c")}${th("Por")}${th("Referencia")}</tr></thead>
     <tbody>${rows.map(m=>{const d=new Date(m.fecha), t=TP[m.tipo]||[m.tipo,"adj"];
       return `<tr class="${S.msel.has(m.id)?"is-sel":""}">${esAdmin?`<td class="cb"><input type="checkbox" data-msel="${m.id}" ${S.msel.has(m.id)?"checked":""} aria-label="Seleccionar movimiento de ${esc(m.nombre)}"></td>`:""}<td>${d.toLocaleDateString("es-CL")} <span class="muted">${d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}</span></td><td class="prod">${esc(m.nombre)}</td><td>${m.categoria?`<span class="catpill" style="--c:${catColor(m.categoria)}">${esc(m.categoria)}</span>`:""}</td>
-      <td class="c"><span class="pill ${t[1]} mp mp-${m.tipo}">${t[0]}</span></td><td class="c stk">${movCant(m,fmtPk(movPk(m)))}</td><td class="c stk">${movCant(m,fmt(m.cantidad))}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
+      <td class="c"><span class="pill ${t[1]} mp mp-${m.tipo}">${t[0]}</span></td><td class="c stk">${movCant(m,fmtPk(movPk(m)))}</td><td class="c stk">${movCant(m,fmt(m.cantidad))}</td><td class="muted">${esc(m.por||"")}</td><td class="prod muted" style="font-weight:400">${esc(m.nota||"")}</td></tr>`;}).join("")}</tbody></table></div>${pag}</div>`;
 }
 
 async function cambiarFotoInline(id, file){
@@ -2441,9 +2465,9 @@ function viewDocs(tipo){
   if(!ds.length) return head+`<div class="card empty">${S.docs.some(d=>d.tipo===tipo)?"Sin resultados para esa búsqueda.":`Aún no hay ${D.plural.toLowerCase()} registrad${R?"a":"o"}s.`}<div class="btns"><button class="btn brand" data-new="${tipo}">${D.nueva}</button></div></div>`;
   const tot=ds.length, pag=pager(tot), rows=ds.slice((S.page-1)*S.size,S.page*S.size);
   const th=t=>`<th><span>${t}</span></th>`;
-  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th><th class="c"><span>Opciones</span></th></tr></thead>
+  return head+`<div class="card"><div class="tbl-wrap"><table class="db" style="min-width:880px"><thead><tr>${th("Folio")}${th("Fecha")}${th("Documento")}${th(D.tercero)}${R?"":th("Solicitante")}<th class="n"><span>Productos</span></th><th class="n"><span>Packs</span></th><th class="n"><span>Unidades</span></th>${th("Registró")}<th class="c"><span>Opciones</span></th></tr></thead>
     <tbody>${rows.map(d=>`<tr><td><button class="link" data-doc="${d.id}">${esc(d.folio)}</button></td><td>${fFecha(d.fecha)}</td><td>${esc(d.docTipo)}${d.docNum?" "+esc(d.docNum):""}</td><td class="prod">${esc(d.tercero)}</td>${R?"":`<td>${esc(d.solicitante)||'<span class="muted">-</span>'}</td>`}
-      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmtPk(docPacks(d))}</td><td class="n">${fmt(d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0))}</td>
+      <td class="n">${(d.lineas||[]).length}</td><td class="n">${fmtPk(docPacks(d))}</td><td class="n">${fmt(d.unidades??(d.lineas||[]).reduce((a,l)=>a+(+l.cantidad||0),0))}</td><td class="muted">${esc(d.por||"")}</td>
       <td class="c"><div class="doc-acts"><button class="btn soft sm" data-docedit="${d.id}">Editar</button>${esAdmin?`<button class="btn danger sm" data-docdel="${d.id}">Eliminar</button>`:""}<button class="kebab" data-dmenu="${d.id}" aria-label="Más opciones de ${esc(d.folio)}" aria-haspopup="menu">⋮</button></div></td></tr>`).join("")}</tbody></table></div>${pag}</div>`;
 }
 function openDoc(id){
@@ -2660,7 +2684,7 @@ const smRuta = (orig,dest,nota) => `<div class="sm-ruta"><div class="sm-r" style
 /* ---------- inicio ---------- */
 function smLista(){
   return smCab()+`<div class="sm-nuevo-w"><button type="button" class="sm-nuevo" data-smnuevo><span aria-hidden="true">＋</span> Hacer un pedido</button></div>${smRellCtx()?`<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-rell" data-rlabrir>Rellenar picking${smRellN()?`<span class="rl-badge">${smRellN()}</span>`:""}</button></div>`:""}<div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-avis" data-avabrir>Avisos de inventario${avAlertas().length?`<span class="rl-badge">${Math.min(99,avAlertas().length)}</span>`:""}</button></div><div class="sm-nuevo-w" style="padding-top:14px"><button type="button" class="sm-ped" data-smped>Mis pedidos</button></div>`
-    +`<footer class="sm-foot"><div class="sm-sync ${(S.sync||{}).estado==="ok"?"":"mal"}">Datos: ${esc(syncTxt())}</div><button type="button" class="link" data-smsync>Actualizar datos</button><br><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smsalir>Salir del modo simple</button></footer>`;
+    +`<footer class="sm-foot"><div class="sm-sync ${(S.sync||{}).estado==="ok"?"":"mal"}">Datos: ${esc(syncTxt())}</div><button type="button" class="link" data-smsync>Actualizar datos</button><br><button type="button" class="link" data-smupd>Actualizar la app · versión ${APP_VERSION}</button><br><button type="button" class="link" data-smquiencambiar>${esc(quienDe())} · cambiar nombre</button>${S.soloSimple?"":`<br><button type="button" class="link" data-smsalir>Salir del modo simple</button>`}</footer>`;
 }
 
 /* ---------- mis pedidos: detalle fijo y listado ---------- */
@@ -2684,7 +2708,7 @@ function smCards(t){
     return `<div class="sm-card on">${smFoto(p,l.nombre)}<span class="sm-info"><span class="sm-name">${esc(l.nombre)}</span><span class="sm-qty"><b>${q.n}</b> ${q.u}${q.extra?`<small>${q.extra}</small>`:""}</span></span></div>`; }).join("");
 }
 function smDetalle(t){
-  return smBarra(esc(t.folio||"Pedido"),`Pedido de las ${smHora(t.creado)} · ${esc(smDia(t.fecha))}`,pkColor(t.ubicDestino))
+  return smBarra(esc(t.folio||"Pedido"),`Pedido de las ${smHora(t.creado)} · ${esc(smDia(t.fecha))}${t.por?` · ${esc(t.por)}`:""}`,pkColor(t.ubicDestino))
     +smRuta(t.ubicOrigen,t.ubicDestino)+`<div class="sm-cards" style="padding-top:16px">${smCards(t)}</div>`;
 }
 function smPedidos(){
@@ -2982,7 +3006,7 @@ function avFila(d){
   return `<li class="av-row"><div class="av-nm"><b>${esc(d.nombre)}</b><span class="mini">${esc(d.codigo||"")} · ${esc(pr?avDet(pr)+" packs (stock actual)":(d.detalle||""))}</span></div>
     <span class="pill ${d.motivo==="sin"||d.motivo==="vencido"?"venc":"pv"}">${AV_MOT[d.motivo]||""}</span>
     <span class="av-f">${venc?(d.vence?`Vence ${fFecha(d.vence)}`:""):(d.faltan?`Faltan ${d.faltan} pack${d.faltan===1?"":"s"}`:"")}</span>
-    <span class="av-t">${avHace(d.creado)}</span>
+    <span class="av-t">${avHace(d.creado)}${d.por?`<br>${esc(d.por)}`:""}</span>
     <span class="av-a">${d.estado==="abierto"?`<button class="btn soft sm" type="button" data-avelev="${d.id}">Elevar al coordinador</button>`:""}<button class="btn brand sm" type="button" data-avok="${d.id}">Marcar atendido</button></span></li>`;
 }
 function viewAvisos(){
@@ -3001,7 +3025,14 @@ function avClick(t){
     (navigator.clipboard?navigator.clipboard.writeText("Productos por pedir:\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); return true; }
   return false;
 }
+function smPreguntaQuien(){
+  return smCab()+`<div class="sm-vacio" style="padding-top:36px"><h1 class="sm-h" style="margin:0 0 10px">¿Cómo te llamas?</h1><p class="sm-p">Tu nombre queda en cada pedido y aviso que hagas.</p></div>
+    <div style="padding:0 18px"><input id="smnom" class="sm-nom" type="text" maxlength="40" autocomplete="off" placeholder="Escribe tu nombre" aria-label="Tu nombre"></div>
+    <div class="sm-fin" style="position:static"><button type="button" class="sm-btn lista" data-smquien>Continuar</button><button type="button" class="sm-btn2" data-smquienomitir>Usar solo la cuenta (${esc((S.user&&(S.user.nombre||S.user.email))||"este equipo")})</button></div>`;
+}
 function viewSimple(){
+  let nombre="",omitir=""; try{ nombre=localStorage.getItem("inv-quien")||""; omitir=localStorage.getItem("inv-quien-omitir")||""; }catch{}
+  if(!nombre && !omitir && !S.smQuienOk) return smPreguntaQuien();
   if(S.smAv) return smAvisosView();
   if(S.smRell) return smRellView();
   if(S.smPed) return smPedido();
@@ -3015,6 +3046,7 @@ function smBip(){ try{ navigator.vibrate&&navigator.vibrate(25); const A=window.
   const c=smBip.c||(smBip.c=new A()), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); }catch{} }
 function smActivar(){ S.simple=true; smSet("inv-simple","1"); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; S.smAv=null; go({go:"simple"}); }
 function smSalir(){
+  if(S.soloSimple){ toast("Tu rol solo usa el modo simple."); return; }
   if(!confirm("¿Salir del modo simple en este equipo?")) return;
   S.simple=false; smSet("inv-simple",null); S.smSec=false; S.smVer=null; S.smUlt=null; S.smPed=null; S.smRell=null; S.smAv=null;
   try{ history.replaceState(null,"",location.pathname+location.search); }catch{}
@@ -3080,6 +3112,9 @@ function smClick(t){
     }
     if(S.smVer) S.smVer=null; else { S.smSec=false; S.smUlt=null; }
     return go1(); }
+  if(t.closest("[data-smquien]")){ const v=(document.querySelector("#smnom")||{}).value||""; if(!v.trim()){ toast("Escribe tu nombre."); return true; } try{ localStorage.setItem("inv-quien",v.trim()); localStorage.removeItem("inv-quien-omitir"); }catch{} return go1(); }
+  if(t.closest("[data-smquienomitir]")){ try{ localStorage.setItem("inv-quien-omitir","1"); }catch{} S.smQuienOk=true; return go1(); }
+  if(t.closest("[data-smquiencambiar]")){ try{ localStorage.removeItem("inv-quien"); localStorage.removeItem("inv-quien-omitir"); }catch{} S.smQuienOk=false; return go1(); }
   if(t.closest("[data-smsync]")){ Store.reconectar(); return true; }
   if(t.closest("[data-smupd]")){ buscarActualizacion(); return true; }
   if(t.closest("[data-smsalir]")){ smSalir(); return true; }
@@ -3946,6 +3981,21 @@ async function exportarInv(){
 }
 
 /* ---------- Bodegas (admin) ---------- */
+/* --- usuarios y roles (administrador) --- */
+function viewUsuarios(){
+  const mapa=new Map(ADMINS.map(e=>[e,{id:e,email:e}])); (S.usuarios||[]).forEach(u=>mapa.set(u.id,{...(mapa.get(u.id)||{}),...u}));
+  const us=[...mapa.values()];
+  return `<div class="card usr-card" style="margin-top:14px"><div class="card-h">Usuarios y roles</div>
+    <p class="mini" style="margin:4px 18px 10px">Cada persona aparece aquí la primera vez que entra. <b>Operario</b>: solo el modo simple. <b>Coordinador</b>: toda la app menos la administración. <b>Administrador</b>: todo. Para que un correo nuevo pueda entrar, además hay que agregarlo en la lista de <code>firestore.rules</code>.</p>
+    ${us.map(u=>`<div class="usr-row"><div><b>${esc(u.nombre||u.email)}</b><span class="mini">${esc(u.email||u.id)}${u.ultimo?` · último ingreso ${avHace(u.ultimo)}`:""}</span></div>
+      ${ADMINS.includes(u.id)?'<span class="pill ok" style="min-width:0">Administrador</span>':`<select class="mz-sel" data-usrol="${esc(u.id)}" aria-label="Rol de ${esc(u.email||u.id)}">${Object.entries(ROLES).map(([k,n])=>`<option value="${k}" ${rolDe(u.id)===k?"selected":""}>${n}</option>`).join("")}</select>`}</div>`).join("")}
+    <div style="padding:12px 18px"><button class="btn soft sm" type="button" data-usradd>+ Agregar usuario por correo</button></div></div>`;
+}
+function usrGuardar(email,rol){
+  email=String(email||"").trim().toLowerCase(); if(!email||!/^\S+@\S+$/.test(email)) { toast("Escribe un correo válido."); return; }
+  const u=(S.usuarios||[]).find(x=>x.id===email); if(u) u.rol=rol; else (S.usuarios=S.usuarios||[]).push({id:email,email,rol});
+  Store.fsMerge("usuarios",email,{email,rol}).then(()=>{ toast(`${email}: ${ROLES[rol]}`); }); aplicarRol(); render(true);
+}
 function viewBodegas(){
   if(!esAdmin) return `<div class="ph"><h1>Bodegas</h1></div><div class="card empty">Solo un administrador puede gestionar las bodegas.</div>`;
   const stockDe=b=>packsBod(b);
@@ -3963,7 +4013,7 @@ function viewBodegas(){
     <div class="card" style="margin-bottom:14px">${grupo("reposicion","Reposición")}</div>
     <div class="card" style="margin-bottom:14px">${grupo("picking","Picking · tránsito")}</div>
     <details class="card cool-det" style="margin-bottom:14px"><summary>Destinos de picking (coolers, sin inventario)</summary>${grupo("cooler","Coolers")}</details>
-    ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}`;
+    ${archivadas.length?`<div class="card"><div class="card-h">Archivadas</div>${archivadas.map(fila).join("")}</div>`:""}${viewUsuarios()}`;
 }
 let editBodId=null;
 function openBod(id){
@@ -3998,13 +4048,13 @@ function render(force=true){   // live data updates call render(false)
   const ae=document.activeElement, aid=ae&&ae.id; let sel=null; try{ sel=ae&&ae.selectionStart; }catch{}
   if((S.screen==="form"||(S.screen==="picking"&&S.pkTab==="nuevo")) && !force) return;   // don't wipe a document being typed when live data arrives
   if(!force && S.ubBusy) return;   // escribiendo en una casilla de stock: no redibujar
-  if(!force && S.screen==="simple" && ae && ae.id==="smq") return;   // escribiendo en el buscador del pedido
+  if(!force && S.screen==="simple" && ae && (ae.id==="smq"||ae.id==="smnom")) return;   // escribiendo en el buscador del pedido
   if(!force && S.screen==="inv" && (S.mpCnt || (S.invVista==="inventario" && mapaDe(S.bodegas.find(x=>x.id===S.invBod))))) return;   // contando en el mapa: no perder lo que se teclea
   if(!force && ae && ae.dataset && ae.dataset.ef!==undefined) return;   // same for inline editing
   document.body.classList.toggle("simple",!!S.simple);
   document.body.classList.toggle("scr-inv",S.screen==="inv");
   $("#content").innerHTML = S.screen==="simple"?viewSimple():S.screen==="home"?avBanner()+viewHome():S.screen==="avisos"?viewAvisos():S.screen==="movs"?viewMovs():S.screen==="recep"?viewDocs("recepcion"):S.screen==="desp"?viewDocs("despacho"):S.screen==="picking"?viewPicking():S.screen==="bodegas"?viewBodegas():S.screen==="inv"?viewInv():S.screen==="form"&&S.form?viewForm():viewTabla();
-  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq","smavq"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
+  if(aid && (["fq","mq","dq","iq","pick","pkPick","gq","mpq","mpadd","smq","mzpq","smavq","smnom"].includes(aid) || aid.startsWith("mpadd-") || aid.startsWith("ef-"))){ const el=$("#"+aid); if(el && el!==document.activeElement){ el.focus(); try{ if(sel!=null) el.setSelectionRange(sel,sel);}catch{} } }
 }
 function go(d){
   if(S.simple) d={go:"simple"};   // en modo simple no hay otras pantallas
@@ -4119,6 +4169,7 @@ C.addEventListener("click",e=>{
   if(mzClick(t)) return;
   if(smClick(t)) return;
   if(avClick(t)) return;
+  if(t.closest("[data-usradd]")){ const e=prompt("Correo de la persona:"); if(e){ const r=prompt("Rol (operario, coordinador o admin):","operario"); const k=String(r||"").trim().toLowerCase(); usrGuardar(e, k==="admin"||k==="administrador"?"admin":k==="coordinador"?"coordinador":"operario"); } return; }
   const cr=t.closest("[data-invcopiarrepo]"); if(cr){ const b=S.bodegas.find(x=>x.id===cr.dataset.invcopiarrepo); if(b){ const l=S.productos.filter(p=>faltaBod(p,b)>0).map(p=>`• ${p.nombre}: pedir ${Math.ceil(faltaBod(p,b)-1e-9)} pack${Math.ceil(faltaBod(p,b)-1e-9)===1?"":"s"} (hay ${fmtPk(ubPk(p,b.id))}, máximo ${fmtPk(maxBod(p,b)||minBod(p,b))})`).join("\n"); (navigator.clipboard?navigator.clipboard.writeText("Para reponer "+b.nombre+":\n"+l):Promise.reject()).then(()=>toast("Lista copiada")).catch(()=>toast("No se pudo copiar")); } return; }
   const tb=t.closest("[data-tab]"); if(tb && !tb.closest("[data-go]")) return setTab(tb.dataset.tab);
   const g=t.closest("[data-go]"); if(g) return go(g.dataset);
@@ -4240,6 +4291,7 @@ C.addEventListener("keydown",e=>{
 C.addEventListener("change",e=>{
   const t=e.target, id=t.id, v=t.value;
   if((id==="smd"||id==="smh") && S.smSec){ S[id==="smd"?"smDesde":"smHasta"]=v; render(true); return; }
+  if(t.dataset.usrol!==undefined){ usrGuardar(t.dataset.usrol,v); return; }
   if(t.dataset.mzadds!==undefined){ if(v) mzAgregar(t.dataset.mzadds, v); return; }
   if(t.dataset.mzmvde!==undefined){ const m=(S.mzMov[t.dataset.mzmvde]=S.mzMov[t.dataset.mzmvde]||{}); m.de=v; if(m.a===v) m.a=""; render(true); return; }
   if(t.dataset.mzmva!==undefined){ (S.mzMov[t.dataset.mzmva]=S.mzMov[t.dataset.mzmva]||{}).a=v; return; }
@@ -4273,7 +4325,7 @@ document.addEventListener("change", e=>{
   }
 }, true);
 /* Número de versión: súbelo en cada publicación (se ve en el menú para comprobar qué versión tiene cada equipo). */
-const APP_VERSION = "85", APP_FECHA = "19 oct 2026";
+const APP_VERSION = "86", APP_FECHA = "19 oct 2026";
 let buscarActualizacion = () => location.reload();   // se reemplaza más abajo por la versión que compara con lo publicado
 /* ---------- Aviso de "Actualización disponible" ----------
    Mientras la app está abierta compara el index.html publicado con el que cargó. Si cambió, muestra un aviso grande:
